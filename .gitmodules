@@ -1,0 +1,4 @@
+[submodule "bk_avdk"]
+	path = bk_avdk
+	url = ../bk_avdk_ai.git
+	branch = ai_release/v2.0.1
