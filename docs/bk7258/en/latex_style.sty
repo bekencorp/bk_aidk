@@ -1,0 +1,46 @@
+\nonstopmode
+\usepackage[document]{ragged2e}
+\usepackage[utf8x]{inputenc}
+\usepackage{fontenc}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\parindent 2em
+\setcounter{tocdepth}{3}
+\renewcommand\familydefault{\ttdefault}
+\renewcommand\CJKfamilydefault{\CJKrmdefault}
+\usepackage{graphicx}
+\usepackage{tocloft}
+\renewcommand\cftfignumwidth{4em}
+\renewcommand\cfttabnumwidth{4em}
+\renewcommand\cftsecnumwidth{4em}
+\renewcommand\cftsubsecnumwidth{6em}
+\renewcommand\cftparanumwidth{6em}
+\newcommand{\sectionbreak}{\clearpage}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{linkcolorSet}{RGB}{0, 76, 155}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkcolorSet,
+  filecolor=magenta,
+  urlcolor=blue,
+  citecolor=black,
+  breaklinks=true,
+  plainpages=false,
+  pdfpagelabels=true,
+  pdfstartpage=1,
+  pdfpagemode=None,
+  pdfborder={0 0 0},
+  backref=true
+}
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm,
+}
+\usepackage{longtable}
+\usepackage{booktabs}
+\setlength{\tabcolsep}{5pt}

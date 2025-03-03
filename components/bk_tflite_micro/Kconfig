@@ -1,0 +1,5 @@
+menu "TFLite Micro"
+	config TFLITE_MICRO
+		bool "Enable TFLite Micro"
+		default n
+endmenu

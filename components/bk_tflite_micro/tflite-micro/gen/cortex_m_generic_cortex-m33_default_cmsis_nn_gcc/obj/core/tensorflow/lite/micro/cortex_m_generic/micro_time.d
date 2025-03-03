@@ -1,0 +1,24 @@
+gen/cortex_m_generic_cortex-m33_default_cmsis_nn_gcc/obj/core/tensorflow/lite/micro/cortex_m_generic/micro_time.o: \
+ tensorflow/lite/micro/cortex_m_generic/micro_time.cc \
+ tensorflow/lite/micro/micro_time.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/c++/13.2.1/cstdint \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi/thumb/v8-m.main+fp/hard/bits/c++config.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi/thumb/v8-m.main+fp/hard/bits/os_defines.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi/thumb/v8-m.main+fp/hard/bits/cpu_defines.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/c++/13.2.1/pstl/pstl_config.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/lib/gcc/arm-none-eabi/13.2.1/include/stdint.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/stdint.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/machine/_default_types.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/sys/features.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/_newlib_version.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/sys/_intsup.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/arm-none-eabi/include/sys/_stdint.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/Cortex_DFP/Device/ARMCM33/Include/ARMCM33.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/core_cm33.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/cmsis_version.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/cmsis_compiler.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/cmsis_gcc.h \
+ /home/ling.zhou/workspace/bk_ai_release_2.0.1/components/bk_tflite_micro/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gcc_embedded/lib/gcc/arm-none-eabi/13.2.1/include/arm_acle.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/m-profile/cmsis_gcc_m.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/m-profile/armv8m_mpu.h \
+ tensorflow/lite/micro/tools/make/downloads/cmsis/Cortex_DFP/Device/ARMCM33/Include/system_ARMCM33.h

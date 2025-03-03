@@ -1,0 +1,25 @@
+menu "Beken Wanson ASR"
+
+	config BEKEN_WANSON_ASR
+		depends on WANSON_ASR
+		bool "Enable bk_wanson_asr component"
+		default n
+
+	config BEKEN_WANSON_ASR_TEST
+		depends on BEKEN_WANSON_ASR && AUDIO_RECORD
+		bool "Enable bk_wanson_asr component test case"
+		default n
+
+	choice BEKEN_WANSON_ASR_USE_MEMORY
+		depends on BEKEN_WANSON_ASR
+		prompt "Select beken wanson asr use memory"
+		default BEKEN_WANSON_ASR_USE_PSRAM
+
+		config BEKEN_WANSON_ASR_USE_SRAM
+		bool "Enable beken wanson asr use sram"
+
+		config BEKEN_WANSON_ASR_USE_PSRAM
+		bool "Enable beken wanson asr use psram"
+	endchoice
+
+endmenu
