@@ -25,6 +25,7 @@
 #if (CONFIG_SYS_CPU0)
 #include "agora_config.h"
 #include "aud_intf.h"
+#include "bk_factory_config.h"
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
@@ -74,6 +75,12 @@ static const struct cli_command s_agora_rtc_commands[] =
     {"bk_smart_config_erase", "bk_smart_config_erase", bk_genie_smart_config_cli}
 #endif
 };
+
+#if (CONFIG_SYS_CPU0)
+const struct factory_config_t s_user_config[] = {
+    {"user_key1", "user_value1"},
+};
+#endif
 
 static int agora_rtc_cli_init(void)
 {
@@ -183,6 +190,10 @@ static void handle_system_event(key_event_t event)
             BK_LOGW(TAG, "Start to config network!");
             bk_genie_prepare_for_smart_config();
             break;
+        case FACTORY_RESET:
+            BK_LOGW(TAG, "trigger factory config reset\r\n");
+            bk_factory_reset();
+            break;
         // 其他事件处理...
         default:
             break;
@@ -209,7 +220,7 @@ KeyConfig_t key_config[] = {
             .active_level = LOW_LEVEL_TRIGGER,
             .short_event = AI_AGENT_CONFIG,
             .double_event = AI_AGENT_CONFIG,
-            .long_event = AI_AGENT_CONFIG
+            .long_event = FACTORY_RESET
         }
 };
 
@@ -295,8 +306,12 @@ int main(void)
 #endif
         bk_init();
 
-    /*to judgement key is long press or short press; long press exit deepsleep*/
     #if (CONFIG_SYS_CPU0)
+        bk_regist_factory_user_config((const struct factory_config_t *)&s_user_config,
+                                        sizeof(s_user_config)/sizeof(s_user_config[0]));
+        bk_factory_init();
+
+    /*to judgement key is long press or short press; long press exit deepsleep*/
 
         if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
         {

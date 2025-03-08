@@ -19,6 +19,7 @@ set(EXTRA_COMPONENTS_DIRS
 	$ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
 	$ENV{ARMINO_PATH}/../components/bk_thirdparty/asr/wanson
 	$ENV{ARMINO_PATH}/../../components/bk_wanson_asr
+	$ENV{ARMINO_PATH}/../../components/bk_factory_config
 	$ENV{ARMINO_PATH}/../../properties/bk_aidk_private
     )
 
