@@ -210,7 +210,7 @@ static void bk_genie_message_handle(void)
                         bk_genie_save_agent_info(app_id_record, channel_name_record);
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
-                        led_set_mode(40, LED_MODE_OFF);
+                        led_app_set(LED_OFF_RED);
                         network_pair_stop_timeout_check();
                     }
                     break;

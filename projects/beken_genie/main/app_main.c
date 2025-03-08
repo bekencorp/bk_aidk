@@ -179,7 +179,7 @@ static void handle_system_event(key_event_t event)
             break;
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!");
-
+            led_app_set(LED_FAST_BLINK_RED);
             bk_genie_prepare_for_smart_config();
             break;
         // 其他事件处理...
@@ -267,10 +267,9 @@ static void bk_wait_power_on()
     
     if (press_time < LONG_RRESS_TIMR)
     {
-        BK_LOGI(TAG, "key is short press, enter deep sleep again\r\n");
         bk_key_register_wakeup_source();
         bk_enter_deepsleep();
-    }
+    } 
 
 }
 #endif
@@ -329,6 +328,8 @@ int main(void)
 #if CONFIG_NETWORK_AUTO_RECONNECT
         bk_genie_smart_config_init();
 #endif
+
+        led_driver_init();
 
         register_event_handler(handle_system_event);
 

@@ -7,23 +7,47 @@ extern "C" {
 
 
 #include <stdint.h>
+#include <os/os.h>
 
-#define BLINK_INTERVAL_MS    500 // blinking time interval
+#define MAX_LED_NUM  4
+#define RED_LED      40
+#define GREEN_LED      41
+typedef enum {
+    LED_OFF = 0, //off 
+    LED_ON,      //on
+    LED_FAST_BLINK,   //fast blinking
+    LED_SLOW_BLINK,   // slow blinking
+    LED_ALTERNATE
+} LedState;
+
+typedef struct {
+    uint8_t gpio_num;       // GPIO编号
+    LedState state;         // 当前状态
+    beken_timer_t timer;    // 定时器句柄
+    uint32_t interval;      // 当前闪烁间隔
+    bool led_status;        // 当前物理状态
+    int alt_partner;        // 绑定组
+} LedControlBlock;
+
 typedef enum
 {
-    LED_MODE_OFF = 0, //off
-    LED_MODE_ON,      //on
-    LED_MODE_BLINK    //blinking
-} LedMode;
+    LED_OFF_GREEN,
+    LED_ON_GREEN,
+    LED_FAST_BLINK_GREEN,
+    LED_SLOW_BLINK_GREEN,
 
-//led init
-int led_service_init(uint8_t led_id, uint32_t blink_interval_ms);
+    LED_OFF_RED,
+    LED_ON_RED,
+    LED_FAST_BLINK_RED,
+    LED_SLOW_BLINK_RED,
 
-/*According to the input led_id, set the LED working mode, which has three states: always on,
-off, and blinking. The blinking time is controlled by BLINK_INTERVAL_MS*/
-void led_set_mode(uint8_t led_id, LedMode mode);
+    LED_REG_GREEN_ALTERNATE,
+    LED_REG_GREEN_ALTERNATE_OFF,
+}led_operate_t;
 
+void led_driver_init();
 
+void led_app_set(led_operate_t oper);
 
 #ifdef __cplusplus
 }

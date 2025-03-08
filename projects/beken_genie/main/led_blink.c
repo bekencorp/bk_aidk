@@ -6,84 +6,243 @@
 #include <driver/hal/hal_gpio_types.h>
 #include "gpio_driver.h"
 #include <led_blink.h>
+#include <string.h>
 
-#define BTI1_MASK (1<<1)
+static LedControlBlock led_pool[MAX_LED_NUM];
+static beken_mutex_t led_mutex = NULL;
 
-beken_timer_t g_led_timer;
-volatile uint8_t s_led_blink_enable = 0;
-static uint8_t is_led_first_enter = 1;
-static uint8_t s_led_id = 0;
-static uint8_t timer_initialized = 0;
+typedef struct {
+    int led1;          // 第一个LED句柄
+    int led2;          // 第二个LED句柄
+    beken_timer_t timer; // 共享定时器
+    uint32_t interval;  // 交替间隔
+    bool current_state; // 当前主导状态
+} AlternateGroup;
+static AlternateGroup s_alt_group;
 
-void gpio_toggle(uint32_t gpio_id)
-{
-    if (is_led_first_enter)
+int led1 = 0;
+int led2 = 0;
+
+
+static int led_register(uint8_t gpio);
+
+static void led_set_state(int led_handle, LedState new_state);
+
+static void led_unregister(int led_handle);
+
+static void led_set_alternate(int led1, int led2, uint32_t interval_ms);
+
+static void alternate_timer_cb(void *arg) {
+    rtos_lock_mutex(&led_mutex);
+    
+    // 交替状态
+    s_alt_group.current_state = !s_alt_group.current_state;
+    
+    // 更新LED1状态
+    LedControlBlock* led1 = &led_pool[s_alt_group.led1];
+    led1->led_status = s_alt_group.current_state;
+
+    if (led1->led_status == 0)
     {
-        bk_gpio_set_value(s_led_id, 0x2);
-        is_led_first_enter = 0;
+        bk_gpio_set_value(led1->gpio_num,0x0);
+    } else {
+        bk_gpio_set_value(led1->gpio_num,0x2);
     }
-    else
+    // 更新LED2状态（取反）
+    LedControlBlock* led2 = &led_pool[s_alt_group.led2];
+    led2->led_status = !s_alt_group.current_state;
+    if (led2->led_status == 0)
     {
-        uint32_t current_value = bk_gpio_get_value(gpio_id);
-        current_value ^= BTI1_MASK;
-        bk_gpio_set_value(s_led_id, current_value);
+        bk_gpio_set_value(led2->gpio_num,0x0);
+    } else {
+        bk_gpio_set_value(led2->gpio_num,0x2);
+    }
+    
+    rtos_unlock_mutex(&led_mutex);
+}
+
+//设置交替闪
+void led_set_alternate(int led1, int led2, uint32_t interval_ms) {
+    // 参数校验
+    if(led1 == led2 || led1 <0 || led2 <0 || 
+       led1 >= MAX_LED_NUM || led2 >= MAX_LED_NUM) return;
+    
+    rtos_lock_mutex(&led_mutex);
+    
+    // 配置交替组
+    s_alt_group.led1 = led1;
+    s_alt_group.led2 = led2;
+    s_alt_group.interval = interval_ms;
+    
+    // 初始化LED状态
+    led_pool[led1].state = LED_ALTERNATE;
+    led_pool[led2].state = LED_ALTERNATE;
+    led_pool[led1].alt_partner = led2;
+    led_pool[led2].alt_partner = led1;
+    
+    // 创建/重置定时器
+    
+    rtos_init_timer(&s_alt_group.timer,interval_ms, alternate_timer_cb, NULL);
+    
+    // 强制设置初始状态
+    s_alt_group.current_state = true;
+    bk_gpio_set_value(led_pool[led1].gpio_num, 0x2);
+    bk_gpio_set_value(led_pool[led2].gpio_num, 0x0);
+
+    rtos_start_timer(&s_alt_group.timer);
+    
+    rtos_unlock_mutex(&led_mutex);
+}
+
+static void timer_callback(void *arg) {
+    int led_id = (int)arg;
+    LedControlBlock* led = &led_pool[led_id];
+    
+    if(led->state == LED_FAST_BLINK || led->state == LED_SLOW_BLINK){
+        led->led_status = !led->led_status;
+        if (led->led_status == 1)
+        {
+            bk_gpio_set_value(led->gpio_num,0x2);
+        } else {
+            bk_gpio_set_value(led->gpio_num,0x0);
+        }
+        
     }
 }
 
-void vLedCallback(void *param1)
-{
-
-    if (s_led_blink_enable)
-    {
-        gpio_toggle(s_led_id);
-    }
-}
-
-int led_service_init(uint8_t led_id, uint32_t blink_interval_ms)
-{
-
-    if (timer_initialized)
-    {
-        os_printf("led timer has inited \r\n");
-        return 0;
-    }
-
-    if (rtos_init_timer(&g_led_timer, blink_interval_ms, vLedCallback, NULL) != kNoErr)
-    {
-        os_printf("rtos_init_timer fail\r\n");
-        return -1;
-    }
-    s_led_id = led_id;
-    timer_initialized = 1;
-    return 0;
+void led_driver_init() {
+    int ret = rtos_init_mutex(&led_mutex);
+    BK_ASSERT(kNoErr == ret);
+    memset(led_pool, 0, sizeof(led_pool));
+    led1 = led_register(RED_LED);
+    led2 = led_register(GREEN_LED);
 }
 
 
-void led_set_mode(uint8_t led_id, LedMode mode)
-{
-    if (led_id != s_led_id)
-    {
-        return;
+int led_register(uint8_t gpio) {
+    rtos_lock_mutex(&led_mutex);
+     // 查找空闲控制块
+    for(int i=0; i<MAX_LED_NUM; i++){
+        if(led_pool[i].gpio_num == 0){
+            led_pool[i].gpio_num = gpio;
+            rtos_init_timer(&led_pool[i].timer,100, timer_callback, (void*)i);
+            rtos_unlock_mutex(&led_mutex);
+            return i; // 返回LED句柄
+        }
     }
+    
+    rtos_unlock_mutex(&led_mutex);
+    return -1; // 注册失败
+}
 
-    switch (mode)
-    {
-        case LED_MODE_OFF:
-            s_led_blink_enable = 0;
-            rtos_stop_timer(&g_led_timer);
-            bk_gpio_set_value(s_led_id, 0x0);
+
+void led_set_state(int led_handle, LedState new_state) {
+    if(led_handle < 0 || led_handle >= MAX_LED_NUM) return;
+
+    rtos_lock_mutex(&led_mutex);
+    LedControlBlock* led = &led_pool[led_handle];
+
+    if(led->state == LED_ALTERNATE && new_state != LED_ALTERNATE) {
+        // 停止交替定时器
+        if(s_alt_group.led1 == led_handle || 
+            s_alt_group.led2 == led_handle) {
+            rtos_stop_timer(&s_alt_group.timer);
+        }
+        // 解除伙伴关系
+        if(led->alt_partner != -1) {
+            led_pool[led->alt_partner].alt_partner = -1;
+            led->alt_partner = -1;
+        }
+    }
+    // 状态转换处理
+    switch (new_state) {
+        case LED_OFF:
+            rtos_stop_timer(&led->timer);
+            bk_gpio_set_value(led->gpio_num,0x0);
             break;
-        case LED_MODE_ON:
-            s_led_blink_enable = 0;
-            rtos_stop_timer(&g_led_timer);
-            bk_gpio_set_value(s_led_id, 0x2);
+            
+        case LED_ON:
+            rtos_stop_timer(&led->timer);
+            bk_gpio_set_value(led->gpio_num,0x2);
             break;
-        case LED_MODE_BLINK:
-            s_led_blink_enable = 1;
-            rtos_start_timer(&g_led_timer);
+            
+        case LED_FAST_BLINK:
+           
+            rtos_change_period(&led->timer, 200);
+            rtos_start_timer(&led->timer);
             break;
+            
+        case LED_SLOW_BLINK:
+            
+            rtos_change_period(&led->timer, 1000);
+            rtos_start_timer(&led->timer);
+            break;
+
         default:
-            // 处理未支持模式
+            break;
+        
+    }
+    
+    led->state = new_state;
+    rtos_unlock_mutex(&led_mutex);
+}
+
+void led_unregister(int led_handle) {
+    if(led_handle < 0 || led_handle >= MAX_LED_NUM) return;
+    
+    rtos_lock_mutex(&led_mutex);
+    rtos_deinit_timer(&led_pool[led_handle].timer);
+    memset(&led_pool[led_handle], 0, sizeof(LedControlBlock));
+    rtos_unlock_mutex(&led_mutex);
+}
+
+void led_app_set(led_operate_t oper)
+{
+    switch(oper)
+    {
+        case LED_OFF_GREEN:
+            led_set_state(led2,LED_OFF);
+            break;
+
+        case LED_ON_GREEN:
+            led_set_state(led2,LED_ON);
+            break;
+
+        case LED_FAST_BLINK_GREEN:
+            led_set_state(led2,LED_FAST_BLINK);
+            break;
+
+        case LED_SLOW_BLINK_GREEN:
+            led_set_state(led2,LED_SLOW_BLINK);
+            break;
+
+        case LED_OFF_RED:
+            led_set_state(led1,LED_OFF);
+            break;
+
+        case LED_ON_RED:
+            led_set_state(led1,LED_ON);
+            break;
+
+        case LED_FAST_BLINK_RED:
+            led_set_state(led1,LED_FAST_BLINK);
+            break;
+
+        case LED_SLOW_BLINK_RED:
+            led_set_state(led1,LED_SLOW_BLINK);
+            break;
+
+        case LED_REG_GREEN_ALTERNATE:
+            led_set_alternate(led1,led2,500);
+            break;
+
+        case LED_REG_GREEN_ALTERNATE_OFF:
+            led_set_state(led1,LED_OFF);
+            led_set_state(led2,LED_OFF);
+            break;
+
+        default:
             break;
     }
+
 }

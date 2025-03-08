@@ -260,11 +260,7 @@ void event_handler_init(void)
 extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
-    if (led_service_init(40, BLINK_INTERVAL_MS) != 0)
-    {
-        return;
-    }
-    led_set_mode(40, LED_MODE_BLINK);
+    led_app_set(LED_FAST_BLINK_RED);
     smart_config_running = true;
     network_pair_stop_timeout_check();
     agora_stop();
