@@ -243,6 +243,7 @@ static void bk_enter_deepsleep()
     bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
 	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
 	bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
+    rtos_delay_milliseconds(10);
 }
 
 static void bk_wait_power_on()
