@@ -266,12 +266,12 @@ static void bk_wait_power_on()
             break;
         }
     } while (press_time < LONG_RRESS_TIMR);
-    
+
     if (press_time < LONG_RRESS_TIMR)
     {
         bk_key_register_wakeup_source();
         bk_enter_deepsleep();
-    } 
+    }
 
 }
 #endif
@@ -300,7 +300,7 @@ int main(void)
 
         if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
         {
-            
+
             bk_wait_power_on();
         }
     #endif
@@ -340,8 +340,8 @@ int main(void)
         bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
 
 #if CONFIG_BAT_MONITOR
-        extern void charging_detect_init(void);
-        charging_detect_init();
+        extern void battery_monitor_init(void);
+        battery_monitor_init();
 #endif
 #endif
 
