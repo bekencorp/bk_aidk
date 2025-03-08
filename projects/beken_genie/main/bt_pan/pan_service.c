@@ -109,14 +109,16 @@ void bt_pan_service_main(void *arg)
                     if (p == NULL)
                     {
                         LOGI("Failed to allocate pbuf\r\n");
-                        return;
+                        os_free(msg.data);
+                        break;
                     }
 
-                    if (p_data->payload_len > p->len - sizeof(struct eth_hdr))
+                    if (p_data->payload_len < 0 || p_data->payload_len > p->len - sizeof(struct eth_hdr))
                     {
-                        LOGI("Payload too large for pbuf\r\n");
+                        LOGI("Payload too large or invalid for pbuf\r\n");
                         pbuf_free(p);
-                        return;
+                        os_free(msg.data);
+                        break;
                     }
 
                     ethhdr = (struct eth_hdr *)p->payload;
@@ -129,7 +131,8 @@ void bt_pan_service_main(void *arg)
                     {
                         LOGI("Network interface is not ready\r\n");
                         pbuf_free(p);
-                        return;
+                        os_free(msg.data);
+                        break;
                     }
                     os_memcpy(p->payload + sizeof(struct eth_hdr), p_data->payload, p_data->payload_len);
 
@@ -141,6 +144,8 @@ void bt_pan_service_main(void *arg)
                 break;
 
                 default:
+                    LOGD("Unknown message type: %d\r\n", msg.type);
+                    os_free(msg.data);
                     break;
             }
         }
@@ -260,6 +265,13 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 #endif
 #if CONFIG_NET_PAN
                 pan_ip_start();
+#endif
+            }
+            else
+            {
+#if CONFIG_NET_PAN
+                LOGD("PAN not connected!\r\n");
+                pan_ip_down();
 #endif
             }
         }
