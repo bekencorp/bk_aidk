@@ -305,7 +305,7 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
     return ret;
 }
 
-static bk_err_t video_turn_off(void)
+bk_err_t video_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
@@ -396,7 +396,7 @@ fail:
     return BK_FAIL;
 }
 
-static bk_err_t audio_turn_off(void)
+bk_err_t audio_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);

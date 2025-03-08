@@ -138,9 +138,11 @@ void volume_decrease()
 void power_off()
 {
     BK_LOGI(TAG, " power_off\r\n");
-
-
     BK_LOGW(TAG, " ************TODO:Just force deep sleep for Demo!\r\n");
+	extern bk_err_t audio_turn_off(void);
+	extern bk_err_t video_turn_off(void);
+	audio_turn_off();
+	video_turn_off();
     bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
 }
 
@@ -233,9 +235,9 @@ static void bk_key_register_wakeup_source()
 static void bk_enter_deepsleep()
 {
     #if CONFIG_GSENSOR_ENABLE
-        extern bk_err_t gsensor_demo_lowpower_wakeup();
-        gsensor_demo_lowpower_wakeup();
-        rtos_delay_milliseconds(50);
+		extern bk_err_t gsensor_demo_lowpower_wakeup();
+		gsensor_demo_lowpower_wakeup();
+		rtos_delay_milliseconds(50);
     #endif
 
 	bk_printf("RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
