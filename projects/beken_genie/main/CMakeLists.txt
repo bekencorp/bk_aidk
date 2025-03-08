@@ -16,15 +16,20 @@ list(APPEND srcs
     boarding_service/wifi_boarding_utils.c
     agora_debug.c
     led_blink.c
-    bt_pan/bt_manager.c
-    bt_pan/pan_service.c
-    bt_pan/pan_demo_cli.c
-    bt_pan/storage/bluetooth_storage.c
     countdown.c
 )
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
    smart_config/bk_genie_smart_config.c
+)
+endif()
+if (CONFIG_NET_PAN)
+list(APPEND srcs
+    bt_pan/bt_manager.c
+    bt_pan/pan_service.c
+    bt_pan/pan_demo_cli.c
+    bt_pan/storage/bluetooth_storage.c
+    bt_pan/bt_comm_list.c
 )
 endif()
 endif()

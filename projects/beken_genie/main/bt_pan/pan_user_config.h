@@ -25,3 +25,6 @@
 #define CONFIG_PAGE_TIMEOUT  16000   //unit of 0.625ms
 #define CONFIG_RECONN_INTERVAL  2000   //unit of 1ms
 
+#define CONFIG_NB_ACL_BUFF  4
+#define CONFIG_MAX_TX_CACHE_COUNT  200
+

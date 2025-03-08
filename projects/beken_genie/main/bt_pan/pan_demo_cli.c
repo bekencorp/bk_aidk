@@ -1,5 +1,6 @@
 #include "cli.h"
 #include "components/bluetooth/bk_dm_pan.h"
+#include "pan_service.h"
 
 static void pan_usage(void)
 {
@@ -182,6 +183,10 @@ static void cmd_pan_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
         {
             goto __usage;
         }
+    }
+    else if (os_strcmp(argv[1], "txmem") == 0)
+    {
+        pan_show_tx_data_cache_count();
     }
     else
     {

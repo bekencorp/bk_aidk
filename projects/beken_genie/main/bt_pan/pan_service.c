@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "pan_service.h"
-
+#include "bt_comm_list.h"
 #include "components/bluetooth/bk_dm_bluetooth_types.h"
 #include "components/bluetooth/bk_dm_bt_types.h"
 #include "components/bluetooth/bk_dm_bt.h"
@@ -26,10 +26,30 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+
+//#define PAN_GPIO_DEBUG   //GPIO debug
+
+#ifdef PAN_GPIO_DEBUG
+#define PAN_NET_OUTPUT()           do { GPIO_UP(32); GPIO_DOWN(32);} while (0)
+#define PAN_TX()                   do { GPIO_UP(33); GPIO_DOWN(33);} while (0)
+#define PAN_NET_INPUT_START()      do { GPIO_DOWN(34); GPIO_UP(34);} while (0)
+#define PAN_NET_INPUT_END()        do { GPIO_DOWN(34); } while (0)
+#define PAN_TX_DONE()              do { GPIO_UP(35); GPIO_DOWN(35);} while (0)
+#else
+#define PAN_NET_OUTPUT()
+#define PAN_TX()
+#define PAN_NET_INPUT_START()
+#define PAN_NET_INPUT_END()
+#define PAN_TX_DONE()
+#endif
+
+
 enum
 {
     BT_PAN_MSG_NULL = 0,
     BT_PAN_DATA_IND_MSG = 1,
+    BT_PAN_TX_DONE_IND_MSG = 2,
+    BT_PAN_TX_MSG = 3,
 };
 
 typedef struct
@@ -43,6 +63,40 @@ static beken_queue_t bt_pan_service_msg_que = NULL;
 static beken_thread_t bt_pan_service_thread_handle = NULL;
 uint8_t paired_bt_mac[6] = { 0 };
 uint8_t s_pan_state = BK_BTPAN_STATE_DISCONNECTED;
+
+uint8_t s_acl_buf_count = CONFIG_NB_ACL_BUFF;
+
+static bt_comm_list_t *s_pan_tx_list = NULL;
+static void *s_pan_tx_lock = NULL;
+
+void pan_show_tx_data_cache_count(void)
+{
+    LOGI("%s, %d\r\n",__func__, s_pan_tx_list->length);
+}
+
+static int pan_push_tx_data_to_list(void *data, uint16_t len)
+{
+    int ret = 0;
+
+    if (s_pan_tx_list->length > CONFIG_MAX_TX_CACHE_COUNT)
+    {
+        LOGE("the tx cache count exceeds the limit(%d), discard the tx data!!!\r\n",CONFIG_MAX_TX_CACHE_COUNT);
+        return -1;
+    }
+
+    uint8_t *p_data = (uint8_t *)psram_malloc(len);
+    if (p_data)
+    {
+        os_memcpy(p_data, data, len);
+        bt_comm_list_append(s_pan_tx_list, p_data);
+    }
+    else
+    {
+        LOGE("%s, psram_malloc failed!!!\r\n",__func__);
+        ret = -1;
+    }
+    return ret;
+}
 
 void bt_start_pan_reconnect(void)
 {
@@ -136,16 +190,36 @@ void bt_pan_service_main(void *arg)
                     }
                     os_memcpy(p->payload + sizeof(struct eth_hdr), p_data->payload, p_data->payload_len);
 
+                    PAN_NET_INPUT_START();
                     panif_input(netif, p);
+                    PAN_NET_INPUT_END();
 #endif
 
                     os_free(msg.data);
                 }
                 break;
 
+                case BT_PAN_TX_DONE_IND_MSG:
+                {
+                    s_acl_buf_count++;
+                }
+                case BT_PAN_TX_MSG:
+                {
+                    if (s_acl_buf_count && (!bt_comm_list_is_empty(s_pan_tx_list)))
+                    {
+                        PAN_TX();
+                        rtos_lock_mutex(&s_pan_tx_lock);
+                        eth_data_t *eth_data = bt_comm_list_front(s_pan_tx_list);
+                        s_acl_buf_count--;
+                        bk_bt_pan_write(paired_bt_mac, eth_data);
+                        bt_comm_list_remove(s_pan_tx_list, eth_data);
+                        rtos_unlock_mutex(&s_pan_tx_lock);
+                    }
+                }
+                break;
+
                 default:
                     LOGD("Unknown message type: %d\r\n", msg.type);
-                    os_free(msg.data);
                     break;
             }
         }
@@ -237,6 +311,52 @@ void bt_pan_media_data_ind(eth_data_t *data)
     }
 }
 
+void bt_pan_tx_done_ind(void)
+{
+    bt_pan_service_msg_t service_msg;
+    int rc = -1;
+
+    os_memset(&service_msg, 0x0, sizeof(bt_pan_service_msg_t));
+
+    if (bt_pan_service_msg_que == NULL)
+    {
+        return;
+    }
+
+    service_msg.type = BT_PAN_TX_DONE_IND_MSG;
+    service_msg.len = 0;
+
+    rc = rtos_push_to_queue(&bt_pan_service_msg_que, &service_msg, BEKEN_NO_WAIT);
+
+    if (kNoErr != rc)
+    {
+        LOGE("%s, send queue failed\r\n", __func__);
+    }
+}
+
+void bt_pan_trigger_tx(void)
+{
+    bt_pan_service_msg_t service_msg;
+    int rc = -1;
+
+    os_memset(&service_msg, 0x0, sizeof(bt_pan_service_msg_t));
+
+    if (bt_pan_service_msg_que == NULL)
+    {
+        return;
+    }
+
+    service_msg.type = BT_PAN_TX_MSG;
+    service_msg.len = 0;
+
+    rc = rtos_push_to_queue(&bt_pan_service_msg_que, &service_msg, BEKEN_NO_WAIT);
+
+    if (kNoErr != rc)
+    {
+        LOGE("%s, send queue failed\r\n", __func__);
+    }
+}
+
 static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 {
     LOGD("%s event: %d\r\n", __func__, event);
@@ -273,6 +393,13 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
                 LOGD("PAN not connected!\r\n");
                 pan_ip_down();
 #endif
+                if (s_pan_tx_list)
+                {
+                    rtos_lock_mutex(&s_pan_tx_lock);
+                    bt_comm_list_clear(s_pan_tx_list);
+                    rtos_unlock_mutex(&s_pan_tx_lock);
+                    s_acl_buf_count = CONFIG_NB_ACL_BUFF;
+                }
             }
         }
         break;
@@ -286,6 +413,8 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
         case BK_PAN_WRITE_DATA_CNF_EVT:
         {
             LOGD("PAN WRITE DATA CNF\r\n");
+            PAN_TX_DONE();
+            bt_pan_tx_done_ind();
         }
         break;
 
@@ -312,6 +441,8 @@ static void pan_output(struct netif *netif, struct pbuf *p)
 
     ethhdr = (struct eth_hdr *)p->payload;
 
+    PAN_NET_OUTPUT();
+
     eth_data_t *p_eth_data = os_malloc(sizeof(eth_data_t) + p->tot_len);
     if (p_eth_data == NULL)
     {
@@ -335,14 +466,14 @@ static void pan_output(struct netif *netif, struct pbuf *p)
     p_eth_data->payload_len = p->tot_len;
     os_memcpy(p_eth_data->payload, (uint8_t *)p->payload + sizeof(struct eth_hdr), p_eth_data->payload_len);
 
+    //LOGI("data %d\r\n",p->tot_len);
+
     if (BK_BTPAN_STATE_CONNECTED == s_pan_state)
     {
-        if (bk_bt_pan_write(paired_bt_mac, p_eth_data) != 0)
-        {
-
-            os_free(p_eth_data);
-            return;
-        }
+        rtos_lock_mutex(&s_pan_tx_lock);
+        pan_push_tx_data_to_list(p_eth_data, sizeof(eth_data_t) + p->tot_len);
+        rtos_unlock_mutex(&s_pan_tx_lock);
+        bt_pan_trigger_tx();
     }
     else
     {
@@ -379,6 +510,13 @@ int pan_service_init(void)
     bk_panif_register_callback(pan_output);
 #endif
     cli_pan_demo_init();
+
+    s_pan_tx_list = bt_comm_list_new();
+    if (!s_pan_tx_list)
+    {
+        LOGE("%s, s_pan_tx_list failed to new!\r\n", __func__);
+    }
+    rtos_init_mutex(&s_pan_tx_lock);
 
     return 0;
 }
