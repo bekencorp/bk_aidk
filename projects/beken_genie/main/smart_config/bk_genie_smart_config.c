@@ -155,6 +155,10 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 		os_memset((char *)info_tmp.ap_pwd, 0x0, 65);
 		os_strcpy((char *)info_tmp.ap_ssid, (char *)ap_config->ssid);
 		os_strcpy((char *)info_tmp.ap_pwd, (char *)ap_config->password);
+#if CONFIG_NET_PAN
+	} else if (type == NETIF_IF_PAN) {
+		info_tmp.flag |= 0x74l;
+#endif
 	} else
 		return -1;
 #if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
@@ -174,11 +178,11 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
     {
         case EVENT_NETIF_GOT_IP4:
             got_ip = (netif_event_got_ip4_t *)event_data;
-            BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "unknown netif", got_ip->ip);
+            BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
             if (smart_config_running)
             {
                 bk_wifi_sta_get_config(&sta_config);
-                demo_save_network_auto_restart_info(NETIF_IF_STA, &sta_config);
+                demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
                 msg.event = DBEVT_WIFI_STATION_CONNECTED;
                 bk_genie_send_msg(&msg);
 
