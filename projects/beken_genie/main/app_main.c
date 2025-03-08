@@ -180,11 +180,6 @@ static void handle_system_event(key_event_t event)
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!");
 
-            if (led_service_init(40, BLINK_INTERVAL_MS) != 0)
-            {
-                break;
-            }
-            led_set_mode(40, LED_MODE_BLINK);
             bk_genie_prepare_for_smart_config();
             break;
         // 其他事件处理...

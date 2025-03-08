@@ -15,6 +15,7 @@
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "cli.h"
 #include "bk_genie_smart_config.h"
+#include "led_blink.h"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -208,6 +209,7 @@ static void bk_genie_message_handle(void)
                         bk_genie_save_agent_info(app_id_record, channel_name_record);
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
+                        led_set_mode(40, LED_MODE_OFF);
                     }
                     break;
                 }

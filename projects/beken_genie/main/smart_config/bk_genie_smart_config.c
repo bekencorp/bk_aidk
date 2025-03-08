@@ -31,6 +31,7 @@
 #include "bk_ef.h"
 #endif
 #include "pan_service.h"
+#include "led_blink.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -207,6 +208,11 @@ void event_handler_init(void)
 extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
+    if (led_service_init(40, BLINK_INTERVAL_MS) != 0)
+    {
+        return;
+    }
+    led_set_mode(40, LED_MODE_BLINK);
     smart_config_running = true;
     agora_stop();
     demo_erase_network_auto_reconnect_info();
