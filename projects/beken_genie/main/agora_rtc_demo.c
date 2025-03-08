@@ -94,7 +94,7 @@ static media_camera_device_t camera_device =
 
 static beken_thread_t  agora_thread_hdl = NULL;
 static beken_semaphore_t agora_sem = NULL;
-static bool agora_runing = false;
+bool agora_runing = false;
 static agora_rtc_config_t agora_rtc_config = DEFAULT_AGORA_RTC_CONFIG();
 static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 

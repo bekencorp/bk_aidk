@@ -210,6 +210,7 @@ static void bk_genie_message_handle(void)
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
                         led_set_mode(40, LED_MODE_OFF);
+                        network_pair_stop_timeout_check();
                     }
                     break;
                 }

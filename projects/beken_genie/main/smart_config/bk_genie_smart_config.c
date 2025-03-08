@@ -42,6 +42,54 @@ extern char *app_id_record;
 static bool smart_config_running = false;
 char *app_id_record = NULL;
 char *channel_name_record = NULL;
+static beken2_timer_t network_pair_tmr = {0};
+extern bool agora_runing;
+
+void network_pair_check_status(void)
+{
+    if (!agora_runing) {
+        BK_LOGI(TAG,"network pairing timeout!\n");
+        bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
+    }
+}
+
+void network_pair_start_timeout_check(void)
+{
+  bk_err_t err = kNoErr;
+  uint32_t clk_time;
+
+  clk_time = 5*60*1000;	//5min
+
+  if (rtos_is_oneshot_timer_init(&network_pair_tmr)) {
+     BK_LOGI(TAG,"pair network status timer reload\n");
+    rtos_oneshot_reload_timer(&network_pair_tmr);
+  } else {
+    err = rtos_init_oneshot_timer(&network_pair_tmr, clk_time, (timer_2handler_t)network_pair_check_status, NULL, NULL);
+    BK_ASSERT(kNoErr == err);
+
+    err = rtos_start_oneshot_timer(&network_pair_tmr);
+    BK_ASSERT(kNoErr == err);
+     BK_LOGI(TAG,"pair network status timer:%d\n", clk_time);
+  }
+
+  return;
+}
+
+
+void network_pair_stop_timeout_check(void)
+{
+  bk_err_t ret = kNoErr;
+
+  if (rtos_is_oneshot_timer_init(&network_pair_tmr)) {
+    if (rtos_is_oneshot_timer_running(&network_pair_tmr)) {
+      ret = rtos_stop_oneshot_timer(&network_pair_tmr);
+      BK_ASSERT(kNoErr == ret);
+    }
+
+    ret = rtos_deinit_oneshot_timer(&network_pair_tmr);
+    BK_ASSERT(kNoErr == ret);
+  }
+}
 
 int is_wifi_sta_auto_restart_info_saved(void)
 {
@@ -214,6 +262,7 @@ void bk_genie_prepare_for_smart_config(void)
     }
     led_set_mode(40, LED_MODE_BLINK);
     smart_config_running = true;
+    network_pair_stop_timeout_check();
     agora_stop();
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
@@ -221,6 +270,7 @@ void bk_genie_prepare_for_smart_config(void)
 #if CONFIG_NET_PAN
     bk_bt_enter_pairing_mode();
 #endif
+    network_pair_start_timeout_check();
 }
 
 int bk_genie_smart_config_init(void)
