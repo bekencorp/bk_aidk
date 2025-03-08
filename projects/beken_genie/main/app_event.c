@@ -15,6 +15,7 @@
 #include "led_blink.h"
 
 #include "countdown.h"
+#include "components/bluetooth/bk_dm_bluetooth.h"
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 #include "aud_intf.h"
@@ -159,8 +160,17 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
                     led_app_set(LED_SLOW_BLINK_RED);
                     break;
+
                 case APP_EVT_CHARGING:
                     led_app_set(LED_OFF_RED);
+                    break;
+
+                case APP_EVT_WIFI_GOTIP:
+                    LOGI("APP_EVT_WIFI_GOTIP\n");
+                    break;
+                case APP_EVT_CLOSE_BLUETOOTH:
+                    LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
+                    bk_bluetooth_deinit();
                     break;
                 default:
                     break;

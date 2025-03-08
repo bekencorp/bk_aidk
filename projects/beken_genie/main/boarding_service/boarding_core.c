@@ -17,6 +17,7 @@
 #include "bk_genie_smart_config.h"
 #include "led_blink.h"
 #include "pan_service.h"
+#include "app_event.h"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -211,6 +212,7 @@ static void bk_genie_message_handle(void)
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
                         network_pair_stop_timeout_check();
+                        app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
                     }
                     break;
                 }

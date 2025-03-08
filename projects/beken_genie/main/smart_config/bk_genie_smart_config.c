@@ -40,7 +40,7 @@
 #define POST_DATA_MAX_SIZE  1024
 #define MAX_URL_LEN         256
 extern char *app_id_record;
-static bool smart_config_running = false;
+bool smart_config_running = false;
 char *app_id_record = NULL;
 char *channel_name_record = NULL;
 static beken2_timer_t network_pair_tmr = {0};
@@ -48,10 +48,16 @@ extern bool agora_runing;
 
 void network_pair_check_status(void)
 {
+  if (smart_config_running == false)
+  {
+    BK_LOGI(TAG,"reconnect timeout!\n");
+    app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+  } else {
     if (!agora_runing) {
-        BK_LOGI(TAG,"network pairing timeout!\n");
-        bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
+    BK_LOGI(TAG,"network pairing timeout!\n");
+    bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
     }
+  }
 }
 
 void network_pair_start_timeout_check(void)
@@ -122,6 +128,8 @@ int demo_network_auto_reconnect(void)
 #endif
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if (info.flag == 0x71l) {
+		network_pair_stop_timeout_check();
+		network_pair_start_timeout_check();
 		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
 	}
@@ -182,6 +190,7 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
         case EVENT_NETIF_GOT_IP4:
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
+            app_event_send_msg(APP_EVT_WIFI_GOTIP, 0);
             if (smart_config_running)
             {
                 bk_wifi_sta_get_config(&sta_config);

@@ -12,6 +12,8 @@ typedef enum
     APP_EVT_AGENT_OFFLINE,
     APP_EVT_LOW_VOLTAGE,
     APP_EVT_CHARGING,
+    APP_EVT_WIFI_GOTIP,
+    APP_EVT_CLOSE_BLUETOOTH,
 } app_evt_type_t;
 
 

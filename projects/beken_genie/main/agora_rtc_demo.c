@@ -100,6 +100,7 @@ static agora_rtc_config_t agora_rtc_config = DEFAULT_AGORA_RTC_CONFIG();
 static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 
 static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
+extern bool smart_config_running;
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -131,6 +132,7 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
             app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
+            smart_config_running = false;
             break;
         case AGORA_RTC_MSG_USER_OFFLINE:
             LOGI("User Offline.\n");
