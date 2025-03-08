@@ -72,7 +72,7 @@ Beken Genie AI
 
         响应词为 ``A Ha``
 
-    2. ``byebye armino``用于关闭，本地端侧和云端AI互动，同时关闭LCD，眼睛动画不再展示。
+    2. ``byebye armino`` 用于关闭，本地端侧和云端AI互动，同时关闭LCD，眼睛动画不再展示。
 
         响应词为 ``Byebye``
 
@@ -144,6 +144,14 @@ Beken Genie AI
     |CONFIG_AGORA_IOT_SDK                    |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
 
+    打开Beken配网及agent启动需要在 ``cpu0`` 上打开以下配置:
+
+    +----------------------------------------+----------------+---------------+----------------+
+    |Kconfig                                 |   CPU          |   Format      |      Value     |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+
 3. 演示说明
 ---------------------------------
 
@@ -176,6 +184,9 @@ Beken Genie AI
 3.3 APP注册和下载
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
+    APP下载：https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_download/index.html
+
+    注册登录：使用邮箱注册登录
 
 
 3.4 固件烧录和资源文件烧录
@@ -191,24 +202,124 @@ Beken Genie AI
 3.5 操作步骤
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-	1.在PC端打开Agora AI Agent
-	 - PC端发送post指令启动Agora AI Agent  参考 `Beken AI Agent启动文档 <../../thirdparty/agora/index.html#ai-agent>`_
+3.5.1 Beken App配网方式
++++++++++++++++++++++++++++++++++
 
-	2.设备端wifi连接
+    a)手机进入如下界面，按照图片步骤操作
+
+    .. figure:: ../../../_static/add_ai_device_1.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_2.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_3.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_4.png
+        :scale: 30%
+
+    b)手机开始BLE扫描后，长按下图配网键3s，板子进入配网模式
+
+    .. figure:: ../../../_static/add_ai_device_8.png
+        :scale: 70%
+
+    c)手机端扫到如下设备，点击设备开始配网
+
+    .. figure:: ../../../_static/add_ai_device_5.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_6.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_7.png
+        :scale: 30%
+
+    d)对着板子说“hi armino”后，就可以开启和AI的对话。
+
+      对着板子说“byebye armino”后，可以结束和AI的对话。
+
+
+3.5.1 命令行方式
++++++++++++++++++++++++++++++++++
+
+1.在PC端打开Agora AI Agent
+     - PC端发送post指令启动Agora AI Agent  参考 `Beken AI Agent启动文档 <../../thirdparty/agora/index.html#ai-agent>`_
+
+     可以参考如下格式，appid、restful_key及xxx需要客户自行填写
+
+.. code::
+
+    curl --location --request POST 'https://api.agora.io/api/conversational-ai-agent/v2/projects/{appid}/join' --header 'Content-Type: application/json' --header 'Authorization: Basic {restful_key}' --data-raw '{
+        "name": "channel_name",
+        "properties": {
+            "channel": "channel_name",
+            "token": "xxx",
+            "agent_rtc_uid": "1234",
+            "remote_rtc_uids": [
+                "123"
+            ],
+            "advanced_features": {
+                "enable_bhvs": true,
+                "enable_aivad": false
+            },
+            "parameters": {
+                "enable_dump": true,
+                "output_audio_codec": "G722"
+            },
+            "enable_string_uid": false,
+            "idle_timeout": 0,
+            "llm": {
+                "url": "xxx",
+                "api_key": "xxx",
+                "system_messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful chatbot."
+                }
+                ],
+                "max_history": 10,
+                "greeting_message": "Merry Christmas, how can I assist you today?",
+                "failure_message": "I am sorry!",
+                "params": {
+                    "model": "gpt-4o-mini"
+                }
+            },
+            "tts": {
+                "vendor": "bytedance",
+                "params": {
+                    "token": "xxx",
+                    "app_id": "xxx",
+                    "cluster": "volcano_tts",
+                    "speed_ratio": 1.0,
+                    "volume_ratio": 10.0,
+                    "pitch_ratio": 1.0,
+                    "emotion": "happy"
+                }
+            },
+            "asr": {
+                "language": "zh-CN",
+                "vendor": "tencent"
+            }
+        }
+    }'
+
+
+2.设备端wifi连接
 	 - demo板发送指令 ``sta test xxxxxx`` 连接2.4GHz名为test的热点
 
-	3.启动设备端进入AI对话频道
+3.启动设备端进入AI对话频道
 	 - demo板发送指令 ``agora_test start appid 0 channel_name`` 加入指定的AI对话频道并打开音频通路
 
         其中appid和channel_name需要替换成实际值，参考 `Beken声网注册文档 <../../thirdparty/agora/index.html#id1>`_
 
-	4.唤醒设备端，进行AI对话
+4.唤醒设备端，进行AI对话
 	 - 对板载mic说唤醒词 ``hi armino`` ，设备唤醒后会播放提示音 ``啊哈`` ，然后可以进行AI对话
 
-	5.退出设备端与AI的对话
+5.退出设备端与AI的对话
 	 - 对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
 
-	6.设备端离开AI对话频道
+6.设备端离开AI对话频道
 	 - demo板发送指令 ``agora_test stop`` 离开AI对话频道并关闭音频通路
 
 
