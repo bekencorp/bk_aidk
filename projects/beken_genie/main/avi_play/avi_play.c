@@ -311,9 +311,17 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 #endif
 
 #if (CONFIG_SYS_CPU0)
+static uint8_t lvgl_app_init_flag = 0;
+
 void lvgl_app_init(void)
 {
     bk_err_t ret;
+
+    if (lvgl_app_init_flag == 1)
+    {
+        LOGW("lvgl_app_init has inited\r\n");
+        return;
+    }
 
     ret = media_app_lvgl_open((lcd_open_t *)&lcd_open);
     if (ret != BK_OK)
@@ -321,11 +329,19 @@ void lvgl_app_init(void)
         LOGE("media_app_lvgl_open failed\r\n");
         return;
     }
+
+    lvgl_app_init_flag = 1;
 }
 
 void lvgl_app_deinit(void)
 {
     bk_err_t ret;
+
+    if (lvgl_app_init_flag == 0)
+    {
+        LOGW("lvgl_app_deinit has deinited or init failed\r\n");
+        return;
+    }
 
     ret = media_app_lvgl_close();
     if (ret != BK_OK)
@@ -333,6 +349,8 @@ void lvgl_app_deinit(void)
         LOGE("media_app_lvgl_close failed\r\n");
         return;
     }
+
+    lvgl_app_init_flag = 0;
 }
 
 #endif
