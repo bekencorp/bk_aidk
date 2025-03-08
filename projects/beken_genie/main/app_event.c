@@ -110,6 +110,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
                 case APP_EVT_ASR_STANDBY:
                     LOGI("APP_EVT_ASR_STANDBY\n");
+                    led_app_set(LED_SLOW_BLINK_GREEN);
                     lvgl_app_deinit();
                     start_countdown();
                     break;
@@ -159,6 +160,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     led_app_set(LED_SLOW_BLINK_RED);
                     break;
                 case APP_EVT_CHARGING:
+                    led_app_set(LED_OFF_RED);
                     break;
                 default:
                     break;
