@@ -16,6 +16,7 @@
 #include "cli.h"
 #include "bk_genie_smart_config.h"
 #include "led_blink.h"
+#include "pan_service.h"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -398,6 +399,20 @@ static void bk_genie_message_handle(void)
                 case DBEVT_EXIT:
                     goto exit;
                     break;
+
+                case DBEVT_NET_PAN_REQUEST:
+                {
+                    LOGI("DBEVT_NET_PAN_REQUEST\n");
+                    int status = 1;
+#if CONFIG_NET_PAN
+                    bk_bt_enter_pairing_mode();
+                    status = 0;
+#endif
+                    uint8_t bt_mac[6];
+                    bk_get_mac(bt_mac, MAC_TYPE_BLUETOOTH);
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_NET_PAN_START, status, (char *)bt_mac, 6);
+                }
+                break;
 
                 default:
                     break;

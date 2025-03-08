@@ -331,6 +331,15 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
 
         }
         break;
+
+        case BOARDING_OP_NET_PAN_START:
+        {
+            bk_genie_msg_t msg;
+
+            msg.event = DBEVT_NET_PAN_REQUEST;
+            bk_genie_send_msg(&msg);
+        }
+        break;
     }
 }
 

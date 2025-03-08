@@ -267,9 +267,6 @@ void bk_genie_prepare_for_smart_config(void)
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
     wifi_boarding_adv_start();
-#if CONFIG_NET_PAN
-    bk_bt_enter_pairing_mode();
-#endif
     network_pair_start_timeout_check();
 }
 
