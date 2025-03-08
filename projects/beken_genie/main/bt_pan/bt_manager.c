@@ -60,7 +60,7 @@ void bt_stop_reconnect_timeout_check(void)
 void bk_bt_enter_pairing_mode(void)
 {
     bt_stop_reconnect_timeout_check();
-
+    LOGI("%s, state %d\r\n",__func__,btm_env.connect_state);
     if (BT_STATE_RECONNECTING == btm_env.connect_state)
     {
         btm_env.manual_enter_pairing = 1;
@@ -426,11 +426,13 @@ int bt_manager_register_callback(btm_callback_s *cb)
             btm_cbs[i].gap_cb == NULL
             && btm_cbs[i].start_connect_cb == NULL
             && btm_cbs[i].stop_connect_cb == NULL
+            && btm_cbs[i].start_disconnect_cb == NULL
         )
         {
             btm_cbs[i].gap_cb = cb->gap_cb;
             btm_cbs[i].start_connect_cb = cb->start_connect_cb;
             btm_cbs[i].stop_connect_cb = cb->stop_connect_cb;
+            btm_cbs[i].start_disconnect_cb = cb->start_disconnect_cb;
             return i;
         }
     }
