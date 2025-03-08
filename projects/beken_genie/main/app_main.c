@@ -303,6 +303,11 @@ int main(void)
         }
     #endif
 
+    //led init move before
+    #if (CONFIG_SYS_CPU0)
+        led_driver_init();
+    #endif
+
         media_service_init();
 
 #if (CONFIG_SYS_CPU0)
@@ -329,11 +334,9 @@ int main(void)
         bk_genie_smart_config_init();
 #endif
 
-        led_driver_init();
-
         register_event_handler(handle_system_event);
-
         bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
+
 #if CONFIG_BAT_MONITOR
         extern void charging_detect_init(void);
         charging_detect_init();
