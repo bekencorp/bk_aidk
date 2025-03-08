@@ -595,6 +595,22 @@ static void dm_ble_gap_common_cb(bk_ble_gap_cb_event_t event, bk_ble_gap_cb_para
         }
         break;
 
+    case BK_BLE_GAP_EXT_ADV_SET_RAND_ADDR_COMPLETE_EVT:
+    {
+        struct ble_adv_set_rand_addr_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
+        {
+            wboard_loge("set adv rand addr err %d", pm->status);
+        }
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore( &s_ble_sema );
+        }
+    }
+    break;
+
         case BK_BLE_GAP_EXT_ADV_PARAMS_SET_COMPLETE_EVT:
         {
             struct ble_adv_params_set_cmpl_evt_param *pm = (typeof(pm))param;
@@ -754,7 +770,10 @@ int wifi_boarding_adv_start(void)
 
     os_memcpy(current_addr, identity_addr, sizeof(identity_addr));
 
-    snprintf((char *)(adv_name), sizeof(adv_name) - 1, "bk_genie-%02X%02X%02X", identity_addr[2], identity_addr[1], identity_addr[0]);
+    current_addr[5] |= 0xc0;
+    current_addr[0]++;
+
+    snprintf((char *)(adv_name), sizeof(adv_name) - 1, "bk_genie-%02X%02X%02X", current_addr[2], current_addr[1], current_addr[0]);
 
     wboard_logi("adv name %s", adv_name);
 
@@ -777,7 +796,7 @@ int wifi_boarding_adv_start(void)
         .secondary_phy = BK_BLE_GAP_PHY_1M,
         .sid = 0,
         .scan_req_notif = 0,
-        .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+        .own_addr_type = BLE_ADDR_TYPE_RANDOM,//BLE_ADDR_TYPE_PUBLIC,
     };
 
     ret =  bk_ble_gap_set_adv_params(ADV_HANDLE, &adv_param);
@@ -793,6 +812,22 @@ int wifi_boarding_adv_start(void)
     if (ret != kNoErr)
     {
         wboard_loge("wait set adv param err %d", ret);
+        goto error;
+    }
+
+    ret = bk_ble_gap_set_adv_rand_addr(ADV_HANDLE, current_addr);
+
+    if (ret)
+    {
+        wboard_loge("bk_ble_gap_set_adv_rand_addr err %d", ret);
+        goto error;
+    }
+
+    ret = rtos_get_semaphore(&s_ble_sema, SYNC_CMD_TIMEOUT_MS);
+
+    if (ret != kNoErr)
+    {
+        wboard_loge("wait set adv rand addr err %d", ret);
         goto error;
     }
 
