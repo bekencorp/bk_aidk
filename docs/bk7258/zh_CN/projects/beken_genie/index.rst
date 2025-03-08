@@ -100,17 +100,15 @@ Beken Genie AI
     * 方案中，设备端采集图像，通过agora sdk将每帧图像发送至声网服务器，声网服务器再将图像送至AI Agent大模型进行识别。
 
 
-2.2 函数关系图
+2.2 配网及对话时序图
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-    如下图所示，方案使用的多媒体的接口，都定义在 **media_app.h** 和 **aud_intf.h** 中。
-
-.. figure:: ../../../_static/agora_wanson_ai_sw_relationship_diag.png
+.. figure:: ../../../_static/demo_flow_sequence.png
     :align: center
-    :alt: relationship diagram Overview
+    :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 3. module relationship diagram
+    Figure 3. Operation Flow Sequence
 
 
 2.3 工作状态机
@@ -133,8 +131,9 @@ Beken Genie AI
     10 LCD off
     13/14/15 Red light flashes quickly
 
+
 2.4 主要配置
----------------------------------
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 	打开声网功能库需要在 ``cpu0`` 上打开以下配置:
 
@@ -151,6 +150,81 @@ Beken Genie AI
     +----------------------------------------+----------------+---------------+----------------+
     |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
+
+
+2.5 关键代码说明
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+2.5.1 配网相关代码
++++++++++++++++++++++++++++++++++
+
+ 配网相关代码主要分布在bk_genie_smart_config.c及boarding_core.c，如下函数客户可选择替换成自己方案，其余均可follow beken方案
+
+1、bk_genie_smart_config_init负责配网相关初始化及开机自动重连判定
+
+.. code::
+
+    int bk_genie_smart_config_init(void)
+    {
+        int flag;
+
+        event_handler_init();
+        flag = demo_network_auto_reconnect();   //判断是否保存过配网信息及发起重连
+        if (flag != 0x71l && flag != 0x73l
+    #if CONFIG_NET_PAN
+            && flag != 0x74l
+    #endif
+        ) {
+            bk_genie_prepare_for_smart_config();    //未保存过配网信息，自动进入配网模式
+        }
+        return 0;
+    }
+
+
+2、bk_genie_prepare_for_smart_config进入配网模式，客户可根据需求更改
+
+.. code::
+
+    void bk_genie_prepare_for_smart_config(void)
+    {
+        smart_config_running = true;
+        app_event_send_msg(APP_EVT_PAIRING_NETWORK, 0); //进入配网模式红绿交替闪灯提示
+        network_pair_stop_timeout_check();              //关闭配网超时检测
+        agora_stop();                                   //关闭声网设备端服务
+        demo_erase_network_auto_reconnect_info();       //擦除AP信息
+        bk_genie_erase_agent_info();                    //擦除agent相关信息，若客户使用自己的服务，可以删除这段代码，自己控制
+        wifi_boarding_adv_start();                      //BLE广播，进入配网模式
+        network_pair_start_timeout_check();             //开启配网超时检测
+    }
+
+
+3、bk_genie_message_handle负责和手机app通过BLE交互配网信息，如下代码客户可disable，使用自己的agent方案
+
+.. code::
+
+    static void bk_genie_message_handle(void)
+    {
+            ……
+        case DBEVT_START_AGORA_AGENT_START:
+        {
+            ……
+            //上传module uid，若客户自行搭建服务器，可以不用这段代码
+            ……
+        }
+        break;
+        case DBEVT_START_AGORA_AGENT_RSP:
+        {
+            ……
+            //接收服务器分配的channel name，若客户自行搭建服务器，可以不用这段代码
+            ……
+        }
+        break;
+            ……
+    }
+
+4、bk_genie_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户需替换成自己方案
+
+5、bk_genie_erase_agent_info、bk_genie_save_agent_info、bk_genie_get_agent_info、bk_genie_wakeup_agent均是beken agent后台维护方案，客户需替换成自己方案
 
 3. 演示说明
 ---------------------------------
@@ -235,9 +309,9 @@ Beken Genie AI
     .. figure:: ../../../_static/add_ai_device_7.png
         :scale: 30%
 
-    d)对着板子说“hi armino”后，就可以开启和AI的对话。
+    d)对板载mic说唤醒词 ``hi armino`` ，设备唤醒后会播放提示音 ``啊哈`` ，然后可以进行AI对话
 
-      对着板子说“byebye armino”后，可以结束和AI的对话。
+      对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
 
 
 3.5.1 命令行方式
@@ -387,3 +461,5 @@ Beken Genie AI
     +----------------+--------+-------------------------------------------------+
     |stop            |  必填  | 参数，关闭当前RTC Channel连接                   |
     +----------------+--------+-------------------------------------------------+
+
+
