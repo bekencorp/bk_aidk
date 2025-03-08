@@ -333,6 +333,10 @@ int main(void)
         register_event_handler(handle_system_event);
 
         bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
+#if CONFIG_BAT_MONITOR
+        extern void charging_detect_init(void);
+        charging_detect_init();
+#endif
 #endif
 
 #if CONFIG_USBD_MSC
