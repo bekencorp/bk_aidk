@@ -113,17 +113,15 @@ The design includes reference solutions and demos for common peripherals, such a
     * Each frame of the image is sent to Agora's servers via the Agora SDK.
     * The server then transmits the image to the AI Agent large model for recognition.
 
-2.2 Function diagram
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2.2 Network Provisioning and Communication
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-    As shown in the figure below, the interfaces of the multimedia used in the scheme are all defined in media_app.h and aud_intf.h.
-
-.. figure:: ../../../_static/agora_wanson_ai_sw_relationship_diag.png
+.. figure:: ../../../_static/demo_flow_sequence_en.png
     :align: center
-    :alt: relationship diagram Overview
+    :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 3. module relationship diagram
+    Figure 3. Operation Flow Sequence
 
 
 2.3 AI Work state machine
@@ -158,6 +156,91 @@ The design includes reference solutions and demos for common peripherals, such a
     |CONFIG_AGORA_IOT_SDK                    |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
 
+    To enable Network Provisioning and start agent, the following configurations need to be enabled on cpu0:
+
+    +----------------------------------------+----------------+---------------+----------------+
+    |Kconfig                                 |   CPU          |   Format      |      Value     |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+
+
+2.5 Critical Code Explanation
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+2.5.1 About Network Provisioning
++++++++++++++++++++++++++++++++++
+
+ The Wi-Fi provisioning-related code is mainly located in bk_genie_smart_config.c and boarding_core.c. Customers can
+ choose to replace the following functions with their own implementation, while the rest can follow beken solution.
+
+1. bk_genie_smart_config_init: for the initialization of Network Provisioning and auto reconnect.
+
+.. code::
+
+    int bk_genie_smart_config_init(void)
+    {
+        int flag;
+
+        event_handler_init();
+        flag = demo_network_auto_reconnect();   //judge whether to reconnect
+        if (flag != 0x71l && flag != 0x73l
+    #if CONFIG_NET_PAN
+            && flag != 0x74l
+    #endif
+        ) {
+            bk_genie_prepare_for_smart_config();    //no need to reconnect, begin for Network Provisioning
+        }
+        return 0;
+    }
+
+
+2. bk_genie_prepare_for_smart_config: begin for Network Provisioning, customers may need to adapter their own solution
+
+.. code::
+
+    void bk_genie_prepare_for_smart_config(void)
+    {
+        smart_config_running = true;
+        app_event_send_msg(APP_EVT_PAIRING_NETWORK, 0);
+        network_pair_stop_timeout_check();
+        agora_stop();
+        demo_erase_network_auto_reconnect_info();       //erase AP info
+        bk_genie_erase_agent_info();                    //erase agent info
+        wifi_boarding_adv_start();
+        network_pair_start_timeout_check();
+    }
+
+
+3. bk_genie_message_handle: switch agent info with Smart phone, customers may need to adapter their own solution
+
+.. code::
+
+    static void bk_genie_message_handle(void)
+    {
+            ……
+        case DBEVT_START_AGORA_AGENT_START:
+        {
+            ……
+            //upload uid to beken server, to generate channel_name
+            ……
+        }
+        break;
+        case DBEVT_START_AGORA_AGENT_RSP:
+        {
+            ……
+            //receive channel_name
+            ……
+        }
+        break;
+            ……
+    }
+
+4. bk_genie_sconf_netif_event_cb: wakeup agent after wifi connected, save network and agent info
+
+5. bk_genie_erase_agent_info, bk_genie_save_agent_info, bk_genie_get_agent_info, bk_genie_wakeup_agent: all for beken agent solution,
+customers may need to adapter their own solution
+
 
 3. Demonstration instructions
 ---------------------------------
@@ -188,14 +271,145 @@ The design includes reference solutions and demos for common peripherals, such a
     - 3. Modify the file name passed to the function ``AVI_open_input_file("/genie_eye.avi", 1)`` in the file ``<bk_aidk source code path>/project/beken_genie/main/av_play/avi_play.c``.
 
 3.3 APP Registration and Download
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+    APP download: https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_download/index.html
+
+    Registration: use email
+
 
 3.4 Firmware Burning and Resource File Burning
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 	- 1. Store the avi video file to be played in the SD NAND. For specific usage of SD NAND, refer to Nand Disk Usage Notes <../../api-reference/nand_disk_note.html>_.
 	- 2. Store the file <bk_aidk source code path>/project/beken_genie/main/resource/genie_eye.avi from the SDK into the SD NAND.
 	- 3. Burn the compiled all-app.bin file and power on to execute.
 
 3.5 Operation Steps
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+3.5.1 Beken App
++++++++++++++++++++++++++++++++++
+
+    a)operate beken app as follow pictures:
+
+    .. figure:: ../../../_static/add_ai_device_1.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_2.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_3.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_4.png
+        :scale: 30%
+
+    b)long press Key 2 for 3s to enter network provisioning mode:
+
+    .. figure:: ../../../_static/add_ai_device_9.png
+        :scale: 70%
+
+    c)click the device scan by smart phone
+
+    .. figure:: ../../../_static/add_ai_device_5.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_6.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/add_ai_device_7.png
+        :scale: 30%
+
+    d)Say the wake-up word ``hi armino`` to the onboard mic, the device will play the prompt tone ``aha`` after waking up,
+    and then you can have an AI conversation
+
+      Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it,
+      then go to sleep and stop talking to the AI
+
+
+3.5.1 Command line
++++++++++++++++++++++++++++++++++
+
+1.Start Agora AI Agent on PC
+     - refer to `Beken AI Agent Start Document <../../thirdparty/agora/index.html#ai-agent>`_
+
+     demo as below, appid, restful_key and xxx need customers to fill in their owns.
+
+.. code::
+
+    curl --location --request POST 'https://api.agora.io/api/conversational-ai-agent/v2/projects/{appid}/join' --header 'Content-Type: application/json' --header 'Authorization: Basic {restful_key}' --data-raw '{
+        "name": "channel_name",
+        "properties": {
+            "channel": "channel_name",
+            "token": "xxx",
+            "agent_rtc_uid": "1234",
+            "remote_rtc_uids": [
+                "123"
+            ],
+            "advanced_features": {
+                "enable_bhvs": true,
+                "enable_aivad": false
+            },
+            "parameters": {
+                "enable_dump": true,
+                "output_audio_codec": "G722"
+            },
+            "enable_string_uid": false,
+            "idle_timeout": 0,
+            "llm": {
+                "url": "xxx",
+                "api_key": "xxx",
+                "system_messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful chatbot."
+                }
+                ],
+                "max_history": 10,
+                "greeting_message": "Merry Christmas, how can I assist you today?",
+                "failure_message": "I am sorry!",
+                "params": {
+                    "model": "gpt-4o-mini"
+                }
+            },
+            "tts": {
+                "vendor": "bytedance",
+                "params": {
+                    "token": "xxx",
+                    "app_id": "xxx",
+                    "cluster": "volcano_tts",
+                    "speed_ratio": 1.0,
+                    "volume_ratio": 10.0,
+                    "pitch_ratio": 1.0,
+                    "emotion": "happy"
+                }
+            },
+            "asr": {
+                "language": "zh-CN",
+                "vendor": "tencent"
+            }
+        }
+    }'
+
+
+2.connect to AP on the device
+     - enter ``sta test xxxxxx`` to connect a 2.4GHz AP
+
+3.device(RTC) join the channel
+     - enter ``agora_test start appid 0 channel_name`` to join the channel named "channel_name", addid need to fill by costomers
+
+        refer to `Beken Agora Registration Document <../../thirdparty/agora/index.html#id1>`_
+
+4.wakeup and communicate
+     - Say the wake-up word ``hi armino`` to the onboard mic, the device will play the prompt tone ``aha`` after waking up, and then you can have an AI conversation
+
+5.stop the communication
+     - Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it, then go to sleep and stop talking to the AI
+
+6.leave the channel and stop audio
+     - enter ``agora_test stop``
+
 
 
 4. Debugging Commands
