@@ -101,6 +101,8 @@ static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 
 static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
 extern bool smart_config_running;
+extern uint32_t volume;
+
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -131,6 +133,7 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             break;
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
+            network_provisioning_stop_timeout_check();
             app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
             smart_config_running = false;
             break;
@@ -403,7 +406,10 @@ bk_err_t audio_turn_off(void)
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-
+    if (g_connected_flag)
+    {
+        bk_agora_rtc_register_audio_rx_handle(NULL);
+    }
 #else
     /* deregister callback to handle audio data received from agora rtc */
     bk_agora_rtc_register_audio_rx_handle(NULL);
@@ -476,7 +482,7 @@ bk_err_t audio_turn_on(void)
 #else
     aud_intf_voc_setup.mic_gain   = 0x3F;
 #endif
-    aud_intf_voc_setup.spk_gain   = SPK_GAIN_MAX * 0.65;
+    aud_intf_voc_setup.spk_gain   = volume;
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
 

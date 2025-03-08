@@ -60,12 +60,12 @@ void network_provisioning_check_status(void)
   }
 }
 
-void network_provisioning_start_timeout_check(void)
+void network_provisioning_start_timeout_check(uint32_t timeout)
 {
   bk_err_t err = kNoErr;
   uint32_t clk_time;
 
-  clk_time = 5*60*1000;	//5min
+  clk_time = timeout*1000;		//timeout unit: seconds
 
   if (rtos_is_oneshot_timer_init(&network_provisioning_tmr)) {
      BK_LOGI(TAG,"network provisioning status timer reload\n");
@@ -129,7 +129,7 @@ int demo_network_auto_reconnect(void)
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if (info.flag == 0x71l) {
 		network_provisioning_stop_timeout_check();
-		network_provisioning_start_timeout_check();
+		network_provisioning_start_timeout_check(30);	//30s
 		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
 	}
@@ -283,7 +283,7 @@ void bk_genie_prepare_for_smart_config(void)
 #if 0
     bk_bt_enter_pairing_mode();
 #endif
-    network_provisioning_start_timeout_check();
+    network_provisioning_start_timeout_check(300);	//5min
 }
 
 int bk_genie_smart_config_init(void)

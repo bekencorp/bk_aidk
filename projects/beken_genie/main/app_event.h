@@ -14,6 +14,7 @@ typedef enum
     APP_EVT_CHARGING,
     APP_EVT_WIFI_GOTIP,
     APP_EVT_CLOSE_BLUETOOTH,
+    APP_EVT_POWER_ON,
 } app_evt_type_t;
 
 

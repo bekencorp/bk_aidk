@@ -59,7 +59,7 @@ extern void bk_set_jtag_mode(uint32_t cpu_id, uint32_t group_id);
 #endif
 
 #if (CONFIG_SYS_CPU0)
-static uint32_t volume = SPK_GAIN_MAX * 0.65;
+uint32_t volume = SPK_GAIN_MAX * 0.65;
 #endif
 
 #if (CONFIG_SYS_CPU0)
@@ -79,8 +79,10 @@ static const struct cli_command s_agora_rtc_commands[] =
 };
 
 #if (CONFIG_SYS_CPU0)
+static const uint32_t s_user_value2 = 10;
 const struct factory_config_t s_user_config[] = {
-    {"user_key1", "user_value1"},
+    {"user_key1", (void *)"user_value1", 11, BK_FALSE, 0},
+    {"user_key2", (void *)&s_user_value2, 4, BK_TRUE, 4},
 };
 #endif
 
@@ -117,6 +119,10 @@ void volume_increase()
     if (BK_OK == bk_aud_intf_set_spk_gain(volume + 1))
     {
         volume += 1;
+        if (0 != bk_config_write("volume", (void *)&volume, 4))
+        {
+            BK_LOGE(TAG, "storage volume: %d fail\n", volume);
+        }
         BK_LOGI(TAG, "current volume: %d\n", volume);
     }
     else
@@ -136,6 +142,10 @@ void volume_decrease()
     if (BK_OK == bk_aud_intf_set_spk_gain(volume - 1))
     {
         volume -= 1;
+        if (0 != bk_config_write("volume", (void *)&volume, 4))
+        {
+            BK_LOGE(TAG, "storage volume: %d fail\n", volume);
+        }
         BK_LOGI(TAG, "current volume: %d\n", volume);
     }
     else
@@ -201,6 +211,7 @@ static void handle_system_event(key_event_t event)
         case FACTORY_RESET:
             BK_LOGW(TAG, "trigger factory config reset\r\n");
             bk_factory_reset();
+            bk_reboot();
             break;
         // 其他事件处理...
         default:
@@ -325,10 +336,6 @@ int main(void)
         bk_init();
 
     #if (CONFIG_SYS_CPU0)
-        bk_regist_factory_user_config((const struct factory_config_t *)&s_user_config,
-                                        sizeof(s_user_config)/sizeof(s_user_config[0]));
-        bk_factory_init();
-
     /*to judgement key is long press or short press; long press exit deepsleep*/
 
         if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
@@ -336,6 +343,10 @@ int main(void)
 
             bk_wait_power_on();
         }
+
+        bk_regist_factory_user_config((const struct factory_config_t *)&s_user_config,
+                                       sizeof(s_user_config)/sizeof(s_user_config[0]));
+        bk_factory_init();
     #endif
 
     
@@ -345,12 +356,18 @@ int main(void)
         start_countdown();
         //led init move before
         led_driver_init();
-        led_app_set(LED_ON_GREEN);
+        led_app_set(LED_ON_GREEN,LED_LAST_FOREVER);
     #endif
         media_service_init();
 
 #if (CONFIG_SYS_CPU0)
         app_event_init();
+
+        int volume_size = bk_config_read("volume", (void *)&volume, 4);
+        if (volume_size != 4)
+        {
+            BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
+        }
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
         extern bk_err_t audio_turn_on(void);

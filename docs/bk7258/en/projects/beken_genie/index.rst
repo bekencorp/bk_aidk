@@ -51,18 +51,84 @@ The design includes reference solutions and demos for common peripherals, such a
     Figure 1. Hardware Development Board
 
 1.2 Button
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1.2.1 Button Function Description
+++++++++++++++++++++++++++++++++++++
+There are three button on the lower right side of the board, corresponding to the silk screen markings S1, S2, and S3; and there is one button K1 on the right side.
 
-    Increase volume.
-        - Press the S1 button to increase the volume.
-    Decrease volume.
-        - Press the S2 button to decrease the volume.
+    power on/off
+        - 1.power on: Long press(>= 3 seconds) the button ``S1`` to power on.
+        - 2.power off: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S1`` to power off.
+
+    Network Provisioning
+        - 1.Network Provisioning: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S2`` to enter the state of waiting for network configuration.
+
+    Speaker volume control
+        - 1.Increase the volume: Single - click the ``S2`` button to turn up the volume.
+        - 2.Decrease the volume: Single - click the ``S2`` button to turn down the volume.
+
+    restore to factory settings
+        - 1.restore to factory settings: Long press the ``S3`` button to restore the device to its factory settings.
+
+    reset button ``K1``
+        - 1.Reset in shutdown state: Single - click the ``K1`` button to power on the system from the shutdown state.
+        - 2.Reset in the powered-on state: Single - click the ``K1`` button, and the system will perform a hard restart while it is powered-on.
+
+1.2.2 Guide to Button Development
+++++++++++++++++++++++++++++++++++++
+    1.GPIO Button
+        - Button Function Configuration, Refer to key_config, the developer can fill in the corresponding IO pins and the callback function events for the buttons in the table.
+        - The configuration for the long button press duration should refer to the LONG_TICKS macro defined in the multi_button.h header file.
+        - All button events are moved to be executed in a task. If the program executing the button event is blocked or takes too long, it will affect the button response speed.
+
+    2.Precautions for GPIO buttons
+        - Ensure that GPIO pins are exclusively used for button functions; otherwise, conflicting functions on the same GPIO pin may result in ineffective button operation.
+        - If the developer's board is different from the bekan_genie development board, please reconfigure the GPIOs according to the hardware design of your development board. 
+          For details on GPIO usage, refer to the documents on the official website.
+
 
 1.3 LED
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
+The development board features red and green status indicator lights. Important information is indicated by red light blinking, general notifications by green light blinking, 
+and special reminders are signaled by alternating red and green light blinking. For reference code for LED effects development, see led_blink.c.
 
-1.4 ASR
+    Green light remains on or continuously off as an indicator
+        - 1.When power is turned on, the green light remains on until the user performs an operation or the next event begins.
+        - 2.When a conversation starts, the green light turns off.
+
+    Blinking of red and green lights indicates specific information
+        - 1.User network configuration: User is configuring the network.
+
+    Green light blinking status information
+        - 1.During power-on networking: Green light blink quickly.
+        - 2.Large model server connection successful: Green light blink slowly.
+        - 3.Conversation stopped: Green light blink slowly.
+
+    Red light blinking status information
+        - 1.Network configuration failed / network reconnection failed: Red light blink quickly.
+        - 2.WEBRTC connection disconnected: Red light blink quickly.
+        - 3.Large model server connection disconnected: Red light blink quickly.
+        - 4.Battery level below 20%: Red light flashes slowly for 30 seconds and then automatically stops; if charging, the red light does not blink.
+        - 5.No important reminder events: When there are no important reminder events, the red light is in an off state.
+
+1.4 SD-NAND  Memory
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.The SD-NAND stores local resource files, such as image resource files on the display screen.
+        - 2.The SD-NAND storage device defaults to using the FAT32 file system, allowing applications to indirectly invoke the open-source FATFS program interface through the VFS interface for file access.
+        - 3.On the PC side, files on the SD-NAND can be accessed for reading and writing via the USB interface.
+        - 4.Please note that files deleted on the PC side may still be in use by the local application, which can lead to system anomalies. It is essential to ensure that deleted files are no longer being accessed.
+
+1.5 Gsensor
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.Local G-sensor supports wake-up function. Users can wake up the system by shaking the development board in an S-shape trajectory.
+
+1.6 Charging management
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.The charging management chip model used in the current development board is ETA3422.
+        - 2.When the battery is fully charged, the red light near the charging port will turn off, and the green light will turn on. The red light being on indicates that charging is in progress.
+
+1.7 ASR
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     1. ``Hi Armino`` is used to wake up, enabling interaction between local and cloud AI, while the LCD lights up and displays eye animations.
@@ -142,7 +208,7 @@ The design includes reference solutions and demos for common peripherals, such a
     8 Green light flashes quickly.
     9 LCD on, LED off.
     10 LCD off.
-    13/14/15 Red light flashes quickly.
+    13/14 Red light flashes quickly.
 
 
 2.4 Kconfig
@@ -208,7 +274,7 @@ The design includes reference solutions and demos for common peripherals, such a
         demo_erase_network_auto_reconnect_info();       //erase AP info
         bk_genie_erase_agent_info();                    //erase agent info
         wifi_boarding_adv_start();
-        network_provisioning_start_timeout_check();
+        network_provisioning_start_timeout_check(300); //5min
     }
 
 
@@ -326,90 +392,6 @@ customers may need to adapter their own solution
 
       Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it,
       then go to sleep and stop talking to the AI
-
-
-3.5.1 Command line
-+++++++++++++++++++++++++++++++++
-
-1.Start Agora AI Agent on PC
-     - refer to `Beken AI Agent Start Document <../../thirdparty/agora/index.html#ai-agent>`_
-
-     demo as below, appid, restful_key and xxx need customers to fill in their owns.
-
-.. code::
-
-    curl --location --request POST 'https://api.agora.io/api/conversational-ai-agent/v2/projects/{appid}/join' --header 'Content-Type: application/json' --header 'Authorization: Basic {restful_key}' --data-raw '{
-        "name": "channel_name",
-        "properties": {
-            "channel": "channel_name",
-            "token": "xxx",
-            "agent_rtc_uid": "1234",
-            "remote_rtc_uids": [
-                "123"
-            ],
-            "advanced_features": {
-                "enable_bhvs": true,
-                "enable_aivad": false
-            },
-            "parameters": {
-                "enable_dump": true,
-                "output_audio_codec": "G722"
-            },
-            "enable_string_uid": false,
-            "idle_timeout": 0,
-            "llm": {
-                "url": "xxx",
-                "api_key": "xxx",
-                "system_messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful chatbot."
-                }
-                ],
-                "max_history": 10,
-                "greeting_message": "Merry Christmas, how can I assist you today?",
-                "failure_message": "I am sorry!",
-                "params": {
-                    "model": "gpt-4o-mini"
-                }
-            },
-            "tts": {
-                "vendor": "bytedance",
-                "params": {
-                    "token": "xxx",
-                    "app_id": "xxx",
-                    "cluster": "volcano_tts",
-                    "speed_ratio": 1.0,
-                    "volume_ratio": 10.0,
-                    "pitch_ratio": 1.0,
-                    "emotion": "happy"
-                }
-            },
-            "asr": {
-                "language": "zh-CN",
-                "vendor": "tencent"
-            }
-        }
-    }'
-
-
-2.connect to AP on the device
-     - enter ``sta test xxxxxx`` to connect a 2.4GHz AP
-
-3.device(RTC) join the channel
-     - enter ``agora_test start appid 0 channel_name`` to join the channel named "channel_name", addid need to fill by costomers
-
-        refer to `Beken Agora Registration Document <../../thirdparty/agora/index.html#id1>`_
-
-4.wakeup and communicate
-     - Say the wake-up word ``hi armino`` to the onboard mic, the device will play the prompt tone ``aha`` after waking up, and then you can have an AI conversation
-
-5.stop the communication
-     - Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it, then go to sleep and stop talking to the AI
-
-6.leave the channel and stop audio
-     - enter ``agora_test stop``
-
 
 
 4. Debugging Commands

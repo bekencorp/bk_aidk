@@ -51,21 +51,80 @@ Beken Genie AI
 
 1.2 按键
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1.2.1 按键功能说明
++++++++++++++++++++++++++++++++++
 
-喇叭音量控制:
+开发板下边靠右三个按键，对应丝印S1,S2,S3;右边一个按键K1
 
-    1.调大音量
-        - 单击 ``S1`` 按钮调大音量
+    开关机
+        - 1.开机：长按(>=3秒) ``S1`` 开机
+        - 2.关机：当系统处于开机状态时，长按(>=3秒) ``S1`` 关机
 
-    2.调小音量
-        - 单击 ``S2`` 按钮调小音量
+    配网
+        - 1.配网：当系统处于开机状态时，长按(>=3秒) ``S2`` 进入等待配网状态
 
+    喇叭音量控制
+        - 1.调大音量：单击 ``S1`` 按钮调大音量
+        - 2.调小音量：单击 ``S2`` 按钮调小音量
+
+    恢复出厂设置
+        - 1.恢复出厂设置：长按 ``S3`` 按钮恢复出厂设置
+
+    复位按键K1
+        - 1.关机状态复位：单击 ``K1`` 按钮，系统从关机状态开机
+        - 2.开机状态复位：单击 ``K1`` 按钮，系统从开机状态硬重启
+
+1.2.2 按键开发说明
++++++++++++++++++++++++++++++++++
+    1.GPIO按键
+        - 按键功能配置，参考key_config，开发者在该表中填写对应的IO管脚和按键对应的回调函数事件即可
+        - 长按键时长配置参考multi_button.h中的LONG_TICKS宏定义
+        - 当前所有的按键事件转到任务中执行，如果按键事件执行程序被阻塞或执行时间过长，会影响按键响应速度
+    2.GPIO按键注意事项
+        - 请确认GPIO管脚只供按键使用，否则同一个GPIO管脚功能冲突，会引起按键无效问题
+        - 如果开发者开发板与beken_genie开发板不同，请根据开发板硬件设计重新配置GPIO。关于GPIO使用方法，请参考：
 
 1.3 灯效
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+开发板上边有红绿两个状态指示灯，重要信息红灯闪烁，一般性提示绿灯闪烁，以及特殊性提醒红绿灯交替闪烁。
+灯效开发参考代码led_blink.c。
 
+    绿灯常亮/长灭提示信息
+        - 1.开机时，绿灯长亮，等待用户操作或下一个事件开始
+        - 2.对话开始，绿灯灭
 
-1.4 唤醒词
+    红绿灯交替闪烁提示信息
+        - 1.用户配网：用户配网
+
+    绿灯闪烁提示信息
+        - 1.上电联网中：绿灯快闪
+        - 2.大模型服务器连接成功：绿灯慢闪
+        - 3.对话停止：绿灯慢闪
+
+    红灯闪烁提示信息
+        - 1.配网失败/网络重连失败：红灯快闪
+        - 2.WEBRTC连接断开：红灯快闪
+        - 3.大模型服务器连接断开：红灯快闪
+        - 4.电池电量低于20%：红灯慢闪30秒后自动停止闪烁；如果充电中，则红灯不闪烁
+        - 5.无重要提醒事件：当无重要提醒事件是，红灯处于关闭状态
+
+1.4 SD-NAND存储器
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.SD-NAND存放本地资源文件，比如显示屏上的图片资源文件
+        - 2.SD-NAND存储器默认使用FAT32文件系统，供应用程序通过VFS接口间接调用FATFS开源程序接口访问文件
+        - 3.PC端，通过USB接口，读写访问开发板SD-NAND文件
+        - 4.请注意PC端删除的文件，不要同时被本地应用程序使用，防止系统异常
+
+1.5 陀螺仪-Gsensor
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.本地Gsensor支持唤醒系统功能，用户可以S形轨迹晃动开发板，将系统唤醒
+
+1.6 充电管理
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.当前开发板使用充电管理芯片型号为 (ETA3422)
+        - 2.充电满时，充电口边上的红灯会关闭，绿灯亮；红灯亮表示在充电
+
+1.7 唤醒词
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     1. ``Hi Armino`` 用于唤醒，本地端侧和云端AI互动，同时LCD亮起，展示眼睛动画。
@@ -129,7 +188,7 @@ Beken Genie AI
     8 Green light flashes quickly.
     9 LCD on, LED off.
     10 LCD off
-    13/14/15 Red light flashes quickly
+    13/14 Red light flashes quickly
 
 
 2.4 主要配置
@@ -194,7 +253,7 @@ Beken Genie AI
         demo_erase_network_auto_reconnect_info();               //擦除AP信息
         bk_genie_erase_agent_info();                            //擦除agent相关信息，若客户使用自己的服务，可以删除这段代码，自己控制
         wifi_boarding_adv_start();                              //BLE广播，进入配网模式
-        network_provisioning_start_timeout_check();             //开启配网超时检测
+        network_provisioning_start_timeout_check(300); //5min   //开启配网超时检测
     }
 
 
@@ -312,91 +371,6 @@ Beken Genie AI
     d)对板载mic说唤醒词 ``hi armino`` ，设备唤醒后会播放提示音 ``啊哈`` ，然后可以进行AI对话
 
       对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
-
-
-3.5.1 命令行方式
-+++++++++++++++++++++++++++++++++
-
-1.在PC端打开Agora AI Agent
-     - PC端发送post指令启动Agora AI Agent  参考 `Beken AI Agent启动文档 <../../thirdparty/agora/index.html#ai-agent>`_
-
-     可以参考如下格式，appid、restful_key及xxx需要客户自行填写
-
-.. code::
-
-    curl --location --request POST 'https://api.agora.io/api/conversational-ai-agent/v2/projects/{appid}/join' --header 'Content-Type: application/json' --header 'Authorization: Basic {restful_key}' --data-raw '{
-        "name": "channel_name",
-        "properties": {
-            "channel": "channel_name",
-            "token": "xxx",
-            "agent_rtc_uid": "1234",
-            "remote_rtc_uids": [
-                "123"
-            ],
-            "advanced_features": {
-                "enable_bhvs": true,
-                "enable_aivad": false
-            },
-            "parameters": {
-                "enable_dump": true,
-                "output_audio_codec": "G722"
-            },
-            "enable_string_uid": false,
-            "idle_timeout": 0,
-            "llm": {
-                "url": "xxx",
-                "api_key": "xxx",
-                "system_messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful chatbot."
-                }
-                ],
-                "max_history": 10,
-                "greeting_message": "Merry Christmas, how can I assist you today?",
-                "failure_message": "I am sorry!",
-                "params": {
-                    "model": "gpt-4o-mini"
-                }
-            },
-            "tts": {
-                "vendor": "bytedance",
-                "params": {
-                    "token": "xxx",
-                    "app_id": "xxx",
-                    "cluster": "volcano_tts",
-                    "speed_ratio": 1.0,
-                    "volume_ratio": 10.0,
-                    "pitch_ratio": 1.0,
-                    "emotion": "happy"
-                }
-            },
-            "asr": {
-                "language": "zh-CN",
-                "vendor": "tencent"
-            }
-        }
-    }'
-
-
-2.设备端wifi连接
-	 - demo板发送指令 ``sta test xxxxxx`` 连接2.4GHz名为test的热点
-
-3.启动设备端进入AI对话频道
-	 - demo板发送指令 ``agora_test start appid 0 channel_name`` 加入指定的AI对话频道并打开音频通路
-
-        其中appid和channel_name需要替换成实际值，参考 `Beken声网注册文档 <../../thirdparty/agora/index.html#id1>`_
-
-4.唤醒设备端，进行AI对话
-	 - 对板载mic说唤醒词 ``hi armino`` ，设备唤醒后会播放提示音 ``啊哈`` ，然后可以进行AI对话
-
-5.退出设备端与AI的对话
-	 - 对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
-
-6.设备端离开AI对话频道
-	 - demo板发送指令 ``agora_test stop`` 离开AI对话频道并关闭音频通路
-
-
 
 
 4. 调试命令

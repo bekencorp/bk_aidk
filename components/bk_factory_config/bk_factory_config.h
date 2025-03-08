@@ -23,7 +23,10 @@ extern "C" {
 
 struct factory_config_t {
     char *key;
-    char *value;
+    void *value;
+    uint8_t defval_size;
+    uint8_t need_sram_cache;
+    uint16_t value_max_size;
 };
 
 void bk_factory_init(void);
@@ -31,6 +34,14 @@ void bk_factory_reset(void);
 
 // Note: config pointer referred struct need define on flash.
 void bk_regist_factory_user_config(const struct factory_config_t *config, uint16_t config_len);
+
+void bk_config_sync_flash(void);
+
+// return 0: success, -1: fail.
+int bk_config_write(const char *key, const void *value, int value_len);
+
+// return number of value size.
+int bk_config_read(const char *key, void *value, int value_len);
 
 #ifdef __cplusplus
 }

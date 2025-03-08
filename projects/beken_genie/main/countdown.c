@@ -1,6 +1,7 @@
 #include <os/os.h>
 #include <os/mem.h>
 #include "countdown.h"
+#include "bk_factory_config.h"
 #include <components/log.h>
 
 #define TAG "count_down"
@@ -24,6 +25,8 @@ void CountdownCallback()
 void start_countdown()
 {
     bk_err_t result;
+
+	bk_config_sync_flash();
 
 	if (g_countdown_timer.handle == NULL)
 	{

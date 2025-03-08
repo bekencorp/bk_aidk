@@ -90,7 +90,8 @@ void app_event_asr_evt_callback(media_app_evt_type_t event, uint32_t param)
 static void app_event_thread(beken_thread_arg_t data)
 {
     int ret = BK_OK;
-
+    uint32_t network_err = 0;
+    uint32_t is_standby = 1;
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -103,21 +104,30 @@ static void app_event_thread(beken_thread_arg_t data)
         {
             switch (msg.event)
             {
-                case APP_EVT_ASR_WAKEUP:
+                case APP_EVT_ASR_WAKEUP:	//hi armino
+                    is_standby = 0;
                     LOGI("APP_EVT_ASR_WAKEUP\n");
                     lvgl_app_init();
                     stop_countdown();
-                    led_app_set(LED_OFF_GREEN);
+                    led_app_set(LED_OFF_GREEN,0);
                     break;
-                case APP_EVT_ASR_STANDBY:
+                case APP_EVT_ASR_STANDBY:	//byebye armino
+                    is_standby = 1;
                     LOGI("APP_EVT_ASR_STANDBY\n");
-                    led_app_set(LED_SLOW_BLINK_GREEN);
+                    led_app_set(LED_SLOW_BLINK_GREEN,LED_LAST_FOREVER);
                     lvgl_app_deinit();
                     start_countdown();
                     break;
+
+//-------------------network event start ------------------------------------------------------------------
+/*
+ * Network abnormal event:APP_EVT_CONNECT_NETWORK_FAIL/APP_EVT_RTC_CONNECTION_LOST/APP_EVT_AGENT_OFFLINE
+ * Network resotre event:APP_EVT_AGENT_JOINED
+ * If network retore event APP_EVT_AGENT_JOINED comes, it means all of the network abnormal event can be stop
+ */
                 case APP_EVT_NETWORK_PROVISIONING:
                     LOGI("APP_EVT_NETWORK_PROVISIONING\n");
-                    led_app_set(LED_REG_GREEN_ALTERNATE);
+                    led_app_set(LED_REG_GREEN_ALTERNATE,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* play config network prompt tone */
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_START_CONFIG_NETWORK);
@@ -125,52 +135,82 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
                 case APP_EVT_RECONNECT_NETWORK:
                     LOGI("APP_EVT_RECONNECT_NETWORK\n");
-                    led_app_set(LED_OFF_RED);
-                    led_app_set(LED_FAST_BLINK_GREEN);
+                    led_app_set(LED_OFF_RED,0);
+                    led_app_set(LED_FAST_BLINK_GREEN,LED_LAST_FOREVER);
                     break;
+
                 case APP_EVT_CONNECT_NETWORK_FAIL:
                     LOGI("APP_EVT_CONNECT_NETWORK_FAIL\n");
-                    led_app_set(LED_OFF_GREEN);
-                    led_app_set(LED_FAST_BLINK_RED);
+                    network_err = 1;
+                    led_app_set(LED_OFF_GREEN,0);
+                    led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* play config network prompt tone */
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_CONFIG_NETWORK_FAIL);
 #endif
                     break;
                 case APP_EVT_RTC_CONNECTION_LOST:
+                    network_err = 1;
                     LOGI("APP_EVT_RTC_CONNECTION_LOST\n");
-                    led_app_set(LED_OFF_GREEN);
-                    led_app_set(LED_FAST_BLINK_RED);
+                    led_app_set(LED_OFF_GREEN,0);
+                    led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* play config network prompt tone */
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_DISCONNECT);
 #endif
                     break;
-                case APP_EVT_AGENT_JOINED:
-                    LOGI("APP_EVT_AGENT_JOINED\n");
-                    led_app_set(LED_OFF_RED);
-                    led_app_set(LED_SLOW_BLINK_GREEN);
+
+                case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error 
+                    LOGI("APP_EVT_AGENT_JOINED network_err=%d\n", network_err);
+                    if(network_err)
+                    {
+                        led_app_set(LED_OFF_RED,0);
+                        LOGI("is_standby is =%d\n", is_standby);
+                        if(is_standby)
+                        {
+
+                            led_app_set(LED_SLOW_BLINK_GREEN,LED_LAST_FOREVER);
+                        
+                        }
+                        network_err = 0;
+                        
+                    }
+                    else
+                    {
+                        //led_app_set(LED_REG_GREEN_ALTERNATE_OFF, 0);
+                        led_app_set(LED_SLOW_BLINK_GREEN, LED_LAST_FOREVER);
+                    }
+
                     break;
                 case APP_EVT_AGENT_OFFLINE:
+                    network_err = 1;
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
-                    led_app_set(LED_OFF_GREEN);
-                    led_app_set(LED_FAST_BLINK_RED);
-                    break;
-                case APP_EVT_LOW_VOLTAGE:
-                    LOGI("APP_EVT_LOW_VOLTAGE\n");
-                    led_app_set(LED_SLOW_BLINK_RED);
-                    break;
-
-                case APP_EVT_CHARGING:
-                    led_app_set(LED_OFF_RED);
+                    led_app_set(LED_OFF_GREEN,0);
+                    led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
                     break;
 
                 case APP_EVT_WIFI_GOTIP:
                     LOGI("APP_EVT_WIFI_GOTIP\n");
                     break;
+
+//-------------------network event end ------------------------------------------------------------------////
+
+
+                case APP_EVT_LOW_VOLTAGE:
+                    LOGI("APP_EVT_LOW_VOLTAGE\n");
+                    led_app_set(LED_SLOW_BLINK_RED,30000);
+                    break;
+
+                case APP_EVT_CHARGING:
+                    led_app_set(LED_OFF_RED,0);
+                    break;
+
                 case APP_EVT_CLOSE_BLUETOOTH:
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
                     bk_bluetooth_deinit();
+                    break;
+                case APP_EVT_POWER_ON:
+                    led_app_set(LED_ON_GREEN,LED_LAST_FOREVER);
                     break;
                 default:
                     break;
