@@ -211,7 +211,7 @@ static void bk_genie_message_handle(void)
                         bk_genie_save_agent_info(app_id_record, channel_name_record);
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
-                        network_pair_stop_timeout_check();
+                        network_provisioning_stop_timeout_check();
                         app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
                     }
                     break;

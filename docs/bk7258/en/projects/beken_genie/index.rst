@@ -202,13 +202,13 @@ The design includes reference solutions and demos for common peripherals, such a
     void bk_genie_prepare_for_smart_config(void)
     {
         smart_config_running = true;
-        app_event_send_msg(APP_EVT_PAIRING_NETWORK, 0);
-        network_pair_stop_timeout_check();
+        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
+        network_provisioning_stop_timeout_check();
         agora_stop();
         demo_erase_network_auto_reconnect_info();       //erase AP info
         bk_genie_erase_agent_info();                    //erase agent info
         wifi_boarding_adv_start();
-        network_pair_start_timeout_check();
+        network_provisioning_start_timeout_check();
     }
 
 

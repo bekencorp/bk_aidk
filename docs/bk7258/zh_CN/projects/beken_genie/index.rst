@@ -188,13 +188,13 @@ Beken Genie AI
     void bk_genie_prepare_for_smart_config(void)
     {
         smart_config_running = true;
-        app_event_send_msg(APP_EVT_PAIRING_NETWORK, 0); //进入配网模式红绿交替闪灯提示
-        network_pair_stop_timeout_check();              //关闭配网超时检测
-        agora_stop();                                   //关闭声网设备端服务
-        demo_erase_network_auto_reconnect_info();       //擦除AP信息
-        bk_genie_erase_agent_info();                    //擦除agent相关信息，若客户使用自己的服务，可以删除这段代码，自己控制
-        wifi_boarding_adv_start();                      //BLE广播，进入配网模式
-        network_pair_start_timeout_check();             //开启配网超时检测
+        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);    //进入配网模式红绿交替闪灯提示
+        network_provisioning_stop_timeout_check();              //关闭配网超时检测
+        agora_stop();                                           //关闭声网设备端服务
+        demo_erase_network_auto_reconnect_info();               //擦除AP信息
+        bk_genie_erase_agent_info();                            //擦除agent相关信息，若客户使用自己的服务，可以删除这段代码，自己控制
+        wifi_boarding_adv_start();                              //BLE广播，进入配网模式
+        network_provisioning_start_timeout_check();             //开启配网超时检测
     }
 
 

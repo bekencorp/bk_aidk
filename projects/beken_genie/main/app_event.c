@@ -115,8 +115,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     lvgl_app_deinit();
                     start_countdown();
                     break;
-                case APP_EVT_PAIRING_NETWORK:
-                    LOGI("APP_EVT_PAIRING_NETWORK\n");
+                case APP_EVT_NETWORK_PROVISIONING:
+                    LOGI("APP_EVT_NETWORK_PROVISIONING\n");
                     led_app_set(LED_REG_GREEN_ALTERNATE);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* play config network prompt tone */
