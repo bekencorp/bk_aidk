@@ -11,6 +11,7 @@ typedef enum
     APP_EVT_AGENT_JOINED,
     APP_EVT_AGENT_OFFLINE,
     APP_EVT_LOW_VOLTAGE,
+    APP_EVT_CHARGING,
 } app_evt_type_t;
 
 

@@ -158,6 +158,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
                     led_app_set(LED_SLOW_BLINK_RED);
                     break;
+                case APP_EVT_CHARGING:
+                    break;
                 default:
                     break;
             }
