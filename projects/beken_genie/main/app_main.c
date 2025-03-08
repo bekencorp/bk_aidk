@@ -329,6 +329,15 @@ int main(void)
 
 #if (CONFIG_SYS_CPU0)
         app_event_init();
+
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+        extern bk_err_t audio_turn_on(void);
+        int ret = audio_turn_on();
+        if (ret != BK_OK)
+        {
+            BK_LOGE(TAG, "%s, %d, audio turn on fail, ret:%d\n", __func__, __LINE__, ret);
+        }
+#endif
 #endif
 
 #if (CONFIG_SYS_CPU1)

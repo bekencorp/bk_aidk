@@ -66,11 +66,17 @@ static uint8_t *mic_data_buffer = NULL;
 #define MIC_FRAME_NUM 4
 
 extern bool agoora_tx_mic_data_flag;
+extern bool g_connected_flag;
 
 
 static int send_agora_audio_frame(uint8_t *data, unsigned int len)
 {
     audio_frame_info_t info = { 0 };
+
+    if (!g_connected_flag)
+    {
+        return 0;
+    }
 
 #ifdef CONFIG_USE_G722_CODEC
     info.data_type = AUDIO_DATA_TYPE_G722;

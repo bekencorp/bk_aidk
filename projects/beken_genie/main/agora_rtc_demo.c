@@ -64,7 +64,7 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AEC_ENABLE              (1)
 
 
-static bool g_connected_flag = false;
+bool g_connected_flag = false;
 static char agora_appid[33] = {0};
 static char channel_name[128] = {0};
 static bool audio_en = false;
@@ -400,9 +400,12 @@ bk_err_t audio_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 
+#else
     /* deregister callback to handle audio data received from agora rtc */
     bk_agora_rtc_register_audio_rx_handle(NULL);
+#endif
 
     /* stop voice */
     ret = bk_aud_intf_voc_stop();
@@ -433,7 +436,7 @@ bk_err_t audio_turn_off(void)
     return BK_OK;
 }
 
-static bk_err_t audio_turn_on(void)
+bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
@@ -481,11 +484,15 @@ static bk_err_t audio_turn_on(void)
         LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
 
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+
+#else
     ret = bk_agora_rtc_register_audio_rx_handle((agora_rtc_audio_rx_data_handle)agora_rtc_user_audio_rx_data_handle);
     if (ret != BK_OK)
     {
         LOGE("bk_aggora_rtc_register_audio_rx_handle fail, ret:%d \r\n", ret);
     }
+#endif
 
     ret = bk_aud_intf_voc_start();
     if (ret != BK_ERR_AUD_INTF_OK)
@@ -551,6 +558,13 @@ void agora_main(void)
 
     LOGI("-----agora_rtc_join_channel success-----\r\n");
 
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    ret = bk_agora_rtc_register_audio_rx_handle((agora_rtc_audio_rx_data_handle)agora_rtc_user_audio_rx_data_handle);
+    if (ret != BK_OK)
+    {
+        LOGE("bk_aggora_rtc_register_audio_rx_handle fail, ret:%d \r\n", ret);
+    }
+#else
     /* turn on audio */
     if (audio_en)
     {
@@ -562,6 +576,7 @@ void agora_main(void)
         }
         memory_free_show();
     }
+#endif
 
     /* turn on video */
     if (video_en)
@@ -583,11 +598,16 @@ void agora_main(void)
     }
 
 exit:
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    /* deregister callback to handle audio data received from agora rtc */
+    bk_agora_rtc_register_audio_rx_handle(NULL);
+#else
     /* free audio  */
     if (audio_en)
     {
         audio_turn_off();
     }
+#endif
 
     /* free video sources */
     if (video_en)
