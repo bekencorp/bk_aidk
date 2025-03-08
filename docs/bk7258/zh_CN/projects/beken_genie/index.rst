@@ -31,6 +31,14 @@ Beken Genie AI
         * 锂电池
         * DVP (gc2145)
 
+    * 软件特性：
+        * AEC
+        * NS
+        * 唤醒词定制
+        * WIFI Station
+        * BLE
+        * BT PAN
+
 .. figure:: ../../../_static/beken_genie_pic.jpg
     :align: center
     :alt: Hardware Development Board
@@ -83,6 +91,27 @@ Beken Genie AI
     :figclass: align-center
 
     Figure 3. module relationship diagram
+
+
+2.3 AI工作状态机
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+.. figure:: ../../../_static/bk_genie_statemachine.png
+    :align: center
+    :alt: State Machine Overview
+    :figclass: align-center
+
+    Figure 4. module state diagram
+
+::
+
+    ①② Green light stays on.
+    ③④⑤ Green and red lights flash alternately
+    ⑥⑦ Green light flashes quickly.
+    ⑧ Green light flashes quickly.
+    ⑨ LCD on, LED off.
+    ⑩ LCD off
+    ⑬⑭⑮ Red light flashes quickly
 
 
 3. 配置
