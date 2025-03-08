@@ -768,6 +768,7 @@ extern char *app_id_record;
 #define AGORA_DEBUG_APPID "db1ae5462530413e9fd527bbeb909139"
 void agora_auto_run(void)
 {
+#if CONFIG_WIFI_AUTO_RESTART
     unsigned char uid[32] = {0};
 
     bk_uid_get_data(uid);
@@ -781,7 +782,7 @@ void agora_auto_run(void)
         sprintf(agora_appid, "%s", AGORA_DEBUG_APPID);
     }
     sprintf(channel_name, "%s", uid);
-#if 0
+
     if (!agora_runing)
     {
         audio_en = true;

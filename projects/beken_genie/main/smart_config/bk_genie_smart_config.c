@@ -42,7 +42,78 @@ static bool smart_config_running = false;
 char *app_id_record = NULL;
 char *channel_name_record = NULL;
 
-extern int demo_save_wifi_auto_restart_info(netif_if_t type, void *val);
+int is_wifi_sta_auto_restart_info_saved(void)
+{
+	BK_FAST_CONNECT_D info = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
+#endif
+	if (info.flag == 0x71l)
+		return 0;
+	else
+		return 1;
+}
+
+void demo_erase_network_auto_reconnect_info(void)
+{
+	BK_FAST_CONNECT_D info_tmp = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
+#endif
+}
+
+extern int demo_sta_app_init(char *oob_ssid, char *connect_key);
+extern int demo_softap_app_init(char *ap_ssid, char *ap_key, char *ap_channel);
+int demo_network_auto_reconnect(void)
+{
+	BK_FAST_CONNECT_D info = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
+#endif
+	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
+	if (info.flag == 0x71l)
+		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
+	if (info.flag == 0x72l)
+		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
+#if CONFIG_NET_PAN
+	if (info.flag == 0x74l) {
+
+		bt_start_pan_reconnect();
+	}
+#endif
+	return info.flag;
+}
+
+int demo_save_network_auto_restart_info(netif_if_t type, void *val)
+{
+	BK_FAST_CONNECT_D info_tmp = {0};
+	__maybe_unused wifi_ap_config_t *ap_config = NULL;
+	__maybe_unused wifi_sta_config_t *sta_config = NULL;
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
+#endif
+	if (type == NETIF_IF_STA) {
+		info_tmp.flag |= 0x71l;
+		sta_config = (wifi_sta_config_t *)val;
+		os_memset((char *)info_tmp.sta_ssid, 0x0, 33);
+		os_memset((char *)info_tmp.sta_pwd, 0x0, 65);
+		os_strcpy((char *)info_tmp.sta_ssid, (char *)sta_config->ssid);
+		os_strcpy((char *)info_tmp.sta_pwd, (char *)sta_config->password);
+	} else if (type == NETIF_IF_AP) {
+		info_tmp.flag |= 0x72l;
+		ap_config = (wifi_ap_config_t *)val;
+		os_memset((char *)info_tmp.ap_ssid, 0x0, 33);
+		os_memset((char *)info_tmp.ap_pwd, 0x0, 65);
+		os_strcpy((char *)info_tmp.ap_ssid, (char *)ap_config->ssid);
+		os_strcpy((char *)info_tmp.ap_pwd, (char *)ap_config->password);
+	} else
+		return -1;
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
+#endif
+	return 0;
+}
+
 extern void agora_auto_run(void);
 static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
 {
@@ -58,7 +129,7 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
             if (smart_config_running)
             {
                 bk_wifi_sta_get_config(&sta_config);
-                demo_save_wifi_auto_restart_info(NETIF_IF_STA, &sta_config);
+                demo_save_network_auto_restart_info(NETIF_IF_STA, &sta_config);
                 msg.event = DBEVT_WIFI_STATION_CONNECTED;
                 bk_genie_send_msg(&msg);
 
@@ -133,14 +204,12 @@ void event_handler_init(void)
     BK_LOG_ON_ERR(bk_event_register_cb(EVENT_MOD_NETIF, EVENT_ID_ALL, bk_genie_sconf_netif_event_cb, NULL));
 }
 
-extern void demo_wifi_erase_auto_restart_info(void);
-extern int demo_wifi_auto_restart(void);
 extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
     agora_stop();
-    demo_wifi_erase_auto_restart_info();
+    demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
     wifi_boarding_adv_start();
 #if CONFIG_NET_PAN
@@ -153,18 +222,13 @@ int bk_genie_smart_config_init(void)
     int flag;
 
     event_handler_init();
-    flag = demo_wifi_auto_restart();
+    flag = demo_network_auto_reconnect();
 
+    if (flag != 0x71l && flag != 0x73l
 #if CONFIG_NET_PAN
-    if (flag == 0x74l)
-    {
-        bt_start_pan_reconnect();
-        return 0;
-    }
+        && flag != 0x74l
 #endif
-
-    if (flag != 0x71l && flag != 0x73l)
-    {
+    ) {
         bk_genie_prepare_for_smart_config();
     }
 
@@ -174,7 +238,7 @@ int bk_genie_smart_config_init(void)
 extern void demo_wifi_erase_auto_restart_info(void);
 void bk_genie_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-    demo_wifi_erase_auto_restart_info();
+    demo_erase_network_auto_reconnect_info();
 }
 
 void bk_genie_erase_agent_info(void)
@@ -213,13 +277,13 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info)
     return 0;
 }
 
-#define BEKEN_SERVER_URL "http://47.102.43.223:8990/api/agora_service/activate_agent/"
+extern char *bk_get_bk_server_url(void);
 int bk_genie_wakeup_agent(void)
 {
     struct webclient_session *session = NULL;
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
-    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0;
+    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = -1;
 
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
@@ -228,11 +292,11 @@ int bk_genie_wakeup_agent(void)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BEKEN_SERVER_URL);
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
-        return BK_FAIL;
+        return ret;
     }
 
     /*Generate data*/
@@ -294,6 +358,6 @@ __exit:
         os_free(post_data);
     }
 
-    return BK_OK;
+    return ret;
 }
 

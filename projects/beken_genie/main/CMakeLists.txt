@@ -21,7 +21,7 @@ list(APPEND srcs
     bt_pan/pan_demo_cli.c
     bt_pan/storage/bluetooth_storage.c
 )
-if (CONFIG_WIFI_AUTO_RESTART)
+if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
    smart_config/bk_genie_smart_config.c
 )

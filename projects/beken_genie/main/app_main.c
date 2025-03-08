@@ -25,7 +25,7 @@
 #if (CONFIG_SYS_CPU0)
 #include "agora_config.h"
 #include "aud_intf.h"
-#if CONFIG_WIFI_AUTO_RESTART
+#if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
 #endif
@@ -70,7 +70,7 @@ static const struct cli_command s_agora_rtc_commands[] =
 {
     {"agora_test", "agora_test ...", cli_agora_rtc_test_cmd},
     {"agora_debug", "agora_debug ...", cli_agora_rtc_debug_cmd},
-#if CONFIG_WIFI_AUTO_RESTART
+#if CONFIG_NETWORK_AUTO_RECONNECT
     {"bk_smart_config_erase", "bk_smart_config_erase", bk_genie_smart_config_cli}
 #endif
 };
@@ -244,11 +244,6 @@ void user_app_main(void)
 #if (CONFIG_SYS_CPU0)
     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
 
-#if CONFIG_WIFI_AUTO_RECONNECT
-    event_handler_init();
-    demo_wifi_fast_connect();
-#endif
-
     agora_rtc_cli_init();
 #endif
 
@@ -286,7 +281,7 @@ int main(void)
         lvgl_app_init();
 
         bk_genie_core_init();
-#if CONFIG_WIFI_AUTO_RESTART
+#if CONFIG_NETWORK_AUTO_RECONNECT
         bk_genie_smart_config_init();
 #endif
 

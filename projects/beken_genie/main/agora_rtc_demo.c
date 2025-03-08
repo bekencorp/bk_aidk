@@ -21,7 +21,7 @@
 #include "media_app.h"
 #include "lcd_act.h"
 #include "components/bk_uid.h"
-#if CONFIG_WIFI_AUTO_RESTART
+#if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
 
@@ -770,7 +770,6 @@ cmd_fail:
 /* call this api when wifi autoconnect */
 extern char *app_id_record;
 extern char *channel_name_record;
-#define AGORA_DEBUG_APPID "db1ae5462530413e9fd527bbeb909139"
 void agora_auto_run(void)
 {
     if (!channel_name_record || !app_id_record)
