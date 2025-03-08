@@ -10,6 +10,7 @@ typedef enum
     APP_EVT_RTC_CONNECTION_LOST,
     APP_EVT_AGENT_JOINED,
     APP_EVT_AGENT_OFFLINE,
+    APP_EVT_LOW_VOLTAGE,
 } app_evt_type_t;
 
 
