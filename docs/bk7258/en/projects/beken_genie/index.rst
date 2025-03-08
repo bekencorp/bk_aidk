@@ -50,23 +50,35 @@ The design includes reference solutions and demos for common peripherals, such a
 
     Figure 1. Hardware Development Board
 
-
-
-1.2 Code Guide
+1.2 Button
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-	Directory: ``<source code>/project/beken_genie``
+    Increase volume.
+        - Press the S1 button to increase the volume.
+    Decrease volume.
+        - Press the S2 button to decrease the volume.
 
-	Build: ``make bk7258 PROJECT=beken_genie``
+1.3 LED
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 
-2. Architecture
+1.4 ASR
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+    1. ``Hi Armino`` is used to wake up, enabling interaction between local and cloud AI, while the LCD lights up and displays eye animations.
+
+        Response phrase: ``A Ha``
+
+    2. ``byebye armino`` is used to turn off, enabling interaction between local and cloud AI, while closing the LCD and no longer displaying eye animations.
+
+        Response phrase: ``Byebye``
+
+
+2. Development Guide
 ---------------------------------
 
-
-2.1 software diagram
+2.1 Module Diagram
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-
 
     This AI demo solution is similar to the door lock solution,
 
@@ -80,7 +92,7 @@ The design includes reference solutions and demos for common peripherals, such a
 
 .. figure:: ../../../_static/agora_wanson_ai_arch.png
     :align: center
-    :alt: module architecture Overview
+    :alt: module Overview
     :figclass: align-center
 
     Figure 2. software module architecture
@@ -101,7 +113,7 @@ The design includes reference solutions and demos for common peripherals, such a
     * Each frame of the image is sent to Agora's servers via the Agora SDK.
     * The server then transmits the image to the AI Agent large model for recognition.
 
-2.2 function diagram
+2.2 Function diagram
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     As shown in the figure below, the interfaces of the multimedia used in the scheme are all defined in media_app.h and aud_intf.h.
@@ -135,8 +147,8 @@ The design includes reference solutions and demos for common peripherals, such a
     13/14/15 Red light flashes quickly.
 
 
-3. Kconfig
----------------------------------
+2.4 Kconfig
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     To enable the Agora function library, the following configurations need to be enabled on cpu0:
 
@@ -147,88 +159,104 @@ The design includes reference solutions and demos for common peripherals, such a
     +----------------------------------------+----------------+---------------+----------------+
 
 
-4. Demo Guide
+3. Demonstration instructions
 ---------------------------------
 
-supported commands:
+3.1 Source code download & build
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-+-------------------------------------------------------+-------------------------------------+
-|Command                                                |Description                          |
-+-------------------------------------------------------+-------------------------------------+
-|agora_test {start|stop appid video_en channel_name}    |Audio+Video                          |
-+-------------------------------------------------------+-------------------------------------+
+    * `AIDK download <../../get-started/index.html#armino-aidk-sdk>`_
 
+    * `Set Up SDK Build Environment <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v2.0.1/get-started/index.html>`_
 
-Commands Paramters:
+    * Compile Code:: ``make bk7258 PROJECT=beken_genie``
 
-    +--------------------+-------------------------------------------------+
-    |appid               | Agora appid                                     |
-    +--------------------+-------------------------------------------------+
-    |video_en            | Enable Paramters:                               |
-    |                    |  - 1: ``ON``                                    |
-    |                    |  - 0: ``OFF``                                   |
-    +--------------------+-------------------------------------------------+
-    |channel_name        | Channel                                         |
-    +--------------------+-------------------------------------------------+
+        * Compile in the source code root directory
+        * The project directory is located at``<source code>/project/beken_genie``
 
+    * `Program Code <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v2.0.1/get-started/index.html>`_
 
-The preparation work for the demo is as follows:
+        * The binary file for programming is located at ``<source code>/build/beken_genie/bk7258/all-app.bin``
 
-Register on the Agora official website and obtain the following parameters:
+3.2 Adjusting UI Resource Formats
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-AGORA_APPID
-AGORA_RESTFUL_TOKEN
-For detailed information, refer to the Beken Agora registration document: Agora Registration Document.
+    - 1. Convert the avi video files to be used using the format conversion tool located at ``<bk_aidk source code path>/bk_avdk/components/multimedia/tools/aviconvert/bk_avi.7z`` in the SDK. For detailed usage instructions, please refer to the readme.txt file included with the tool.
 
-Start the AI Agent on the server according to the operation manual provided by Agora AI Agent. You can configure whether the AI Agent supports image recognition based on your needs.
+    - 2. Place the converted files back into the SD NAND and rename them to contain only English letters or numbers.
 
-Currently, the AI Agent is started on the PC. For POST instructions, refer to the user manual provided by Agora: <bk_aidk source code path>/docs/thirdparty/agora_ai_agent.
-You can also refer to the Beken AI Agent start document: AI Agent Start Document.
-Burning:
+    - 3. Modify the file name passed to the function ``AVI_open_input_file("/genie_eye.avi", 1)`` in the file ``<bk_aidk source code path>/project/beken_genie/main/av_play/avi_play.c``.
 
-Store the avi video file to be played in the SD NAND. For detailed usage of the SD NAND, refer to: Nand Disk Usage Notes.
-Store the <bk_aidk source code path>/project/beken_genie/main/resource/genie_eye.avi file in the SD NAND.
-Burn the compiled all-app.bin file and power on to execute.
-The steps for demo execution are as follows:
+3.3 APP Registration and Download
 
-Start Agora AI Agent on the PC.
+3.4 Firmware Burning and Resource File Burning
 
-Send a POST instruction on the PC to start Agora AI Agent. For detailed instructions, refer to: Beken AI Agent Start Document.
-Connect the device to Wi-Fi.
+	- 1. Store the avi video file to be played in the SD NAND. For specific usage of SD NAND, refer to Nand Disk Usage Notes <../../api-reference/nand_disk_note.html>_.
+	- 2. Store the file <bk_aidk source code path>/project/beken_genie/main/resource/genie_eye.avi from the SDK into the SD NAND.
+	- 3. Burn the compiled all-app.bin file and power on to execute.
+
+3.5 Operation Steps
 
 
-Send the command sta test xxxxxx on the demo board to connect to the 2.4GHz hotspot named "test".
-Start the device to join the AI chat channel.
+4. Debugging Commands
+---------------------------------
+.. warning::
 
-Send the command agora_test start appid 0 channel_name on the demo board to join the specified AI chat channel and enable the audio path.
-Replace appid and channel_name with actual values. For reference, see: Beken Agora Registration Document.
+	Notes for Reading This Chapter:
 
-Wake up the device and start the AI conversation.
+	Debugging commands are intended solely for developers who have a good understanding of the code.
 
-Say the wake word "hi armino" to the on-board MIC. After waking up, the device will play a prompt tone "A Ha" and you can start the AI conversation.
-Exit the AI conversation.
+	If you are not familiar with the code and process, please first go through the demonstration steps below to familiarize yourself with and understand the code before deciding whether to
 
-Say the keyword "byebye armino" to the on-board MIC. After detection, the device will play a prompt tone "Byebye", then go to sleep and stop the AI conversation.
-Leave the AI chat channel.
+..
 
-Send the command agora_test stop on the demo board to leave the AI chat channel and disable the audio path.
-Speaker Volume Control:
+4.1 Command List:
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-Increase volume.
+    +-------------------------------------------------------+-------------------------------------+
+    |Command                                                |Description                          |
+    +-------------------------------------------------------+-------------------------------------+
+    |agora_test {start|stop appid video_en channel_name}    | Voice call + image recognition      |
+    +-------------------------------------------------------+-------------------------------------+
 
-Press the S1 button to increase the volume.
-Decrease volume.
+4.2 Start Command
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-Press the S2 button to decrease the volume.
+    +----------------+-------------+-------------------------------------------------+
+    |agora_test      |  Mandatory  | Command                                         |
+    +----------------+-------------+-------------------------------------------------+
+    |start           |  Mandatory  | Parameter, enables connection to RTC Channel    |
+    +----------------+-------------+-------------------------------------------------+
+    |appid           |  Mandatory  | Parameter, Agora's APPID                        |
+    +----------------+-------------+-------------------------------------------------+
+    |video_en        |  Mandatory  | Parameter, image recognition feature toggle:    |
+    |                |             |   - 1: ``Enable``                               |
+    |                |             |   - 0: ``Disable``                              |
+    +----------------+-------------+-------------------------------------------------+
+    |channel_name    |  Mandatory  | Parameter, channel name                         |
+    +----------------+-------------+-------------------------------------------------+
+
+.. note::
+
+    Before using this command, start the AI Agent on your PC end.
+
+    - 1. Register on Agora's official website and obtain the following parameters `Beken Agora Registration Document <../../thirdparty/agora/index.html#id1>`_
+
+        * AGORA_APPID
+        * AGORA_RESTFUL_TOKEN
+
+    - 2. According to the operation manual provided by Agora AI Agent, start the AI Agent on the server side.
+
+        a. Currently, the AI Agent on the PC end is started, and the POST command reference please refer to the user manual provided by Agora ``<bk_aidk source code path>/docs/thirdparty/agora_ai_agent``
+
+        b. You can also refer to `Beken AI Agent Start Document <../../thirdparty/agora/index.html#ai-agent>`_
 
 
-AVI video file replacement:
+4.2 Stop Command
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-1.Convert the avi video file to be used using the conversion tool located at <bk_aidk source code path>/bk_avdk/components/multimedia/tools/aviconvert/bk_avi.7z in the SDK.
-
-    For specific usage instructions, refer to the readme.txt file included with the tool.
-
-2.Place the converted file back into the SD NAND and rename it to contain only English letters or numbers.
-
-3.Modify the file name in the function call AVI_open_input_file("/genie_eye.avi", 1) within the <bk_aidk source code path>/project/beken_genie/main/av_play/avi_play.c file.
-
+    +----------------+------------+-------------------------------------------------+
+    |agora_test      |  Mandatory | Command                                         |
+    +----------------+------------+-------------------------------------------------+
+    |stop            |  Mandatory | Parameter, disconnects the current RTC Channel  |
+    +----------------+------------+-------------------------------------------------+
