@@ -216,7 +216,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     lv_img_set_src(img, &img_dsc);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
 
-    lv_timer_t *timer = lv_timer_create(lv_timer_cb, 40, NULL);
+    lv_timer_t *timer = lv_timer_create(lv_timer_cb, 1000 / avi->fps, NULL);
     lv_timer_set_repeat_count(timer, -1);
     lv_vendor_disp_unlock();
 
