@@ -357,8 +357,9 @@ int bk_genie_boarding_init(void)
 
     wifi_boarding_init(&bk_genie_boarding_info->boarding_info);
 
-    //pan_service_init();
-
+#if CONFIG_NET_PAN
+    pan_service_init();
+#endif
     return BK_OK;
 error:
     return BK_FAIL;

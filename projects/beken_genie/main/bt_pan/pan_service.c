@@ -41,9 +41,30 @@ typedef struct
 
 static beken_queue_t bt_pan_service_msg_que = NULL;
 static beken_thread_t bt_pan_service_thread_handle = NULL;
+uint8_t paired_bt_mac[6] = { 0 };
+uint8_t s_pan_state = BK_BTPAN_STATE_DISCONNECTED;
+
+void bt_start_pan_reconnect(void)
+{
+    uint8_t recon_addr[6] = {0};
+
+    LOGI("%s\n", __func__);
+
+    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr,NULL)) < 0)
+    {
+        LOGI("%s can't find linkkey info\n", __func__);
+        bt_manager_set_mode(BT_MNG_MODE_PAIRING);
+    }
+    else
+    {
+        LOGI("%s find addr\n", __func__);
+        bt_manager_start_reconnect(recon_addr, 1);
+    }
+}
 
 void bt_pan_service_main(void *arg)
 {
+#if 0
     uint8_t recon_addr[6] = {0};
     if ((bluetooth_storage_get_newest_linkkey_info(recon_addr,NULL)) < 0)
     {
@@ -55,7 +76,7 @@ void bt_pan_service_main(void *arg)
         LOGI("%s find addr\n", __func__);
         //bt_manager_start_reconnect(recon_addr, 1);
     }
-
+#endif
     while (1)
     {
         bk_err_t err;
@@ -77,10 +98,10 @@ void bt_pan_service_main(void *arg)
 
                     uint8_t *dest = p_data->dest;
                     uint8_t *src = p_data->src;
-                    LOGI("PAN_DATA_IND, pro:0x%04x, dest[%02x:%02x:%02x:%02x:%02x:%02x],src[%02x:%02x:%02x:%02x:%02x:%02x], len : %d\r\n",
+                    LOGD("PAN_DATA_IND, pro:0x%04x, dest[%02x:%02x:%02x:%02x:%02x:%02x],src[%02x:%02x:%02x:%02x:%02x:%02x], len : %d\r\n",
                               p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
                               src[0], src[1], src[2], src[3], src[4], src[5],p_data->payload_len);
-                    LOGI(" data : %x %x- %x %x\r\n", p_data->payload[0],p_data->payload[1],p_data->payload[p_data->payload_len-2],p_data->payload[p_data->payload_len-1]);
+                    LOGD(" data : %x %x- %x %x\r\n", p_data->payload[0],p_data->payload[1],p_data->payload[p_data->payload_len-2],p_data->payload[p_data->payload_len-1]);
 #if CONFIG_NET_PAN
                     /* PAN Wi-Fi Part */
                     struct pbuf *p = pbuf_alloc(PBUF_RAW, p_data->payload_len + sizeof(struct eth_hdr), PBUF_POOL);
@@ -207,10 +228,10 @@ void bt_pan_media_data_ind(eth_data_t *data)
         }
     }
 }
-uint8_t paired_bt_mac[6] = { 0 };
+
 static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 {
-    LOGI("%s event: %d\r\n", __func__, event);
+    LOGD("%s event: %d\r\n", __func__, event);
 
     switch (event)
     {
@@ -220,6 +241,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
             LOGI("PAN connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
                       param->conn_state.con_state, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
 
+            s_pan_state = param->conn_state.con_state;
             if (BK_BTPAN_STATE_CONNECTED == param->conn_state.con_state)
             {
                 os_memcpy(paired_bt_mac, bda, 6);
@@ -248,7 +270,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 
         case BK_PAN_WRITE_DATA_CNF_EVT:
         {
-            LOGI("PAN WRITE DATA CNF\r\n");
+            LOGD("PAN WRITE DATA CNF\r\n");
         }
         break;
 
@@ -261,6 +283,11 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 static void bk_pan_connect(uint8_t *remote_addr)
 {
     bk_bt_pan_connect(remote_addr, BK_PAN_ROLE_PANU, BK_PAN_ROLE_NAP);
+}
+
+static void bk_pan_disconnect(uint8_t *remote_addr)
+{
+    bk_bt_pan_disconnect(remote_addr);
 }
 
 #if CONFIG_NET_PAN
@@ -292,10 +319,17 @@ static void pan_output(struct netif *netif, struct pbuf *p)
     p_eth_data->payload_len = p->tot_len;
     os_memcpy(p_eth_data->payload, (uint8_t *)p->payload + sizeof(struct eth_hdr), p_eth_data->payload_len);
 
-    if (bk_bt_pan_write(paired_bt_mac, p_eth_data) !=0) {
+    if (BK_BTPAN_STATE_CONNECTED == s_pan_state)
+    {
+        if (bk_bt_pan_write(paired_bt_mac, p_eth_data) !=0) {
 
-        os_free(p_eth_data);
-        return;
+            os_free(p_eth_data);
+            return;
+        }
+    }
+    else
+    {
+        LOGE("%s, pan is not connected!\r\n", __func__);
     }
 
     os_free(p_eth_data);
@@ -307,13 +341,13 @@ int pan_service_init(void)
 {
     LOGI("%s\r\n", __func__);
 
-    bt_manager_init();
+    bt_manager_init(0);
 
     btm_callback_s btm_cb =
     {
         .gap_cb = NULL,
         .start_connect_cb = bk_pan_connect,
-        .start_disconnect_cb = NULL,
+        .start_disconnect_cb = bk_pan_disconnect,
         .stop_connect_cb = NULL,
     };
     bt_manager_register_callback(&btm_cb);

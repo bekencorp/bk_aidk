@@ -30,6 +30,7 @@
 #if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
 #include "bk_ef.h"
 #endif
+#include "pan_service.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE			256
@@ -131,6 +132,9 @@ void bk_genie_prepare_for_smart_config(void)
 	demo_wifi_erase_auto_restart_info();
 	bk_genie_erase_agent_info();
 	wifi_boarding_adv_start();
+#if CONFIG_NET_PAN
+	bk_bt_enter_pairing_mode();
+#endif
 }
 
 int bk_genie_smart_config_init(void)
@@ -139,6 +143,15 @@ int bk_genie_smart_config_init(void)
 
 	event_handler_init();
 	flag = demo_wifi_auto_restart();
+
+	#if CONFIG_NET_PAN
+	if (flag == 0x74l)
+	{
+		bt_start_pan_reconnect();
+		return 0;
+	}
+#endif
+
 	if (flag != 0x71l && flag != 0x73l )
 		bk_genie_prepare_for_smart_config();
 

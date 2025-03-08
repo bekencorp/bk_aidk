@@ -383,7 +383,7 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
     }
 }
 
-int bt_manager_init()
+int bt_manager_init(uint8_t is_visible)
 {
     LOGI("%s\r\n", __func__);
     int ret = 0;
@@ -397,14 +397,17 @@ int bt_manager_init()
     os_memset(&btm_env, 0, sizeof(btm_env_s));
     os_memset(&btm_cbs, 0, sizeof(btm_cbs));
     bk_bt_gap_register_callback(gap_event_cb);
-    bk_bt_gap_set_device_class(COD_SOUNDBAR);
+    bk_bt_gap_set_device_class(0x022804);
     uint8_t bt_mac[6];
     char local_name[30] = {0};
     bk_get_mac((uint8_t *)bt_mac, MAC_TYPE_BLUETOOTH);
     snprintf(local_name, 30, "%s_%02x%02x%02x", LOCAL_NAME, bt_mac[3], bt_mac[4], bt_mac[5]);
     bk_bt_gap_set_local_name((uint8_t *)local_name, os_strlen(local_name));
 
-    bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+    if (is_visible)
+    {
+        bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+    }
 
     bk_bt_gap_set_page_timeout(CONFIG_PAGE_TIMEOUT);
     bk_bt_gap_set_page_scan_activity(PAGE_SCAN_INTV, PAGE_SCAN_WIN);

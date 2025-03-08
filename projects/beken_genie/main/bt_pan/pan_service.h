@@ -14,6 +14,8 @@ extern "C" {
 
 int pan_service_init(void);
 int cli_pan_demo_init(void);
+void bt_start_pan_reconnect(void);
+void bk_bt_enter_pairing_mode(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

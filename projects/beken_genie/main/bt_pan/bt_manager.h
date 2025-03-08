@@ -37,7 +37,7 @@ typedef struct
 int bt_manager_register_callback(btm_callback_s *cb);
 void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate);
 void bt_manager_set_mode(uint8_t mode);
-int bt_manager_init();
+int bt_manager_init(uint8_t is_visible);
 uint8_t bt_manager_get_connect_state();
 void bt_manager_set_connect_state(uint8_t state);
 uint8_t* bt_manager_get_reconnect_device();
