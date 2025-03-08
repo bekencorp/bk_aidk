@@ -151,6 +151,18 @@ static void play_voice_task_main(beken_thread_arg_t param_data)
     }
 
 exit:
+    if (g722_temp_buff)
+    {
+        psram_free(g722_temp_buff);
+        g722_temp_buff = NULL;
+    }
+
+    if (spk_temp_buff)
+    {
+        psram_free(spk_temp_buff);
+        spk_temp_buff = NULL;
+    }
+
     /* delete msg queue */
     ret = rtos_deinit_queue(&play_voice_msg_que);
     if (ret != kNoErr)

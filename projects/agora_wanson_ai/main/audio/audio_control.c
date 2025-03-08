@@ -50,6 +50,11 @@ static audio_play_t *gl_audio_play = NULL;
 static audio_record_t *gl_audio_record = NULL;
 static g722_encode_state_t *gl_g722_enc = NULL;
 
+static beken_semaphore_t gl_play_bell_sem = NULL;
+static beken_semaphore_t gl_record_question_sem = NULL;
+static bool gl_abort_play_bell_flag = true;
+static bool gl_abort_record_question_flag = false;
+
 static bk_err_t audio_control_set_mode(audio_mode_t mode)
 {
     audio_mode = mode;
@@ -86,7 +91,9 @@ static bk_err_t play_bell(char *bell_data, uint32_t size)
 
     LOGI("play bell start\n");
 
-    while (total_size >= BELL_FRAME_SIZE)
+    gl_abort_play_bell_flag = false;
+
+    while (!gl_abort_play_bell_flag && total_size >= BELL_FRAME_SIZE)
     {
         write_ret = audio_play_write_data(gl_audio_play, &bell_data[read_total_size], BELL_FRAME_SIZE);
         if (write_ret != BELL_FRAME_SIZE)
@@ -99,12 +106,29 @@ static bk_err_t play_bell(char *bell_data, uint32_t size)
         total_size -= BELL_FRAME_SIZE;
     }
 
+    if (gl_abort_play_bell_flag)
+    {
+        rtos_set_semaphore(&gl_play_bell_sem);
+    }
+
+    gl_abort_play_bell_flag = true;
+
     LOGI("play bell complete\n");
 
     return BK_OK;
 }
 
+static bk_err_t abort_play_bell(void)
+{
+    if (!gl_abort_play_bell_flag)
+    {
+        gl_abort_play_bell_flag = true;
 
+        rtos_get_semaphore(&gl_play_bell_sem, BEKEN_NEVER_TIMEOUT);
+    }
+
+    return BK_OK;
+}
 
 /* record and send mic data encoded by g711a to AI Agent */
 static bk_err_t record_mode_handle(void)
@@ -130,13 +154,16 @@ static bk_err_t record_mode_handle(void)
 
     record_work_flag = true;
 
-    while (record_work_flag)
+    while (record_work_flag && !gl_abort_record_question_flag)
     {
         ret = audio_record_read_data(gl_audio_record, (char *)aud_mic_data, RECORD_READ_FRAME_SIZE);
         if (ret != RECORD_READ_FRAME_SIZE)
         {
             LOGE("%s, %d, read mic data: %d != %d \n", __func__, __LINE__, ret, RECORD_READ_FRAME_SIZE);
-            continue;
+            rtos_stop_timer(&record_timer);
+            record_work_flag = false;
+            gl_abort_record_question_flag = true;
+            break;
         }
 
         /* g722 encoder pcm data to g722 */
@@ -163,8 +190,32 @@ exit:
     psram_free(g722_enc_buf);
     g722_enc_buf = NULL;
 
-    /* record mic and send to AI Agent complete */
-    audio_control_send_msg(AUDIO_CONTROL_PLAY, NULL);
+    if (!gl_abort_record_question_flag)
+    {
+        /* record mic and send to AI Agent complete */
+        audio_control_send_msg(AUDIO_CONTROL_PLAY, NULL);
+    }
+
+    if (gl_abort_play_bell_flag)
+    {
+        rtos_stop_timer(&record_timer);
+        record_work_flag = false;
+        rtos_set_semaphore(&gl_record_question_sem);
+        gl_abort_record_question_flag = false;
+    }
+
+    return BK_OK;
+}
+
+static bk_err_t abort_record_question(void)
+{
+    /* Check whether record question working */
+    if (record_work_flag)
+    {
+        gl_abort_record_question_flag = true;
+
+        rtos_get_semaphore(&gl_record_question_sem, BEKEN_NEVER_TIMEOUT);
+    }
 
     return BK_OK;
 }
@@ -190,7 +241,6 @@ static void audio_control_task_main(beken_thread_arg_t param_data)
 
                 case AUDIO_CONTROL_EXIT:
                     LOGD("goto: AUDIO_CONTROL_EXIT \r\n");
-                    audio_control_set_mode(AUDIO_MODE_IDLE);
                     goto audio_control_exit;
                     break;
 
@@ -274,7 +324,7 @@ static bk_err_t audio_control_main_task_init(void)
     LOGI("create audio control message queue complete\n");
 
     ret = rtos_create_thread(&audio_control_task_hdl,
-                             6,
+                             5,
                              "audio_control",
                              (beken_thread_function_t)audio_control_task_main,
                              1024,
@@ -373,6 +423,18 @@ bk_err_t audio_control_deinit(void)
         gl_g722_enc = NULL;
     }
 
+    if (gl_play_bell_sem)
+    {
+        rtos_deinit_semaphore(&gl_play_bell_sem);
+        gl_play_bell_sem = NULL;
+    }
+
+    if (gl_record_question_sem)
+    {
+        rtos_deinit_semaphore(&gl_record_question_sem);
+        gl_record_question_sem = NULL;
+    }
+
     return BK_OK;
 }
 
@@ -395,6 +457,20 @@ bk_err_t audio_control_init(void)
         goto fail;
     }
     os_memset(aud_mic_data, 0, RECORD_READ_FRAME_SIZE);
+
+    ret = rtos_init_semaphore(&gl_play_bell_sem, 1);
+    if (ret != BK_OK)
+    {
+        LOGE("%s, %d, create play bell semaphore fail\n", __func__, __LINE__);
+        goto fail;
+    }
+
+    ret = rtos_init_semaphore(&gl_record_question_sem, 1);
+    if (ret != BK_OK)
+    {
+        LOGE("%s, %d, create record question semaphore fail\n", __func__, __LINE__);
+        goto fail;
+    }
 
     /* init audio control main task */
     ret = audio_control_main_task_init();
@@ -501,9 +577,16 @@ bk_err_t audio_control_stop(void)
 {
     bk_err_t ret = BK_OK;
 
+    /* stop asr */
     voice_asr_stop();
     /* wait 40ms(>20ms) to make sure that wanson_asr read mic data complete and wanson asr task state is idle. */
     rtos_delay_milliseconds(40);
+
+    /* reset queue to avoid handle asr result in queue */
+    rtos_reset_queue(&audio_control_msg_que);
+
+    /* stop record and send question to AI Agent */
+    abort_record_question();
 
     play_voice_stop();
     /* wait 40ms(>20ms) to make sure that play voice write speaker data complete and voice play task state is idle. */
@@ -514,6 +597,9 @@ bk_err_t audio_control_stop(void)
     {
         LOGE("%s, %d, audio_record_close fail, ret:%d\n", __func__, __LINE__, ret);
     }
+
+    /* stop play bell */
+    abort_play_bell();
 
     ret = audio_play_close(gl_audio_play);
     if (ret != BK_OK)
