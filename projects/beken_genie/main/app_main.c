@@ -32,7 +32,7 @@
 #endif
 
 #include "app_event.h"
-
+#include "countdown.h"
 #include <led_blink.h>
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
@@ -169,6 +169,7 @@ void ai_agent_config()
  long to execute, it will cause subsequent key events to be responded to untimely.*/
 static void handle_system_event(key_event_t event)
 {
+    uint32_t time; 
     switch (event)
     {
         case VOLUME_UP:
@@ -178,6 +179,11 @@ static void handle_system_event(key_event_t event)
             volume_decrease();
             break;
         case SHUT_DOWN:
+            time = rtos_get_time(); //long press more than 6s
+            if (time < 9000)
+            {
+                break;
+            }
             power_off();
             break;
         case POWER_ON:
@@ -262,7 +268,8 @@ static void bk_enter_deepsleep()
 static void bk_wait_power_on()
 {
     uint32_t press_time = 0;
-
+    GLOBAL_INT_DECLARATION();
+    GLOBAL_INT_DISABLE();
     do {
         if (bk_gpio_get_input(KEY_GPIO_13) == 0) {
             extern void delay_ms(uint32 num);
@@ -277,13 +284,14 @@ static void bk_wait_power_on()
             break;
         }
     } while (press_time < LONG_RRESS_TIMR);
+    GLOBAL_INT_RESTORE();
 
     if (press_time < LONG_RRESS_TIMR)
     {
         bk_key_register_wakeup_source();
         bk_enter_deepsleep();
     }
-
+    
 }
 #endif
 
@@ -320,8 +328,12 @@ int main(void)
         }
     #endif
 
+    
     //led init move before
     #if (CONFIG_SYS_CPU0)
+        //No operation countdown 3 minutes to shut down
+        start_countdown();
+        //led init move before
         led_driver_init();
         led_app_set(LED_ON_GREEN);
     #endif
