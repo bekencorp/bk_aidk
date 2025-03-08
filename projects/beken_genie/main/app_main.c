@@ -240,7 +240,7 @@ static void bk_enter_deepsleep()
 		rtos_delay_milliseconds(50);
     #endif
 
-	bk_printf("RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
+	BK_LOGI(TAG,"RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
     bk_key_register_wakeup_source();
     bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
 	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
@@ -308,8 +308,8 @@ int main(void)
     //led init move before
     #if (CONFIG_SYS_CPU0)
         led_driver_init();
+        led_app_set(LED_ON_GREEN);
     #endif
-
         media_service_init();
 
 #if (CONFIG_SYS_CPU0)

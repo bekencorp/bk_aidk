@@ -14,6 +14,8 @@
 #include "media_app.h"
 #include "led_blink.h"
 
+#include "countdown.h"
+
 
 #define TAG "app_evt"
 
@@ -99,10 +101,13 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_ASR_WAKEUP:
                     LOGI("APP_EVT_ASR_WAKEUP\n");
                     lvgl_app_init();
+                    stop_countdown();
+                    led_app_set(LED_OFF_GREEN);
                     break;
                 case APP_EVT_ASR_STANDBY:
                     LOGI("APP_EVT_ASR_STANDBY\n");
                     lvgl_app_deinit();
+                    start_countdown();
                     break;
                 case APP_EVT_PAIRING_NETWORK:
                     LOGI("APP_EVT_PAIRING_NETWORK\n");

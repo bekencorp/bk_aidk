@@ -20,6 +20,7 @@ list(APPEND srcs
     bt_pan/pan_service.c
     bt_pan/pan_demo_cli.c
     bt_pan/storage/bluetooth_storage.c
+    countdown.c
 )
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
