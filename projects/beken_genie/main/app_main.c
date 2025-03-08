@@ -34,6 +34,7 @@
 #include "app_event.h"
 #include "countdown.h"
 #include <led_blink.h>
+#include <common/bk_include.h>
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 extern int bk_cli_init(void);
