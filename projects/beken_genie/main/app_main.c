@@ -273,9 +273,8 @@ int main(void)
         bk_gpio_set_output_high(LDO3V3_CTRL_GPIO);
 #endif
 
-        lvgl_app_init();
-
         bk_genie_core_init();
+
 #if CONFIG_NETWORK_AUTO_RECONNECT
         bk_genie_smart_config_init();
 #endif

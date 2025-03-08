@@ -97,11 +97,11 @@ static void app_event_thread(beken_thread_arg_t data)
             {
                 case APP_EVT_ASR_WAKEUP:
                     LOGI("APP_EVT_ASR_WAKEUP\n");
-                    //lvgl_app_init();
+                    lvgl_app_init();
                     break;
                 case APP_EVT_ASR_STANDBY:
                     LOGI("APP_EVT_ASR_STANDBY\n");
-                    //lvgl_app_deinit();
+                    lvgl_app_deinit();
                     break;
                 default:
                     break;

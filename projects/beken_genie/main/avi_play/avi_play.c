@@ -38,8 +38,11 @@ static uint32_t pos = 0;
 static uint16_t *framebuffer = NULL;
 static uint16_t *segmentbuffer = NULL;
 static uint32_t frame_size = 0;
+static jd_output_format *format = NULL;
+static lv_vnd_config_t lv_vnd_config = {0};
 
 static lv_obj_t *img = NULL;
+static lv_timer_t *timer;
 static lv_img_dsc_t img_dsc =
 {
     .header.cf = LV_IMG_CF_TRUE_COLOR,
@@ -51,9 +54,6 @@ static lv_img_dsc_t img_dsc =
 };
 
 #define AVI_VIDEO_USE_HW_DECODE    1
-
-static jd_output_format *format = NULL;
-static lv_vnd_config_t lv_vnd_config = {0};
 
 static void avi_video_frame_parse_to_rgb565(avi_t *AVI, uint32_t frame, uint8_t *src_buf, uint8_t *dst_buf, uint32_t src_size, uint32_t outbuf_size)
 {
@@ -102,19 +102,14 @@ static void lv_timer_cb(lv_timer_t *timer)
 
 bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 {
-    lv_vendor_stop();
-    lv_vendor_deinit();
-    lcd_display_close();
+    lv_vendor_disp_lock();
+    lv_timer_del(timer);
+    lv_vendor_disp_unlock();
 
-    if (format)
-    {
-        os_free(format);
-        format = NULL;
-    }
-    else
-    {
-        LOGE("%s free error %d\n", __func__, __LINE__);
-    }
+    lv_vendor_stop();
+    lcd_display_close();
+    AVI_close(avi);
+    lv_vendor_deinit();
 
 #ifdef CONFIG_LVGL_USE_PSRAM
     //TODO
@@ -137,6 +132,32 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 #else
     bk_jpeg_dec_sw_deinit();
 #endif
+
+    if (video_frame)
+    {
+        os_free(video_frame);
+        video_frame = NULL;
+    }
+
+    if (framebuffer)
+    {
+        os_free(framebuffer);
+        framebuffer = NULL;
+    }
+
+    if (segmentbuffer)
+    {
+        os_free(segmentbuffer);
+        segmentbuffer = NULL;
+    }
+
+    if (format)
+    {
+        os_free(format);
+        format = NULL;
+    }
+
+    pos = 0;
 
     return BK_OK;
 }
@@ -202,7 +223,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     img_dsc.header.h = lv_vnd_config.lcd_ver_res;
     img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
 
-    video_frame = os_malloc(30 * 1024);
+    video_frame = psram_malloc(30 * 1024);
     if (video_frame == NULL)
     {
         LOGE("%s %d video_frame malloc fail\r\n", __func__, __LINE__);
@@ -257,7 +278,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     lv_img_set_src(img, &img_dsc);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
 
-    lv_timer_t *timer = lv_timer_create(lv_timer_cb, 1000 / avi->fps, NULL);
+    timer = lv_timer_create(lv_timer_cb, 1000 / avi->fps, NULL);
     lv_timer_set_repeat_count(timer, -1);
     lv_vendor_disp_unlock();
 
