@@ -50,7 +50,7 @@ void bt_start_pan_reconnect(void)
 
     LOGI("%s\n", __func__);
 
-    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr,NULL)) < 0)
+    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr, NULL)) < 0)
     {
         LOGI("%s can't find linkkey info\n", __func__);
         bt_manager_set_mode(BT_MNG_MODE_PAIRING);
@@ -66,7 +66,7 @@ void bt_pan_service_main(void *arg)
 {
 #if 0
     uint8_t recon_addr[6] = {0};
-    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr,NULL)) < 0)
+    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr, NULL)) < 0)
     {
         LOGI("%s can't find linkkey info\n", __func__);
         bt_manager_set_mode(BT_MNG_MODE_PAIRING);
@@ -99,19 +99,21 @@ void bt_pan_service_main(void *arg)
                     uint8_t *dest = p_data->dest;
                     uint8_t *src = p_data->src;
                     LOGD("PAN_DATA_IND, pro:0x%04x, dest[%02x:%02x:%02x:%02x:%02x:%02x],src[%02x:%02x:%02x:%02x:%02x:%02x], len : %d\r\n",
-                              p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
-                              src[0], src[1], src[2], src[3], src[4], src[5],p_data->payload_len);
-                    LOGD(" data : %x %x- %x %x\r\n", p_data->payload[0],p_data->payload[1],p_data->payload[p_data->payload_len-2],p_data->payload[p_data->payload_len-1]);
+                         p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
+                         src[0], src[1], src[2], src[3], src[4], src[5], p_data->payload_len);
+                    LOGD(" data : %x %x- %x %x\r\n", p_data->payload[0], p_data->payload[1], p_data->payload[p_data->payload_len - 2], p_data->payload[p_data->payload_len - 1]);
 #if CONFIG_NET_PAN
                     /* PAN Wi-Fi Part */
                     struct pbuf *p = pbuf_alloc(PBUF_RAW, p_data->payload_len + sizeof(struct eth_hdr), PBUF_POOL);
 
-                    if (p == NULL) {
+                    if (p == NULL)
+                    {
                         LOGI("Failed to allocate pbuf\r\n");
                         return;
                     }
 
-                    if (p_data->payload_len > p->len - sizeof(struct eth_hdr)) {
+                    if (p_data->payload_len > p->len - sizeof(struct eth_hdr))
+                    {
                         LOGI("Payload too large for pbuf\r\n");
                         pbuf_free(p);
                         return;
@@ -123,7 +125,8 @@ void bt_pan_service_main(void *arg)
                     ethhdr->type = htons(p_data->protocol);
                     netif = net_get_pan_handle();
 
-                    if (netif == NULL || !netif_is_up(netif)) {
+                    if (netif == NULL || !netif_is_up(netif))
+                    {
                         LOGI("Network interface is not ready\r\n");
                         pbuf_free(p);
                         return;
@@ -239,7 +242,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
         {
             uint8_t *bda = param->conn_state.remote_bda;
             LOGI("PAN connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
-                      param->conn_state.con_state, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
+                 param->conn_state.con_state, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
 
             s_pan_state = param->conn_state.con_state;
             if (BK_BTPAN_STATE_CONNECTED == param->conn_state.con_state)
@@ -248,7 +251,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
                 bt_manager_set_connect_state(BT_STATE_PROFILE_CONNECTED);
 #if 0
                 np_type_filter_t np_type;
-                np_type.num_filters =2;
+                np_type.num_filters = 2;
                 np_type.start[0] =  0x800;
                 np_type.end[0] =  0x800;
                 np_type.start[1] =  0x806;
@@ -276,7 +279,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 
         default:
             LOGW("Invalid PAN event: %d\r\n", event);
-        break;
+            break;
     }
 }
 
@@ -298,7 +301,8 @@ static void pan_output(struct netif *netif, struct pbuf *p)
     ethhdr = (struct eth_hdr *)p->payload;
 
     eth_data_t *p_eth_data = os_malloc(sizeof(eth_data_t) + p->tot_len);
-    if (p_eth_data == NULL) {
+    if (p_eth_data == NULL)
+    {
         return;
     }
 
@@ -306,10 +310,10 @@ static void pan_output(struct netif *netif, struct pbuf *p)
     os_memcpy(p_eth_data->src, ethhdr->src.addr, PAN_HWADDR_LEN);
 
     LOGD("src_mac %2x:%2x:%2x:%2x:%2x:%2x\r\n", p_eth_data->src[0], p_eth_data->src[1], p_eth_data->src[2],
-                 p_eth_data->src[3], p_eth_data->src[4], p_eth_data->src[5]);
+         p_eth_data->src[3], p_eth_data->src[4], p_eth_data->src[5]);
 
     LOGD("dest_mac %2x:%2x:%2x:%2x:%2x:%2x\r\n", p_eth_data->dest[0], p_eth_data->dest[1], p_eth_data->dest[2],
-                 p_eth_data->dest[3], p_eth_data->dest[4], p_eth_data->dest[5]);
+         p_eth_data->dest[3], p_eth_data->dest[4], p_eth_data->dest[5]);
 
 #ifdef CONFIG_IPV6
     p_eth_data->protocol = 0x86dd;
@@ -321,7 +325,8 @@ static void pan_output(struct netif *netif, struct pbuf *p)
 
     if (BK_BTPAN_STATE_CONNECTED == s_pan_state)
     {
-        if (bk_bt_pan_write(paired_bt_mac, p_eth_data) !=0) {
+        if (bk_bt_pan_write(paired_bt_mac, p_eth_data) != 0)
+        {
 
             os_free(p_eth_data);
             return;
@@ -362,7 +367,7 @@ int pan_service_init(void)
     bk_panif_register_callback(pan_output);
 #endif
     cli_pan_demo_init();
-    
+
     return 0;
 }
 

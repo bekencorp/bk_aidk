@@ -40,7 +40,7 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             agoora_tx_mic_data_flag = false;
         }
     }
-    #if CONFIG_SYS_CPU1
+#if CONFIG_SYS_CPU1
     /* audio test */
     if (os_strcmp(argv[1], "dump_aec_all_data") == 0)
     {
@@ -53,7 +53,7 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             aec_all_data_flag = false;
         }
     }
-    #endif
+#endif
     else
     {
         goto cmd_fail;

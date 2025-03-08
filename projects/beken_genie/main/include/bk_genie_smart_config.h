@@ -1,11 +1,12 @@
 #ifndef __BK_GENIE_SMART_CONFIG_H__
 #define __BK_GENIE_SMART_CONFIG_H__
 
-typedef struct {
-	uint8_t valid;
-	char appid[33];
-	char channel_name[128];
-}bk_genie_agent_info_t;
+typedef struct
+{
+    uint8_t valid;
+    char appid[33];
+    char channel_name[128];
+} bk_genie_agent_info_t;
 
 int bk_agora_ai_agent_start(char *channel);
 int bk_genie_smart_config_init(void);

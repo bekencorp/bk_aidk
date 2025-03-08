@@ -25,7 +25,7 @@ typedef void (*btm_gap_event_cb)(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_
 typedef void (*btm_start_profile_connect_cb)(uint8_t *remote_addr);
 typedef void (*btm_start_profile_disconnect_cb)(uint8_t *remote_addr);
 typedef void (*btm_stop_profile_connect_cb)();
-typedef struct 
+typedef struct
 {
     btm_gap_event_cb gap_cb;
     btm_start_profile_connect_cb start_connect_cb;
@@ -40,5 +40,5 @@ void bt_manager_set_mode(uint8_t mode);
 int bt_manager_init(uint8_t is_visible);
 uint8_t bt_manager_get_connect_state();
 void bt_manager_set_connect_state(uint8_t state);
-uint8_t* bt_manager_get_reconnect_device();
-uint8_t* bt_manager_get_connected_device();
+uint8_t *bt_manager_get_reconnect_device();
+uint8_t *bt_manager_get_connected_device();

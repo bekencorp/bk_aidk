@@ -516,7 +516,7 @@ void agora_main(void)
     while (!g_connected_flag)
     {
         // memory_free_show();
-//        rtos_dump_task_runtime_stats();
+        //        rtos_dump_task_runtime_stats();
         if (!agora_runing)
         {
             goto exit;
@@ -742,7 +742,7 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             agoora_tx_mic_data_flag = false;
         }
     }
-    #if CONFIG_SYS_CPU1
+#if CONFIG_SYS_CPU1
     /* audio test */
     if (os_strcmp(argv[1], "dump_aec_all_data") == 0)
     {
@@ -755,7 +755,7 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             aec_all_data_flag = false;
         }
     }
-    #endif
+#endif
     else
     {
         goto cmd_fail;
@@ -773,16 +773,19 @@ extern char *channel_name_record;
 #define AGORA_DEBUG_APPID "db1ae5462530413e9fd527bbeb909139"
 void agora_auto_run(void)
 {
-	if (!channel_name_record || !app_id_record)
-		return;
+    if (!channel_name_record || !app_id_record)
+    {
+        return;
+    }
 
-	sprintf(agora_appid, "%s", app_id_record);
-	sprintf(channel_name, "%s", channel_name_record);
-	if (!agora_runing) {
-		bk_genie_wakeup_agent();
-		audio_en = true;
-		video_en = false;
-		agora_start();
-	}
+    sprintf(agora_appid, "%s", app_id_record);
+    sprintf(channel_name, "%s", channel_name_record);
+    if (!agora_runing)
+    {
+        bk_genie_wakeup_agent();
+        audio_en = true;
+        video_en = false;
+        agora_start();
+    }
 }
 

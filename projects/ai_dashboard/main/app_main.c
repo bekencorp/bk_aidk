@@ -35,13 +35,13 @@ extern void bk_set_jtag_mode(uint32_t cpu_id, uint32_t group_id);
 #define CONFIG_WIFI_PASSWORD        "1233211234567"//"1234567890"//"87654321"//"987654321"//"wohenruo"//"12345678"//"88888888"
 
 #ifdef CONFIG_LDO3V3_ENABLE
-    #ifndef LDO3V3_CTRL_GPIO
-        #ifdef CONFIG_LDO3V3_CTRL_GPIO
-            #define LDO3V3_CTRL_GPIO    CONFIG_LDO3V3_CTRL_GPIO
-        #else
-            #define LDO3V3_CTRL_GPIO    GPIO_52
-        #endif
-    #endif
+#ifndef LDO3V3_CTRL_GPIO
+#ifdef CONFIG_LDO3V3_CTRL_GPIO
+#define LDO3V3_CTRL_GPIO    CONFIG_LDO3V3_CTRL_GPIO
+#else
+#define LDO3V3_CTRL_GPIO    GPIO_52
+#endif
+#endif
 #endif
 
 #if (CONFIG_SYS_CPU0)
@@ -126,35 +126,41 @@ extern void demo_wifi_fast_connect(void);
 
 #if (CONFIG_SYS_CPU0)
 // 按键 1 的回调函数
-void volume_increase() {
+void volume_increase()
+{
     BK_LOGI(TAG, " volume up\r\n");
 }
 
-void volume_decrease() {
+void volume_decrease()
+{
     BK_LOGI(TAG, " volume down\r\n");
 }
 
-void power_off() {
+void power_off()
+{
     BK_LOGI(TAG, " power_off\r\n");
 
     BK_LOGW(TAG, " ************TODO:Just force deep sleep for Demo!\r\n");
-	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
-	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
-	bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
+    bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
+    bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
+    bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
 }
 
-void power_on() {
+void power_on()
+{
     BK_LOGI(TAG, "power_on\r\n");
 }
 
 void ai_agent_config()
 {
-	BK_LOGW(TAG, " ************TODO:AI Agent doesn't complete!\r\n");
+    BK_LOGW(TAG, " ************TODO:AI Agent doesn't complete!\r\n");
 }
 
 // 业务的实现增加在里面，在key_config结构体里面填写对应的业务
-static void handle_system_event(key_event_t event) {
-    switch(event) {
+static void handle_system_event(key_event_t event)
+{
+    switch (event)
+    {
         case VOLUME_UP:
             volume_increase();
             break;
@@ -167,36 +173,38 @@ static void handle_system_event(key_event_t event) {
         case POWER_ON:
             power_on();
             break;
-		case AI_AGENT_CONFIG:
-			ai_agent_config();
-			break;
+        case AI_AGENT_CONFIG:
+            ai_agent_config();
+            break;
         // 其他事件处理...
-        default: break;
+        default:
+            break;
     }
 }
 
-KeyConfig_t key_config[] = {
-        {
-            .gpio_id = 13,
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = VOLUME_UP,
-            .double_event = POWER_ON,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
-            .long_event = SHUT_DOWN
-        },
-        { 
-            .gpio_id = 12,
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = VOLUME_DOWN,
-            .double_event = VOLUME_DOWN,
-            .long_event = CONFIG_NETWORK
-        },
-        { 
-            .gpio_id = 8,
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = AI_AGENT_CONFIG,
-            .double_event = AI_AGENT_CONFIG,
-            .long_event = AI_AGENT_CONFIG
-        }
+KeyConfig_t key_config[] =
+{
+    {
+        .gpio_id = 13,
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = VOLUME_UP,
+        .double_event = POWER_ON,   //TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
+        .long_event = SHUT_DOWN
+    },
+    {
+        .gpio_id = 12,
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = VOLUME_DOWN,
+        .double_event = VOLUME_DOWN,
+        .long_event = CONFIG_NETWORK
+    },
+    {
+        .gpio_id = 8,
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = AI_AGENT_CONFIG,
+        .double_event = AI_AGENT_CONFIG,
+        .long_event = AI_AGENT_CONFIG
+    }
 };
 #endif
 
@@ -238,8 +246,8 @@ int main(void)
 
 
     register_event_handler(handle_system_event);
-    
-    bk_key_driver_init(key_config, sizeof(key_config)/sizeof(KeyConfig_t));
+
+    bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
 #endif
 
 #if CONFIG_USBD_MSC

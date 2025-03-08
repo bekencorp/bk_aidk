@@ -4,8 +4,8 @@
 
 typedef struct
 {
-	ble_boarding_info_t boarding_info;
-	uint16_t channel;
+    ble_boarding_info_t boarding_info;
+    uint16_t channel;
 } bk_genie_boarding_info_t;
 
 

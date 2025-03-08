@@ -10,6 +10,7 @@
 #include "yuv_encode.h"
 #include "modules/avilib.h"
 #include "modules/jpeg_decode_sw.h"
+#include "media_evt.h"
 
 
 #define TAG "AVI"
@@ -51,6 +52,8 @@ static lv_img_dsc_t img_dsc =
 
 #define AVI_VIDEO_USE_HW_DECODE    1
 
+static jd_output_format *format = NULL;
+static lv_vnd_config_t lv_vnd_config = {0};
 
 static void avi_video_frame_parse_to_rgb565(avi_t *AVI, uint32_t frame, uint8_t *src_buf, uint8_t *dst_buf, uint32_t src_size, uint32_t outbuf_size)
 {
@@ -97,20 +100,62 @@ static void lv_timer_cb(lv_timer_t *timer)
     lv_img_set_src(img, &img_dsc);
 }
 
-void lvgl_event_handle(media_mailbox_msg_t *msg)
+bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 {
+    lv_vendor_stop();
+    lv_vendor_deinit();
+    lcd_display_close();
+
+    if (format)
+    {
+        os_free(format);
+        format = NULL;
+    }
+    else
+    {
+        LOGE("%s free error %d\n", __func__, __LINE__);
+    }
+
+#ifdef CONFIG_LVGL_USE_PSRAM
+    //TODO
+#else
+    if (lv_vnd_config.draw_buf_2_1)
+    {
+        LV_MEM_CUSTOM_FREE(lv_vnd_config.draw_buf_2_1);
+        lv_vnd_config.draw_buf_2_1 = NULL;
+    }
+    else
+    {
+        LOGE("%s free error %d\n", __func__, __LINE__);
+    }
+#endif
+
+    os_memset(&lv_vnd_config, 0, sizeof(lv_vnd_config_t));
+
+#if AVI_VIDEO_USE_HW_DECODE
+    bk_jpeg_hw_decode_to_mem_deinit();
+#else
+    bk_jpeg_dec_sw_deinit();
+#endif
+
+    return BK_OK;
+}
+
+
+bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
+{
+    bk_err_t ret = BK_FAIL;
+
     LOGI("%s EVENT_LVGL_OPEN_IND \n", __func__);
 
-    lv_vnd_config_t lv_vnd_config = {0};
     lcd_open_t *lcd_open = (lcd_open_t *)msg->param;
-    jd_output_format *format = NULL;
+
 
     format = os_malloc(sizeof(jd_output_format));
     if (format == NULL)
     {
         LOGE("%s %d format malloc fail\r\n", __func__, __LINE__);
-        msg_send_rsp_to_media_major_mailbox(msg, BK_FAIL, APP_MODULE);
-        return;
+        return ret;
     }
 
 #if AVI_VIDEO_USE_HW_DECODE
@@ -161,8 +206,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     if (video_frame == NULL)
     {
         LOGE("%s %d video_frame malloc fail\r\n", __func__, __LINE__);
-        msg_send_rsp_to_media_major_mailbox(msg, BK_FAIL, APP_MODULE);
-        return;
+        return ret;
     }
 
     avi = AVI_open_input_file("/genie_eye.avi", 1);
@@ -176,8 +220,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     {
         LOGE("open avi fail\r\n");
         os_free(video_frame);
-        msg_send_rsp_to_media_major_mailbox(msg, BK_FAIL, APP_MODULE);
-        return;
+        return ret;
     }
 
     framebuffer = psram_malloc(frame_size);
@@ -186,8 +229,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
         LOGE("%s %d framebuffer malloc fail\r\n", __func__, __LINE__);
         AVI_close(avi);
         os_free(video_frame);
-        msg_send_rsp_to_media_major_mailbox(msg, BK_FAIL, APP_MODULE);
-        return;
+        return ret;
     }
 
     segmentbuffer = psram_malloc(frame_size);
@@ -197,8 +239,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
         AVI_close(avi);
         os_free(video_frame);
         os_free(framebuffer);
-        msg_send_rsp_to_media_major_mailbox(msg, BK_FAIL, APP_MODULE);
-        return;
+        return ret;
     }
 
     avi_video_frame_parse_to_rgb565(avi, pos, (uint8_t *)video_frame, (uint8_t *)framebuffer, video_len, frame_size);
@@ -222,8 +263,30 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 
     lv_vendor_start();
 
-    msg_send_rsp_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
+    return BK_OK;
 }
+
+void lvgl_event_handle(media_mailbox_msg_t *msg)
+{
+    bk_err_t ret = BK_FAIL;
+
+    switch (msg->event)
+    {
+        case EVENT_LVGL_OPEN_IND:
+            ret = lvgl_event_open_handle(msg);
+            break;
+
+        case EVENT_LVGL_CLOSE_IND:
+            ret = lvgl_event_close_handle(msg);
+            break;
+
+        default:
+            break;
+    }
+
+    msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+}
+
 #endif
 
 #if (CONFIG_SYS_CPU0)
@@ -238,5 +301,18 @@ void lvgl_app_init(void)
         return;
     }
 }
+
+void lvgl_app_deinit(void)
+{
+    bk_err_t ret;
+
+    ret = media_app_lvgl_close();
+    if (ret != BK_OK)
+    {
+        LOGE("media_app_lvgl_close failed\r\n");
+        return;
+    }
+}
+
 #endif
 

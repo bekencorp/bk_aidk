@@ -17,7 +17,8 @@ typedef struct __attribute__((packed))
     uint8_t addr[6];
     uint8_t link_key[16];
     uint8_t a2dp_volume;
-} bt_user_storage_elem_linkkey_t;
+}
+bt_user_storage_elem_linkkey_t;
 
 
 typedef struct __attribute__((packed))
@@ -27,7 +28,8 @@ typedef struct __attribute__((packed))
     bk_ble_bond_dev_t ble_key[BT_LINKKEY_MAX_SAVE_COUNT];
     bk_ble_local_keys_t local_keys;
 #endif
-} bt_user_storage_t;
+}
+bt_user_storage_t;
 
 
 int32_t bluetooth_storage_init(void);

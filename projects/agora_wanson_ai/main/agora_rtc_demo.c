@@ -514,7 +514,7 @@ void agora_main(void)
     while (!g_connected_flag)
     {
         // memory_free_show();
-//        rtos_dump_task_runtime_stats();
+        //        rtos_dump_task_runtime_stats();
         if (!agora_runing)
         {
             goto exit;

@@ -12,7 +12,8 @@
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct
+{
     unsigned char *data;
     unsigned int size;
 } asr_data_t;

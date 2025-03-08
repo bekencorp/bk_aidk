@@ -15,55 +15,68 @@ static uint8_t is_led_first_enter = 1;
 static uint8_t s_led_id = 0;
 static uint8_t timer_initialized = 0;
 
-void gpio_toggle(uint32_t gpio_id){
-    if (is_led_first_enter){
-        bk_gpio_set_value(s_led_id,0x2);
+void gpio_toggle(uint32_t gpio_id)
+{
+    if (is_led_first_enter)
+    {
+        bk_gpio_set_value(s_led_id, 0x2);
         is_led_first_enter = 0;
-    }else{
+    }
+    else
+    {
         uint32_t current_value = bk_gpio_get_value(gpio_id);
-	    current_value ^= BTI1_MASK;
-		bk_gpio_set_value(s_led_id,current_value);
-    }   
-}
-
-void vLedCallback(void *param1){
-
-    if(s_led_blink_enable){
-        gpio_toggle(s_led_id); 
+        current_value ^= BTI1_MASK;
+        bk_gpio_set_value(s_led_id, current_value);
     }
 }
 
-int led_service_init(uint8_t led_id, uint32_t blink_interval_ms) {
+void vLedCallback(void *param1)
+{
 
-	if (timer_initialized)
-	{
-		os_printf("led timer has inited \r\n");
-		return 0;
-	}
-	
-    if (rtos_init_timer(&g_led_timer, blink_interval_ms, vLedCallback, NULL) != kNoErr) {
-		os_printf("rtos_init_timer fail\r\n");
-        return -1; 
+    if (s_led_blink_enable)
+    {
+        gpio_toggle(s_led_id);
+    }
+}
+
+int led_service_init(uint8_t led_id, uint32_t blink_interval_ms)
+{
+
+    if (timer_initialized)
+    {
+        os_printf("led timer has inited \r\n");
+        return 0;
+    }
+
+    if (rtos_init_timer(&g_led_timer, blink_interval_ms, vLedCallback, NULL) != kNoErr)
+    {
+        os_printf("rtos_init_timer fail\r\n");
+        return -1;
     }
     s_led_id = led_id;
-	timer_initialized = 1;
+    timer_initialized = 1;
     return 0;
 }
 
 
-void led_set_mode(uint8_t led_id, LedMode mode) {
-    if (led_id != s_led_id) return; 
-    
-    switch (mode) {
+void led_set_mode(uint8_t led_id, LedMode mode)
+{
+    if (led_id != s_led_id)
+    {
+        return;
+    }
+
+    switch (mode)
+    {
         case LED_MODE_OFF:
             s_led_blink_enable = 0;
             rtos_stop_timer(&g_led_timer);
-			bk_gpio_set_value(s_led_id,0x0);
+            bk_gpio_set_value(s_led_id, 0x0);
             break;
         case LED_MODE_ON:
             s_led_blink_enable = 0;
-          	rtos_stop_timer(&g_led_timer);
-			bk_gpio_set_value(s_led_id,0x2);
+            rtos_stop_timer(&g_led_timer);
+            bk_gpio_set_value(s_led_id, 0x2);
             break;
         case LED_MODE_BLINK:
             s_led_blink_enable = 1;

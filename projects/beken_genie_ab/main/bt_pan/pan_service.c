@@ -42,7 +42,7 @@ static beken_thread_t bt_pan_service_thread_handle = NULL;
 void bt_pan_service_main(void *arg)
 {
     uint8_t recon_addr[6] = {0};
-    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr,NULL)) < 0)
+    if ((bluetooth_storage_get_newest_linkkey_info(recon_addr, NULL)) < 0)
     {
         LOGI("%s can't find linkkey info\n", __func__);
         bt_manager_set_mode(BT_MNG_MODE_PAIRING);
@@ -71,9 +71,9 @@ void bt_pan_service_main(void *arg)
                     uint8_t *dest = p_data->dest;
                     uint8_t *src = p_data->src;
                     LOGI("PAN_DATA_IND, pro:0x%04x, dest[%02x:%02x:%02x:%02x:%02x:%02x],src[%02x:%02x:%02x:%02x:%02x:%02x], len : %d\r\n",
-                              p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
-                              src[0], src[1], src[2], src[3], src[4], src[5],p_data->payload_len);
-                    LOGI(" data : %x %x- %x %x\r\n", p_data->payload[0],p_data->payload[1],p_data->payload[p_data->payload_len-2],p_data->payload[p_data->payload_len-1]);
+                         p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
+                         src[0], src[1], src[2], src[3], src[4], src[5], p_data->payload_len);
+                    LOGI(" data : %x %x- %x %x\r\n", p_data->payload[0], p_data->payload[1], p_data->payload[p_data->payload_len - 2], p_data->payload[p_data->payload_len - 1]);
 
                     os_free(msg.data);
                 }
@@ -181,14 +181,14 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
         {
             uint8_t *bda = param->conn_state.remote_bda;
             LOGI("PAN connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
-                      param->conn_state.con_state, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
+                 param->conn_state.con_state, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
 
             if (BK_BTPAN_STATE_CONNECTED == param->conn_state.con_state)
             {
                 bt_manager_set_connect_state(BT_STATE_PROFILE_CONNECTED);
 #if 0
                 np_type_filter_t np_type;
-                np_type.num_filters =2;
+                np_type.num_filters = 2;
                 np_type.start[0] =  0x800;
                 np_type.end[0] =  0x800;
                 np_type.start[1] =  0x806;
@@ -213,7 +213,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 
         default:
             LOGW("Invalid PAN event: %d\r\n", event);
-        break;
+            break;
     }
 }
 

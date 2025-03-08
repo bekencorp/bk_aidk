@@ -38,7 +38,7 @@ static int32_t bluetooth_storage_alloc_linkkey_info(uint8_t *addr)
     for (int i = 0; i < sizeof(s_bt_user_storage->linkkey) / sizeof(s_bt_user_storage->linkkey[0]); ++i)
     {
         if (!memcmp(s_bt_empty_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)) ||
-                !memcmp(s_bt_invaild_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)))
+            !memcmp(s_bt_invaild_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)))
         {
             memcpy(s_bt_user_storage->linkkey[i].addr, addr, sizeof(s_bt_user_storage->linkkey[i].addr));
             memset(s_bt_user_storage->linkkey[i].link_key, 0, sizeof(s_bt_user_storage->linkkey[i].link_key));
@@ -219,7 +219,7 @@ int32_t bluetooth_storage_get_newest_linkkey_info(uint8_t *addr, uint8_t *key)
     for (i = sizeof(s_bt_user_storage->linkkey) / sizeof(s_bt_user_storage->linkkey[0]) - 1; i >= 0; --i)
     {
         if (memcmp(s_bt_empty_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)) &&
-                memcmp(s_bt_invaild_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)))
+            memcmp(s_bt_invaild_addr, s_bt_user_storage->linkkey[i].addr, sizeof(s_bt_user_storage->linkkey[i].addr)))
         {
             int j = 0;
 
@@ -291,7 +291,7 @@ int32_t bluetooth_storage_save_volume(uint8_t *addr, uint8_t volume)
     else
     {
         os_printf("%s, not find the device info, %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
-                    addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
+                  addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]);
         return -1;
     }
 
@@ -455,7 +455,7 @@ int32_t bluetooth_storage_read_ble_key_info(bk_ble_bond_dev_t *list, uint32_t *c
     }
 
     uint32_t final_count = ((*count < sizeof(s_bt_user_storage->ble_key) / sizeof(s_bt_user_storage->ble_key[0])) ?
-                    *count: sizeof(s_bt_user_storage->ble_key) / sizeof(s_bt_user_storage->ble_key[0]));
+                            *count : sizeof(s_bt_user_storage->ble_key) / sizeof(s_bt_user_storage->ble_key[0]));
 
     os_memcpy(list, s_bt_user_storage->ble_key, sizeof(s_bt_user_storage->ble_key[0]) * final_count);
 
@@ -529,7 +529,7 @@ int32_t bluetooth_storage_init(void)
         {
             os_printf("%s ef_get_env_blob err %d %d\n", __func__, ret, saved_len);
 
-            if(saved_len < sizeof(*s_bt_user_storage))
+            if (saved_len < sizeof(*s_bt_user_storage))
             {
                 os_memset(((uint8_t *)s_bt_user_storage) + saved_len, 0, sizeof(*s_bt_user_storage) - saved_len);
             }
