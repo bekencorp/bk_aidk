@@ -32,6 +32,12 @@
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#if CONFIG_DEBUG_DUMP
+#include "debug_dump.h"
+extern bool agoora_rx_mic_data_flag;
+#endif//CONFIG_DEBUG_DUMP
+
+
 //#define AGORA_RX_SPK_DATA_DUMP
 
 #ifdef AGORA_RX_SPK_DATA_DUMP
@@ -269,7 +275,22 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
 {
     bk_err_t ret = BK_OK;
 
-    AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
+    #if CONFIG_DEBUG_DUMP
+    if(agoora_rx_mic_data_flag)
+    {
+        //AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
+        #if 0
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_AGORA_RX_SPK,1);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_AGORA_RX_SPK,0,DUMP_FILE_TYPE_G722,size);
+        #else
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_AGORA_RX_SPK,0,size);
+        #endif
+        DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_BY_UART_DATA(data, size);
+    }
+    #endif//CONFIG_DEBUG_DUMP
 
     ret = bk_aud_intf_write_spk_data((uint8_t *)data, (uint32_t)size);
     if (ret != BK_OK)
