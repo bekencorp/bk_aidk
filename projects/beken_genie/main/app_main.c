@@ -188,29 +188,28 @@ static void handle_system_event(key_event_t event)
     }
 }
 
-KeyConfig_t key_config[] =
-{
-    {
-        .gpio_id = 13,
-        .active_level = LOW_LEVEL_TRIGGER,
-        .short_event = VOLUME_UP,
-        .double_event = POWER_ON,   //TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
-        .long_event = SHUT_DOWN
-    },
-    {
-        .gpio_id = 12,
-        .active_level = LOW_LEVEL_TRIGGER,
-        .short_event = VOLUME_DOWN,
-        .double_event = VOLUME_DOWN,
-        .long_event = CONFIG_NETWORK
-    },
-    {
-        .gpio_id = 8,
-        .active_level = LOW_LEVEL_TRIGGER,
-        .short_event = AI_AGENT_CONFIG,
-        .double_event = AI_AGENT_CONFIG,
-        .long_event = AI_AGENT_CONFIG
-    }
+KeyConfig_t key_config[] = {
+        {
+            .gpio_id = KEY_GPIO_13,   //corresponding to the actual key
+            .active_level = LOW_LEVEL_TRIGGER,
+            .short_event = VOLUME_UP,
+            .double_event = POWER_ON,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
+            .long_event = SHUT_DOWN
+        },
+        {
+            .gpio_id = KEY_GPIO_12,
+            .active_level = LOW_LEVEL_TRIGGER,
+            .short_event = VOLUME_DOWN,
+            .double_event = VOLUME_DOWN,
+            .long_event = CONFIG_NETWORK
+        },
+        {
+            .gpio_id = KEY_GPIO_8,
+            .active_level = LOW_LEVEL_TRIGGER,
+            .short_event = AI_AGENT_CONFIG,
+            .double_event = AI_AGENT_CONFIG,
+            .long_event = AI_AGENT_CONFIG
+        }
 };
 
 static void bk_key_register_wakeup_source()
@@ -232,6 +231,48 @@ static void bk_key_register_wakeup_source()
 
 }
 
+static void bk_enter_deepsleep()
+{
+    #if CONFIG_GSENSOR_ENABLE
+        extern bk_err_t gsensor_demo_lowpower_wakeup();
+        gsensor_demo_lowpower_wakeup();
+        rtos_delay_milliseconds(50);
+    #endif
+
+	bk_printf("RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
+    bk_key_register_wakeup_source();
+    bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
+	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
+	bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
+}
+
+static void bk_wait_power_on()
+{
+    uint32_t press_time = 0;
+
+    do {
+        if (bk_gpio_get_input(KEY_GPIO_13) == 0) {
+            extern void delay_ms(uint32 num);
+            delay_ms(500);
+            press_time += 500;
+
+            if (bk_gpio_get_input(KEY_GPIO_13) != 0) {
+                break;
+            }
+        } else {
+
+            break;
+        }
+    } while (press_time < LONG_RRESS_TIMR);
+    
+    if (press_time < LONG_RRESS_TIMR)
+    {
+        BK_LOGI(TAG, "key is short press, enter deep sleep again\r\n");
+        bk_key_register_wakeup_source();
+        bk_enter_deepsleep();
+    }
+
+}
 #endif
 
 void user_app_main(void)
@@ -252,6 +293,16 @@ int main(void)
         rtos_set_user_app_entry((beken_thread_function_t)user_app_main);
 #endif
         bk_init();
+
+    /*to judgement key is long press or short press; long press exit deepsleep*/
+    #if (CONFIG_SYS_CPU0)
+
+        if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
+        {
+            
+            bk_wait_power_on();
+        }
+    #endif
 
         media_service_init();
 
@@ -292,19 +343,10 @@ int main(void)
     else
     {
 
-#if (CONFIG_SYS_CPU0)
-        bk_init();
-#if CONFIG_GSENSOR_ENABLE
-        extern bk_err_t gsensor_demo_lowpower_wakeup();
-        gsensor_demo_lowpower_wakeup();
-        rtos_delay_milliseconds(50);
-#endif
-        bk_printf("RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
-        bk_key_register_wakeup_source();
-        bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
-        bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
-        bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
-#endif
-    }
+    #if (CONFIG_SYS_CPU0)
+		bk_init();
+        bk_enter_deepsleep();
+	#endif
+}
     return 0;
 }
