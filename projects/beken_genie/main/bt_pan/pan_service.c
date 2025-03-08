@@ -15,6 +15,9 @@
 #include "storage/bluetooth_storage.h"
 #include "pan_user_config.h"
 #include "bt_manager.h"
+#include "net.h"
+#include "panif.h"
+#include "netif/etharp.h"
 
 #define TAG "pan"
 
@@ -67,6 +70,10 @@ void bt_pan_service_main(void *arg)
                 case BT_PAN_DATA_IND_MSG:
                 {
                     eth_data_t *p_data = (eth_data_t *)msg.data;
+#if CONFIG_NET_PAN
+                    struct netif *netif;
+                    struct eth_hdr *ethhdr;
+#endif
 
                     uint8_t *dest = p_data->dest;
                     uint8_t *src = p_data->src;
@@ -74,6 +81,36 @@ void bt_pan_service_main(void *arg)
                               p_data->protocol, dest[0], dest[1], dest[2], dest[3], dest[4], dest[5],
                               src[0], src[1], src[2], src[3], src[4], src[5],p_data->payload_len);
                     LOGI(" data : %x %x- %x %x\r\n", p_data->payload[0],p_data->payload[1],p_data->payload[p_data->payload_len-2],p_data->payload[p_data->payload_len-1]);
+#if CONFIG_NET_PAN
+                    /* PAN Wi-Fi Part */
+                    struct pbuf *p = pbuf_alloc(PBUF_RAW, p_data->payload_len + sizeof(struct eth_hdr), PBUF_POOL);
+
+                    if (p == NULL) {
+                        LOGI("Failed to allocate pbuf\r\n");
+                        return;
+                    }
+
+                    if (p_data->payload_len > p->len - sizeof(struct eth_hdr)) {
+                        LOGI("Payload too large for pbuf\r\n");
+                        pbuf_free(p);
+                        return;
+                    }
+
+                    ethhdr = (struct eth_hdr *)p->payload;
+                    os_memcpy(ethhdr->dest.addr, p_data->dest, PAN_HWADDR_LEN);
+                    os_memcpy(ethhdr->src.addr, p_data->src, PAN_HWADDR_LEN);
+                    ethhdr->type = htons(p_data->protocol);
+                    netif = net_get_pan_handle();
+
+                    if (netif == NULL || !netif_is_up(netif)) {
+                        LOGI("Network interface is not ready\r\n");
+                        pbuf_free(p);
+                        return;
+                    }
+                    os_memcpy(p->payload + sizeof(struct eth_hdr), p_data->payload, p_data->payload_len);
+
+                    panif_input(netif, p);
+#endif
 
                     os_free(msg.data);
                 }
@@ -170,7 +207,7 @@ void bt_pan_media_data_ind(eth_data_t *data)
         }
     }
 }
-
+uint8_t paired_bt_mac[6] = { 0 };
 static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 {
     LOGI("%s event: %d\r\n", __func__, event);
@@ -185,6 +222,7 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
 
             if (BK_BTPAN_STATE_CONNECTED == param->conn_state.con_state)
             {
+                os_memcpy(paired_bt_mac, bda, 6);
                 bt_manager_set_connect_state(BT_STATE_PROFILE_CONNECTED);
 #if 0
                 np_type_filter_t np_type;
@@ -194,6 +232,9 @@ static void bk_bt_app_pan_cb(bk_pan_cb_event_t event, bk_pan_cb_param_t *param)
                 np_type.start[1] =  0x806;
                 np_type.end[1] =  0x806;
                 bk_bt_pan_set_protocol_filters(bda, &np_type);
+#endif
+#if CONFIG_NET_PAN
+                pan_ip_start();
 #endif
             }
         }
@@ -222,6 +263,46 @@ static void bk_pan_connect(uint8_t *remote_addr)
     bk_bt_pan_connect(remote_addr, BK_PAN_ROLE_PANU, BK_PAN_ROLE_NAP);
 }
 
+#if CONFIG_NET_PAN
+static void pan_output(struct netif *netif, struct pbuf *p)
+{
+    struct eth_hdr *ethhdr;
+
+    ethhdr = (struct eth_hdr *)p->payload;
+
+    eth_data_t *p_eth_data = os_malloc(sizeof(eth_data_t) + p->tot_len);
+    if (p_eth_data == NULL) {
+        return;
+    }
+
+    os_memcpy(p_eth_data->dest, ethhdr->dest.addr, PAN_HWADDR_LEN);
+    os_memcpy(p_eth_data->src, ethhdr->src.addr, PAN_HWADDR_LEN);
+
+    LOGD("src_mac %2x:%2x:%2x:%2x:%2x:%2x\r\n", p_eth_data->src[0], p_eth_data->src[1], p_eth_data->src[2],
+                 p_eth_data->src[3], p_eth_data->src[4], p_eth_data->src[5]);
+
+    LOGD("dest_mac %2x:%2x:%2x:%2x:%2x:%2x\r\n", p_eth_data->dest[0], p_eth_data->dest[1], p_eth_data->dest[2],
+                 p_eth_data->dest[3], p_eth_data->dest[4], p_eth_data->dest[5]);
+
+#ifdef CONFIG_IPV6
+    p_eth_data->protocol = 0x86dd;
+#endif
+
+    p_eth_data->protocol = htons(ethhdr->type);
+    p_eth_data->payload_len = p->tot_len;
+    os_memcpy(p_eth_data->payload, (uint8_t *)p->payload + sizeof(struct eth_hdr), p_eth_data->payload_len);
+
+    if (bk_bt_pan_write(paired_bt_mac, p_eth_data) !=0) {
+
+        os_free(p_eth_data);
+        return;
+    }
+
+    os_free(p_eth_data);
+
+}
+#endif
+
 int pan_service_init(void)
 {
     LOGI("%s\r\n", __func__);
@@ -242,8 +323,12 @@ int pan_service_init(void)
     bk_bt_pan_init(BK_PAN_ROLE_PANU);
 
     bk_bt_pan_register_callback(bk_bt_app_pan_cb);
-
+#if CONFIG_NET_PAN
+    net_pan_init();
+    bk_panif_register_callback(pan_output);
+#endif
     cli_pan_demo_init();
+    
     return 0;
 }
 
