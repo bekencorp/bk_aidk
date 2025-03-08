@@ -24,6 +24,7 @@
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
+#include "app_event.h"
 
 
 #define TAG "agora_main"
@@ -129,13 +130,16 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             break;
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
+            app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
             break;
         case AGORA_RTC_MSG_USER_OFFLINE:
             LOGI("User Offline.\n");
+            app_event_send_msg(APP_EVT_AGENT_OFFLINE, 0);
             break;
         case AGORA_RTC_MSG_CONNECTION_LOST:
             LOGE("Lost connection. Please check wifi status.\n");
             g_connected_flag = false;
+            app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
             break;
         case AGORA_RTC_MSG_INVALID_APP_ID:
             LOGE("Invalid App ID. Please double check.\n");

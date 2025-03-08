@@ -179,7 +179,6 @@ static void handle_system_event(key_event_t event)
             break;
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!");
-            led_app_set(LED_FAST_BLINK_RED);
             bk_genie_prepare_for_smart_config();
             break;
         // 其他事件处理...

@@ -32,6 +32,7 @@
 #endif
 #include "pan_service.h"
 #include "led_blink.h"
+#include "app_event.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -120,8 +121,10 @@ int demo_network_auto_reconnect(void)
 	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 #endif
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
-	if (info.flag == 0x71l)
+	if (info.flag == 0x71l) {
+		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
+	}
 	if (info.flag == 0x72l)
 		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
 #if CONFIG_NET_PAN
@@ -240,6 +243,7 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
             BK_LOGI(TAG, "STA disconnected, reason(%d)\n", sta_disconnected->disconnect_reason);
             msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
             bk_genie_send_msg(&msg);
+            app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
             break;
 
         default:
@@ -260,8 +264,8 @@ void event_handler_init(void)
 extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
-    led_app_set(LED_FAST_BLINK_RED);
     smart_config_running = true;
+    app_event_send_msg(APP_EVT_PAIRING_NETWORK, 0);
     network_pair_stop_timeout_check();
     agora_stop();
     demo_erase_network_auto_reconnect_info();

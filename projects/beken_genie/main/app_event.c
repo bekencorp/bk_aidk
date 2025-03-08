@@ -12,6 +12,7 @@
 
 #include "app_event.h"
 #include "media_app.h"
+#include "led_blink.h"
 
 
 #define TAG "app_evt"
@@ -102,6 +103,35 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_ASR_STANDBY:
                     LOGI("APP_EVT_ASR_STANDBY\n");
                     lvgl_app_deinit();
+                    break;
+                case APP_EVT_PAIRING_NETWORK:
+                    LOGI("APP_EVT_PAIRING_NETWORK\n");
+                    led_app_set(LED_REG_GREEN_ALTERNATE);
+                    break;
+                case APP_EVT_RECONNECT_NETWORK:
+                    LOGI("APP_EVT_RECONNECT_NETWORK\n");
+			led_app_set(LED_OFF_RED);
+                    led_app_set(LED_FAST_BLINK_GREEN);
+                    break;
+                case APP_EVT_CONNECT_NETWORK_FAIL:
+                    LOGI("APP_EVT_CONNECT_NETWORK_FAIL\n");
+			led_app_set(LED_OFF_GREEN);
+                    led_app_set(LED_FAST_BLINK_RED);
+                    break;
+                case APP_EVT_RTC_CONNECTION_LOST:
+                    LOGI("APP_EVT_RTC_CONNECTION_LOST\n");
+			led_app_set(LED_OFF_GREEN);
+                    led_app_set(LED_FAST_BLINK_RED);
+                    break;
+                case APP_EVT_AGENT_JOINED:
+                    LOGI("APP_EVT_AGENT_JOINED\n");
+			led_app_set(LED_OFF_RED);
+                    led_app_set(LED_SLOW_BLINK_GREEN);
+                    break;
+                case APP_EVT_AGENT_OFFLINE:
+                    LOGI("APP_EVT_AGENT_OFFLINE\n");
+			led_app_set(LED_OFF_GREEN);
+                    led_app_set(LED_FAST_BLINK_RED);
                     break;
                 default:
                     break;
