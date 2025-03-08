@@ -15,6 +15,9 @@ Beken Genie AI
 
 并且能够有效，利用云的分布式部署，降低网络延迟，提高交互体验。
 
+支持端侧AEC，NS等音频处理算法，支持G711/G722编码格式，支持KWS关键字打断唤醒。
+
+包含常用外设的参考设计以及Demo，比如，陀螺仪，NFC，按键，震动马达，Nand Flash，LED灯效，充电管理，DVP camera，双QPSI屏。
 
 
 1.1 规格
@@ -34,6 +37,7 @@ Beken Genie AI
     * 软件特性：
         * AEC
         * NS
+        * G722 / G711u
         * 唤醒词定制
         * WIFI Station
         * BLE
@@ -105,13 +109,13 @@ Beken Genie AI
 
 ::
 
-    ①② Green light stays on.
-    ③④⑤ Green and red lights flash alternately
-    ⑥⑦ Green light flashes quickly.
-    ⑧ Green light flashes quickly.
-    ⑨ LCD on, LED off.
-    ⑩ LCD off
-    ⑬⑭⑮ Red light flashes quickly
+    1/2 Green light stays on.
+    3/4/5 Green and red lights flash alternately
+    6/7 Green light flashes quickly.
+    8 Green light flashes quickly.
+    9 LCD on, LED off.
+    10 LCD off
+    13/14/15 Red light flashes quickly
 
 
 3. 配置
@@ -213,13 +217,4 @@ AVI视频文件替换:
 
 	- 3、修改 ``<bk_aidk源代码路径>/project/beken_genie/main/av_play/avi_play.c`` 文件中传入函数 ``AVI_open_input_file("/genie_eye.avi", 1)`` 的文件名。
 
-
-5、参考链接
---------------------
-
-	声网参考文档：https://docs.agora.io/cn/Agora%20Platform/manage_projects?platform=Android
-
-	声网APPID申请链接：https://sso2.agora.io/cn/v5/login?_gl=1%2ardr355%2a_ga%2aMzkyNDM4ODYyLjE2NzM1MTM3MTU.%2a_ga_BFVGG7E02W%2aMTY3ODg1MjM0My4xMi4wLjE2Nzg4NTIzNDYuMC4wLjA.
-
-	声网AI Agent指导手册： ``<bk_aidk源代码路径>/components/docs/agora_ai_agent``
 

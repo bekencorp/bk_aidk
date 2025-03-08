@@ -7,5 +7,4 @@ Reference Projects
 .. toctree::
    :maxdepth: 1
 
-    Agora-AI <agora_ai/index>
-    Agora-Wanson-AI <agora_wanson_ai/index>
+   Beken Genie AI Project <beken_genie/index>
