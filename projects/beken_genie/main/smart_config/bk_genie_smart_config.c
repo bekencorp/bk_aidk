@@ -55,7 +55,7 @@ void network_provisioning_check_status(void)
   {
     BK_LOGI(TAG,"reconnect timeout!\n");
     if (network_disc_evt_posted == 0) {
-        app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+        app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
         network_disc_evt_posted = 1;
     }
   } else {
@@ -217,9 +217,9 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
-            app_event_send_msg(APP_EVT_WIFI_GOTIP, 0);
             if (smart_config_running)
             {
+                app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
                 bk_wifi_sta_get_config(&sta_config);
                 demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
                 msg.event = DBEVT_WIFI_STATION_CONNECTED;
@@ -231,6 +231,8 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
             else
             {
                 bk_genie_agent_info_t info = {0};
+
+                app_event_send_msg(APP_EVT_RECONNECT_NETWORK_SUCCESS, 0);
                 if (bk_genie_get_agent_info(&info) == 0)
                 {
                     if (info.valid != 1)
@@ -280,7 +282,10 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
             msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
             bk_genie_send_msg(&msg);
             if (network_disc_evt_posted == 0) {
-                app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+                if (smart_config_running == false)
+                    app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+                else
+                    app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_FAIL, 0);
                 network_disc_evt_posted = 1;
             }
             break;

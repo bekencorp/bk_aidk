@@ -124,7 +124,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
 //-------------------network event start ------------------------------------------------------------------
 /*
- * Network abnormal event:APP_EVT_CONNECT_NETWORK_FAIL/APP_EVT_RTC_CONNECTION_LOST/APP_EVT_AGENT_OFFLINE
+ * Network abnormal event:APP_EVT_NETWORK_PROVISIONING_FAIL/APP_EVT_RECONNECT_NETWORK_FAIL/APP_EVT_RTC_CONNECTION_LOST/APP_EVT_AGENT_OFFLINE
  * Network resotre event:APP_EVT_AGENT_JOINED
  * If network retore event APP_EVT_AGENT_JOINED comes, it means all of the network abnormal event can be stop
  */
@@ -137,14 +137,13 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_START_CONFIG_NETWORK);
 #endif
                     break;
-                case APP_EVT_RECONNECT_NETWORK:
-                    LOGI("APP_EVT_RECONNECT_NETWORK\n");
-                    led_app_set(LED_OFF_RED,0);
-                    led_app_set(LED_FAST_BLINK_GREEN,LED_LAST_FOREVER);
+
+                case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
+                    LOGI("APP_EVT_NETWORK_PROVISIONING_SUCCESS\n");
                     break;
 
-                case APP_EVT_CONNECT_NETWORK_FAIL:
-                    LOGI("APP_EVT_CONNECT_NETWORK_FAIL\n");
+                case APP_EVT_NETWORK_PROVISIONING_FAIL:
+                    LOGI("APP_EVT_NETWORK_PROVISIONING_FAIL\n");
                     network_err = 1;
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
@@ -153,6 +152,28 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_CONFIG_NETWORK_FAIL);
 #endif
                     break;
+
+                case APP_EVT_RECONNECT_NETWORK:
+                    LOGI("APP_EVT_RECONNECT_NETWORK\n");
+                    led_app_set(LED_OFF_RED,0);
+                    led_app_set(LED_FAST_BLINK_GREEN,LED_LAST_FOREVER);
+                    break;
+
+                case APP_EVT_RECONNECT_NETWORK_SUCCESS:
+                    LOGI("APP_EVT_RECONNECT_NETWORK_SUCCESS\n");
+                    break;
+
+                case APP_EVT_RECONNECT_NETWORK_FAIL:
+                    LOGI("APP_EVT_RECONNECT_NETWORK_FAIL\n");
+                    network_err = 1;
+                    led_app_set(LED_OFF_GREEN,0);
+                    led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    /* play config network prompt tone */
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_CONFIG_NETWORK_FAIL);
+#endif
+                    break;
+
                 case APP_EVT_RTC_CONNECTION_LOST:
                     network_err = 1;
                     LOGI("APP_EVT_RTC_CONNECTION_LOST\n");
@@ -198,10 +219,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
-                    break;
-
-                case APP_EVT_WIFI_GOTIP:
-                    LOGI("APP_EVT_WIFI_GOTIP\n");
                     break;
 
 //-------------------network event end ------------------------------------------------------------------////
