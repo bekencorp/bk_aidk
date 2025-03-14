@@ -155,24 +155,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
 
     lcd_open_t *lcd_open = (lcd_open_t *)msg->param;
 
-
-    format = os_malloc(sizeof(jd_output_format));
-    if (format == NULL)
-    {
-        LOGE("%s %d format malloc fail\r\n", __func__, __LINE__);
-        return ret;
-    }
-
-#if AVI_VIDEO_USE_HW_DECODE
-    bk_jpeg_hw_decode_to_mem_init();
-#else
-    bk_jpeg_dec_sw_init(NULL, 0);
-    format->format = JD_FORMAT_RGB565;
-    format->scale = 0;
-    format->byte_order = JD_BIG_ENDIAN;
-    jd_set_output_format(format);
-#endif
-
     if (lv_vnd_config.draw_pixel_size == 0) {
 #ifdef CONFIG_LVGL_USE_PSRAM
 #define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
@@ -209,13 +191,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     img_dsc.header.h = lv_vnd_config.lcd_ver_res;
     img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
 
-    video_frame = psram_malloc(30 * 1024);
-    if (video_frame == NULL)
-    {
-        LOGE("%s %d video_frame malloc fail\r\n", __func__, __LINE__);
-        return ret;
-    }
-
     avi = AVI_open_input_file("/genie_eye.avi", 1);
     if (avi != NULL)
     {
@@ -226,7 +201,16 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     else
     {
         LOGE("open avi fail\r\n");
-        os_free(video_frame);
+        lcd_display_close();
+        return ret;
+    }
+
+    video_frame = psram_malloc(30 * 1024);
+    if (video_frame == NULL)
+    {
+        LOGE("%s %d video_frame malloc fail\r\n", __func__, __LINE__);
+        AVI_close(avi);
+        lcd_display_close();
         return ret;
     }
 
@@ -236,6 +220,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         LOGE("%s %d framebuffer malloc fail\r\n", __func__, __LINE__);
         AVI_close(avi);
         os_free(video_frame);
+        lcd_display_close();
         return ret;
     }
 
@@ -246,8 +231,31 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         AVI_close(avi);
         os_free(video_frame);
         os_free(framebuffer);
+        lcd_display_close();
         return ret;
     }
+
+    format = os_malloc(sizeof(jd_output_format));
+    if (format == NULL)
+    {
+        LOGE("%s %d format malloc fail\r\n", __func__, __LINE__);
+        AVI_close(avi);
+        os_free(video_frame);
+        os_free(framebuffer);
+        os_free(segmentbuffer);
+        lcd_display_close();
+        return ret;
+    }
+
+#if AVI_VIDEO_USE_HW_DECODE
+    bk_jpeg_hw_decode_to_mem_init();
+#else
+    bk_jpeg_dec_sw_init(NULL, 0);
+    format->format = JD_FORMAT_RGB565;
+    format->scale = 0;
+    format->byte_order = JD_BIG_ENDIAN;
+    jd_set_output_format(format);
+#endif
 
     avi_video_frame_parse_to_rgb565(avi, pos, (uint8_t *)video_frame, (uint8_t *)framebuffer, video_len, frame_size);
 
