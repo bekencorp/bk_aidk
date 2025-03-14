@@ -50,6 +50,7 @@ enum
     BT_PAN_DATA_IND_MSG = 1,
     BT_PAN_TX_DONE_IND_MSG = 2,
     BT_PAN_TX_MSG = 3,
+    BT_PAN_EXIT_MSG = 4,
 };
 
 typedef struct
@@ -68,6 +69,8 @@ uint8_t s_acl_buf_count = CONFIG_NB_ACL_BUFF;
 
 static bt_comm_list_t *s_pan_tx_list = NULL;
 static void *s_pan_tx_lock = NULL;
+
+static uint8_t s_pan_service_already_init = 0;
 
 void pan_show_tx_data_cache_count(void)
 {
@@ -218,12 +221,18 @@ void bt_pan_service_main(void *arg)
                 }
                 break;
 
+                case BT_PAN_EXIT_MSG:
+                    goto exit;
+                    break;
+
                 default:
                     LOGD("Unknown message type: %d\r\n", msg.type);
                     break;
             }
         }
     }
+
+exit:
 
     rtos_deinit_queue(&bt_pan_service_msg_que);
     bt_pan_service_msg_que = NULL;
@@ -489,6 +498,12 @@ int pan_service_init(void)
 {
     LOGI("%s\r\n", __func__);
 
+    if (s_pan_service_already_init)
+    {
+        LOGI("pan service already initialised\r\n");
+        return 0;
+    }
+
     bt_manager_init(0);
 
     btm_callback_s btm_cb =
@@ -518,6 +533,69 @@ int pan_service_init(void)
     }
     rtos_init_mutex(&s_pan_tx_lock);
 
+    s_acl_buf_count = CONFIG_NB_ACL_BUFF;
+
+    s_pan_service_already_init = 1;
+    return 0;
+}
+
+void bt_pan_service_task_deinit(void)
+{
+    bt_pan_service_msg_t service_msg;
+    int rc = -1;
+
+    os_memset(&service_msg, 0x0, sizeof(bt_pan_service_msg_t));
+
+    if (bt_pan_service_msg_que == NULL)
+    {
+        return;
+    }
+
+    service_msg.type = BT_PAN_EXIT_MSG;
+    service_msg.len = 0;
+
+    rc = rtos_push_to_queue(&bt_pan_service_msg_que, &service_msg, BEKEN_NO_WAIT);
+
+    if (kNoErr != rc)
+    {
+        LOGE("%s, send queue failed\r\n", __func__);
+    }
+}
+
+int pan_service_deinit(void)
+{
+    LOGI("%s\r\n", __func__);
+
+    if (!s_pan_service_already_init)
+    {
+        LOGI("pan service already de-initialised\r\n");
+        return 0;
+    }
+
+    bt_manager_deinit();
+
+    bt_pan_service_task_deinit();
+
+    pan_ip_down();
+    net_pan_remove_netif();
+
+    cli_pan_demo_deinit();
+
+    if (s_pan_tx_list)
+    {
+        rtos_lock_mutex(&s_pan_tx_lock);
+        bt_comm_list_free(s_pan_tx_list);
+        rtos_unlock_mutex(&s_pan_tx_lock);
+        s_pan_tx_list = NULL;
+    }
+
+    if (s_pan_tx_lock)
+    {
+        rtos_deinit_mutex(&s_pan_tx_lock);
+        s_pan_tx_lock = NULL;
+    }
+
+    s_pan_service_already_init = 0;
     return 0;
 }
 

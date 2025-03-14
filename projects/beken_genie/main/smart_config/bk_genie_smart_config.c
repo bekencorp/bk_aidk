@@ -34,6 +34,7 @@
 #include "led_blink.h"
 #include "app_event.h"
 #include "boarding_service.h"
+#include "components/bluetooth/bk_dm_bluetooth.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -113,6 +114,25 @@ int is_wifi_sta_auto_restart_info_saved(void)
 		return 0;
 	else
 		return 1;
+}
+
+int bk_genie_is_net_pan_mode(void)
+{
+	BK_FAST_CONNECT_D info = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
+#endif
+
+#if CONFIG_NET_PAN
+	if (info.flag == 0x74l)
+	{
+		return 1;
+	}
+	else
+#endif
+	{
+		return 0;
+	}
 }
 
 void demo_erase_network_auto_reconnect_info(void)
@@ -302,9 +322,6 @@ void bk_genie_prepare_for_smart_config(void)
         BK_LOGW(TAG, "%s ATE is enable, ble will not enable!!!!!!\n", __func__);
     }
 
-#if 0
-    bk_bt_enter_pairing_mode();
-#endif
     network_provisioning_start_timeout_check(300);	//5min
 }
 
@@ -321,6 +338,15 @@ int bk_genie_smart_config_init(void)
 #endif
     ) {
         bk_genie_prepare_for_smart_config();
+    }
+    else
+    {
+#if CONFIG_NET_PAN
+        if (flag != 0x74l)
+#endif
+        {
+            bk_bluetooth_deinit();
+        }
     }
 
     return 0;

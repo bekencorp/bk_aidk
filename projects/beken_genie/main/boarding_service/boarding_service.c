@@ -386,5 +386,8 @@ int bk_genie_boarding_deinit(void)
         bk_genie_boarding_info = NULL;
     }
 
+#if CONFIG_NET_PAN
+    pan_service_deinit();
+#endif
     return 0;
 }

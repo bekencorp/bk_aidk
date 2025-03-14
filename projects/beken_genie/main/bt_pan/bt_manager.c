@@ -417,6 +417,26 @@ int bt_manager_init(uint8_t is_visible)
     return 0;
 }
 
+int bt_manager_deinit(void)
+{
+    LOGI("%s\r\n", __func__);
+
+    bluetooth_storage_deinit();
+
+    if (rtos_is_oneshot_timer_init(&btm_env.recon_tmr))
+    {
+        if (rtos_is_oneshot_timer_running(&btm_env.recon_tmr))
+        {
+            rtos_stop_oneshot_timer(&btm_env.recon_tmr);
+        }
+        rtos_deinit_oneshot_timer(&btm_env.recon_tmr);
+    }
+
+    os_memset(&btm_env, 0, sizeof(btm_env_s));
+    os_memset(&btm_cbs, 0, sizeof(btm_cbs));
+    return 0;
+}
+
 int bt_manager_register_callback(btm_callback_s *cb)
 {
     int i = 0;

@@ -41,4 +41,4 @@ int bt_manager_init(uint8_t is_visible);
 uint8_t bt_manager_get_connect_state();
 void bt_manager_set_connect_state(uint8_t state);
 uint8_t *bt_manager_get_reconnect_device();
-uint8_t *bt_manager_get_connected_device();
+uint8_t *bt_manager_get_connected_device();int bt_manager_deinit(void);

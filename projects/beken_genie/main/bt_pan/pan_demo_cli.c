@@ -215,3 +215,8 @@ int cli_pan_demo_init(void)
     return cli_register_commands(s_pan_commands, sizeof(s_pan_commands) / sizeof(s_pan_commands[0]));
 }
 
+int cli_pan_demo_deinit(void)
+{
+    return cli_unregister_commands(s_pan_commands, sizeof(s_pan_commands) / sizeof(s_pan_commands[0]));
+}
+
