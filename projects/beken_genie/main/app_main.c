@@ -113,11 +113,19 @@ static int agora_rtc_cli_init(void)
 // 按键 1 的回调函数
 void volume_init(void)
 {
-    volume = 7;
-    if (0 != bk_config_write("volume", (void *)&volume, 4))
-    {
-        BK_LOGE(TAG, "storage volume: %d fail\n", volume);
-    }
+	int volume_size = bk_config_read("volume", (void *)&volume, 4);
+	if (volume_size != 4)
+	{
+		BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
+	}
+	if (volume > (SPK_VOLUME_LEVEL-1)) {
+		volume = SPK_VOLUME_LEVEL-1;
+		if (0 != bk_config_write("volume", (void *)&volume, 4))
+		{
+			BK_LOGE(TAG, "storage volume: %d fail\n", volume);
+		}
+	}
+
 	/* SPK_GAIN_MAX * [(exp(i/(SPK_VOLUME_LEVEL-1)-1)/(exp(1)-1)] */
 	uint32_t step[SPK_VOLUME_LEVEL] = {0,6,12,20,28,37,47,58,71,84,100};
 	for (uint32_t i = 0; i < SPK_VOLUME_LEVEL; i++) {
@@ -390,11 +398,6 @@ int main(void)
 #if (CONFIG_SYS_CPU0)
         app_event_init();
 
-        int volume_size = bk_config_read("volume", (void *)&volume, 4);
-        if (volume_size != 4)
-        {
-            BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
-        }
         volume_init();
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
