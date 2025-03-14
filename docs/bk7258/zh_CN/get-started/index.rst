@@ -11,7 +11,13 @@ Armino AIDK SDK代码下载
 您可从 gitlab 上下载 Armino AIDK SDK，分支信息如下::
 
 
-    git@gitlab.bekencorp.com:armino/bk_ai/bk_aidk.git
+    mkdir -p ~/armino
+    cd ~/armino
+    git clone --recurse-submodules http://gitlab.bekencorp.com/armino/bk_aidk.git -b branch_name
+
+!Note:
+
+    请将branch_name替换成实际的branch或tag。
 
 
 环境配置及烧录代码

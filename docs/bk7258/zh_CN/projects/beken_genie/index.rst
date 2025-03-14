@@ -213,12 +213,12 @@ Beken Genie AI
 ::
 
     1/2 Green light stays on.
-    3/4/5 Green and red lights flash alternately
-    6/7 Green light flashes quickly.
-    8 Green light flashes quickly.
-    9 LCD on, LED off.
-    10 LCD off
-    13/14 Red light flashes quickly
+    3/4 Green and red lights flash alternately
+    5/6 Green light flashes quickly.
+    7 Green light flashes quickly.
+    8 LCD on, LED off.
+    9 LCD off
+    12/13 Red light flashes quickly
 
 
 2.4 主要配置
