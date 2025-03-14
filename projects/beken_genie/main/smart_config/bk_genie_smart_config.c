@@ -163,7 +163,7 @@ int demo_network_auto_reconnect(void)
 		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
 #if CONFIG_NET_PAN
 	if (info.flag == 0x74l) {
-
+		pan_service_init();
 		bt_start_pan_reconnect();
 	}
 #endif
