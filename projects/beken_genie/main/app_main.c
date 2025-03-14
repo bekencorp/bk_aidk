@@ -254,21 +254,21 @@ KeyConfig_t key_config[] = {
             .gpio_id = KEY_GPIO_13,   //corresponding to the actual key
             .active_level = LOW_LEVEL_TRIGGER,
             .short_event = VOLUME_UP,
-            .double_event = POWER_ON,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
-            .long_event = SHUT_DOWN
+            .double_event = VOLUME_UP,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
+            .long_event = CONFIG_NETWORK
         },
         {
             .gpio_id = KEY_GPIO_12,
             .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = VOLUME_DOWN,
-            .double_event = VOLUME_DOWN,
-            .long_event = CONFIG_NETWORK
+            .short_event = POWER_ON,
+            .double_event = POWER_ON,
+            .long_event = SHUT_DOWN
         },
         {
             .gpio_id = KEY_GPIO_8,
             .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = AI_AGENT_CONFIG,
-            .double_event = AI_AGENT_CONFIG,
+            .short_event = VOLUME_DOWN,
+            .double_event = VOLUME_DOWN,
             .long_event = FACTORY_RESET
         }
 };
@@ -322,12 +322,12 @@ static void bk_wait_power_on()
     GLOBAL_INT_DECLARATION();
     GLOBAL_INT_DISABLE();
     do {
-        if (bk_gpio_get_input(KEY_GPIO_13) == 0) {
+        if (bk_gpio_get_input(KEY_GPIO_12) == 0) {
             extern void delay_ms(uint32 num);
             delay_ms(500);
             press_time += 500;
 
-            if (bk_gpio_get_input(KEY_GPIO_13) != 0) {
+            if (bk_gpio_get_input(KEY_GPIO_12) != 0) {
                 break;
             }
         } else {
@@ -368,7 +368,7 @@ int main(void)
     #if (CONFIG_SYS_CPU0)
     /*to judgement key is long press or short press; long press exit deepsleep*/
 
-        if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
+        if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_12))
         {
             //motor vibration
             motor_open(PWM_MOTOR_CH_3);
