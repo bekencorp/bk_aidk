@@ -133,13 +133,15 @@ static void app_event_thread(beken_thread_arg_t data)
                     is_network_provisioning = 1;
                     led_app_set(LED_REG_GREEN_ALTERNATE,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-                    /* play config network prompt tone */
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_START_CONFIG_NETWORK);
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION);
 #endif
                     break;
 
                 case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
                     LOGI("APP_EVT_NETWORK_PROVISIONING_SUCCESS\n");
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_SUCCESS);
+#endif
                     break;
 
                 case APP_EVT_NETWORK_PROVISIONING_FAIL:
@@ -148,8 +150,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-                    /* play config network prompt tone */
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_CONFIG_NETWORK_FAIL);
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_FAIL);
 #endif
                     break;
 
@@ -157,10 +158,16 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_RECONNECT_NETWORK\n");
                     led_app_set(LED_OFF_RED,0);
                     led_app_set(LED_FAST_BLINK_GREEN,LED_LAST_FOREVER);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK);
+#endif
                     break;
 
                 case APP_EVT_RECONNECT_NETWORK_SUCCESS:
                     LOGI("APP_EVT_RECONNECT_NETWORK_SUCCESS\n");
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_SUCCESS);
+#endif
                     break;
 
                 case APP_EVT_RECONNECT_NETWORK_FAIL:
@@ -169,8 +176,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-                    /* play config network prompt tone */
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_CONFIG_NETWORK_FAIL);
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_FAIL);
 #endif
                     break;
 
@@ -180,8 +186,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-                    /* play config network prompt tone */
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_DISCONNECT);
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RTC_CONNECTION_LOST);
 #endif
                     break;
 
@@ -212,13 +217,18 @@ static void app_event_thread(beken_thread_arg_t data)
                         }
                         //led_app_set(LED_REG_GREEN_ALTERNATE_OFF, 0);
                     }
-
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_JOINED);
+#endif
                     break;
                 case APP_EVT_AGENT_OFFLINE:
                     network_err = 1;
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
                     led_app_set(LED_OFF_GREEN,0);
                     led_app_set(LED_FAST_BLINK_RED,LED_LAST_FOREVER);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_OFFLINE);
+#endif
                     break;
 
 //-------------------network event end ------------------------------------------------------------------////
@@ -227,6 +237,9 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_LOW_VOLTAGE:
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
                     led_app_set(LED_SLOW_BLINK_RED,30000);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
+#endif
                     break;
 
                 case APP_EVT_CHARGING:
