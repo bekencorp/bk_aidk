@@ -241,6 +241,7 @@ void bk_factory_init(void)
     }
 
     // test_factory();
+    bk_reboot_callback_register(bk_config_sync_flash);
 
     cli_register_commands(s_factory_commands, FACTORY_CMD_CNT);
 }
