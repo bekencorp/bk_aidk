@@ -17,6 +17,7 @@ list(APPEND srcs
     agora_debug.c
     led_blink.c
     countdown.c
+    motor.c
 )
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs

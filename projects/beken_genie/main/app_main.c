@@ -30,6 +30,7 @@
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
+#include "motor.h"
 #endif
 
 #include "app_event.h"
@@ -361,8 +362,10 @@ int main(void)
 
         if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_13))
         {
-
+            //motor vibration
+            motor_open(PWM_MOTOR_CH_3);
             bk_wait_power_on();
+            motor_close(PWM_MOTOR_CH_3);
         }
 
         bk_regist_factory_user_config((const struct factory_config_t *)&s_user_config,
@@ -373,11 +376,14 @@ int main(void)
 
     //led init move before
     #if (CONFIG_SYS_CPU0)
+
+        
         //No operation countdown 3 minutes to shut down
         start_countdown();
         //led init move before
         led_driver_init();
         led_app_set(LED_ON_GREEN,LED_LAST_FOREVER);
+        
     #endif
         media_service_init();
 
@@ -428,6 +434,8 @@ int main(void)
         extern void battery_monitor_init(void);
         battery_monitor_init();
 #endif
+
+
 #endif
 
 #if CONFIG_USBD_MSC
