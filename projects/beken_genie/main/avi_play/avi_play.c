@@ -104,28 +104,12 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 {
     lv_vendor_disp_lock();
     lv_timer_del(timer);
+    lv_obj_del(img);
     lv_vendor_disp_unlock();
 
     lv_vendor_stop();
     lcd_display_close();
     AVI_close(avi);
-    lv_vendor_deinit();
-
-#ifdef CONFIG_LVGL_USE_PSRAM
-    //TODO
-#else
-    if (lv_vnd_config.draw_buf_2_1)
-    {
-        LV_MEM_CUSTOM_FREE(lv_vnd_config.draw_buf_2_1);
-        lv_vnd_config.draw_buf_2_1 = NULL;
-    }
-    else
-    {
-        LOGE("%s free error %d\n", __func__, __LINE__);
-    }
-#endif
-
-    os_memset(&lv_vnd_config, 0, sizeof(lv_vnd_config_t));
 
 #if AVI_VIDEO_USE_HW_DECODE
     bk_jpeg_hw_decode_to_mem_deinit();
@@ -189,29 +173,31 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     jd_set_output_format(format);
 #endif
 
+    if (lv_vnd_config.draw_pixel_size == 0) {
 #ifdef CONFIG_LVGL_USE_PSRAM
 #define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-    lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi);
-    lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
-    lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config->draw_pixel_size * sizeof(lv_color_t));
+        lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi);
+        lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
+        lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 #else
 #define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-    lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) / 10;
-    lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
-    lv_vnd_config.draw_buf_2_2 = NULL;
-    lv_vnd_config.frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
-    lv_vnd_config.frame_buf_2 = NULL;//(lv_color_t *)(PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) * sizeof(lv_color_t));
+        lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) / 10;
+        lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
+        lv_vnd_config.draw_buf_2_2 = NULL;
+        lv_vnd_config.frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
+        lv_vnd_config.frame_buf_2 = NULL;//(lv_color_t *)(PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) * sizeof(lv_color_t));
 #endif
 #if (CONFIG_LCD_SPI_DEVICE_NUM > 1)
-    lv_vnd_config.lcd_hor_res = ppi_to_pixel_x(lcd_open->device_ppi);
-    lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi) * 2;
+        lv_vnd_config.lcd_hor_res = ppi_to_pixel_x(lcd_open->device_ppi);
+        lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi) * 2;
 #else
-    lv_vnd_config.lcd_hor_res = ppi_to_pixel_x(lcd_open->device_ppi);
-    lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi);
+        lv_vnd_config.lcd_hor_res = ppi_to_pixel_x(lcd_open->device_ppi);
+        lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi);
 #endif
-    lv_vnd_config.rotation = ROTATE_NONE;
+        lv_vnd_config.rotation = ROTATE_NONE;
 
-    lv_vendor_init(&lv_vnd_config);
+        lv_vendor_init(&lv_vnd_config);
+    }
 
     lcd_display_open(lcd_open);
 
