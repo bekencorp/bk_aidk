@@ -92,6 +92,7 @@ static void app_event_thread(beken_thread_arg_t data)
     int ret = BK_OK;
     uint32_t network_err = 0;
     uint32_t is_standby = 1;
+    uint32_t is_network_provisioning = 0;
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -109,7 +110,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_ASR_WAKEUP\n");
                     lvgl_app_init();
                     stop_countdown();
-                    led_app_set(LED_OFF_GREEN,0);
+                    if (!is_network_provisioning){
+                        led_app_set(LED_OFF_GREEN,0);
+                    }
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
@@ -127,6 +130,7 @@ static void app_event_thread(beken_thread_arg_t data)
  */
                 case APP_EVT_NETWORK_PROVISIONING:
                     LOGI("APP_EVT_NETWORK_PROVISIONING\n");
+                    is_network_provisioning = 1;
                     led_app_set(LED_REG_GREEN_ALTERNATE,LED_LAST_FOREVER);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* play config network prompt tone */
@@ -162,6 +166,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error
                     LOGI("APP_EVT_AGENT_JOINED network_err=%d\n", network_err);
+                    is_network_provisioning = 0;
                     if(network_err)
                     {
                         led_app_set(LED_OFF_RED,0);
@@ -177,8 +182,14 @@ static void app_event_thread(beken_thread_arg_t data)
                     }
                     else
                     {
+                        if(!is_standby)
+                        {
+                            led_app_set(LED_REG_GREEN_ALTERNATE_OFF,0);
+
+                        }else{
+                            led_app_set(LED_SLOW_BLINK_GREEN, LED_LAST_FOREVER);
+                        }
                         //led_app_set(LED_REG_GREEN_ALTERNATE_OFF, 0);
-                        led_app_set(LED_SLOW_BLINK_GREEN, LED_LAST_FOREVER);
                     }
 
                     break;
