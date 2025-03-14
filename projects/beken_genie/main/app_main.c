@@ -36,6 +36,7 @@
 #include "countdown.h"
 #include <led_blink.h>
 #include <common/bk_include.h>
+#include "components/bluetooth/bk_dm_bluetooth.h"
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 extern int bk_cli_init(void);
@@ -181,7 +182,7 @@ void ai_agent_config()
  long to execute, it will cause subsequent key events to be responded to untimely.*/
 static void handle_system_event(key_event_t event)
 {
-    uint32_t time; 
+    uint32_t time;
     switch (event)
     {
         case VOLUME_UP:
@@ -205,7 +206,12 @@ static void handle_system_event(key_event_t event)
             ai_agent_config();
             break;
         case CONFIG_NETWORK:
-            BK_LOGW(TAG, "Start to config network!");
+            BK_LOGW(TAG, "Start to config network!\n");
+            if(bk_bluetooth_init())
+            {
+                BK_LOGE(TAG, "bluetooth init err\n");
+            }
+
             bk_genie_prepare_for_smart_config();
             break;
         case FACTORY_RESET:
@@ -312,7 +318,7 @@ static void bk_wait_power_on()
         bk_key_register_wakeup_source();
         bk_enter_deepsleep();
     }
-    
+
 }
 #endif
 
@@ -349,7 +355,7 @@ int main(void)
         bk_factory_init();
     #endif
 
-    
+
     //led init move before
     #if (CONFIG_SYS_CPU0)
         //No operation countdown 3 minutes to shut down

@@ -31,6 +31,8 @@ typedef struct
 } ble_boarding_info_t;
 
 int wifi_boarding_init(ble_boarding_info_t *info);
+int wifi_boarding_deinit();
 int wifi_boarding_adv_start(void);
+int wifi_boarding_adv_stop(void);
 int wifi_boarding_notify(uint8_t *data, uint16_t length);
 

@@ -33,6 +33,7 @@
 #include "pan_service.h"
 #include "led_blink.h"
 #include "app_event.h"
+#include "boarding_service.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -279,7 +280,19 @@ void bk_genie_prepare_for_smart_config(void)
     agora_stop();
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
-    wifi_boarding_adv_start();
+
+    extern bool ate_is_enabled(void);
+
+    if (!ate_is_enabled())
+    {
+        bk_genie_boarding_init();
+        wifi_boarding_adv_start();
+    }
+    else
+    {
+        BK_LOGW(TAG, "%s ATE is enable, ble will not enable!!!!!!\n", __func__);
+    }
+
 #if 0
     bk_bt_enter_pairing_mode();
 #endif

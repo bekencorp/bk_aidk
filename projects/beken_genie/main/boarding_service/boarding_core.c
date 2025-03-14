@@ -343,6 +343,7 @@ static void bk_genie_message_handle(void)
                 {
                     LOGI("close bluetooth ing\n");
 #if CONFIG_BLUETOOTH
+                    bk_genie_boarding_deinit();
                     bk_bluetooth_deinit();
                     LOGI("close bluetooth finish!\r\n");
 #endif
@@ -501,18 +502,6 @@ void bk_genie_core_init(void)
         LOGE("create media major thread fail\n");
         goto error;
     }
-
-    extern bool ate_is_enabled(void);
-
-    if (!ate_is_enabled())
-    {
-        bk_genie_boarding_init();
-    }
-    else
-    {
-        LOGI("ATE is enable, ble adv disable!!!!!! \r\n");
-    }
-
 
     db_info->enabled = BK_TRUE;
 

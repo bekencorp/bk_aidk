@@ -343,7 +343,6 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
     }
 }
 
-
 int bk_genie_boarding_init(void)
 {
     LOGI("%s\n", __func__);
@@ -374,3 +373,18 @@ error:
     return BK_FAIL;
 }
 
+int bk_genie_boarding_deinit(void)
+{
+    LOGI("%s\n", __func__);
+
+    wifi_boarding_adv_stop();
+    wifi_boarding_deinit();
+
+    if(bk_genie_boarding_info)
+    {
+        os_free(bk_genie_boarding_info);
+        bk_genie_boarding_info = NULL;
+    }
+
+    return 0;
+}

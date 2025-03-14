@@ -16,7 +16,7 @@
 
 #include "countdown.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
-
+#include "boarding_service.h"
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 #include "aud_intf.h"
 #include "aud_intf_types.h"
@@ -160,7 +160,7 @@ static void app_event_thread(beken_thread_arg_t data)
 #endif
                     break;
 
-                case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error 
+                case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error
                     LOGI("APP_EVT_AGENT_JOINED network_err=%d\n", network_err);
                     if(network_err)
                     {
@@ -170,10 +170,10 @@ static void app_event_thread(beken_thread_arg_t data)
                         {
 
                             led_app_set(LED_SLOW_BLINK_GREEN,LED_LAST_FOREVER);
-                        
+
                         }
                         network_err = 0;
-                        
+
                     }
                     else
                     {
@@ -207,6 +207,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_CLOSE_BLUETOOTH:
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
+                    bk_genie_boarding_deinit();
                     bk_bluetooth_deinit();
                     break;
                 case APP_EVT_POWER_ON:
