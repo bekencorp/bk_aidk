@@ -57,15 +57,15 @@ The design includes reference solutions and demos for common peripherals, such a
 There are three button on the lower right side of the board, corresponding to the silk screen markings S1, S2, and S3; and there is one button K1 on the right side.
 
     power on/off
-        - 1.power on: Long press(>= 3 seconds) the button ``S1`` to power on.
-        - 2.power off: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S1`` to power off.
+        - 1.power on: Long press(>= 3 seconds) the button ``S2`` to power on.
+        - 2.power off: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S2`` to power off.
 
     Network Provisioning
-        - 1.Network Provisioning: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S2`` to enter the state of waiting for network configuration.
+        - 1.Network Provisioning: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S1`` to enter the state of waiting for network configuration.
 
     Speaker volume control
-        - 1.Increase the volume: Single - click the ``S2`` button to turn up the volume.
-        - 2.Decrease the volume: Single - click the ``S2`` button to turn down the volume.
+        - 1.Increase the volume: Single - click the ``S1`` button to turn up the volume.
+        - 2.Decrease the volume: Single - click the ``S3`` button to turn down the volume.
 
     restore to factory settings
         - 1.restore to factory settings: Long press the ``S3`` button to restore the device to its factory settings.
