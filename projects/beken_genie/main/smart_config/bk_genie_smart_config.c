@@ -443,6 +443,7 @@ int bk_genie_wakeup_agent(void)
     if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
     {
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
+        goto __exit;
     }
 
     BK_LOGI(TAG, "webclient post response data: \n");
