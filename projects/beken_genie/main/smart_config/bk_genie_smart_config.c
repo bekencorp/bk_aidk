@@ -46,13 +46,17 @@ char *app_id_record = NULL;
 char *channel_name_record = NULL;
 static beken2_timer_t network_provisioning_tmr = {0};
 extern bool agora_runing;
+uint8_t network_disc_evt_posted = 0;
 
 void network_provisioning_check_status(void)
 {
   if (smart_config_running == false)
   {
     BK_LOGI(TAG,"reconnect timeout!\n");
-    app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+    if (network_disc_evt_posted == 0) {
+        app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+        network_disc_evt_posted = 1;
+    }
   } else {
     if (!agora_runing) {
     BK_LOGI(TAG,"network provisioning timeout!\n");
@@ -132,6 +136,7 @@ int demo_network_auto_reconnect(void)
 		network_provisioning_stop_timeout_check();
 		network_provisioning_start_timeout_check(30);	//30s
 		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+		network_disc_evt_posted = 0;
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
 	}
 	if (info.flag == 0x72l)
@@ -189,6 +194,7 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
     switch (event_id)
     {
         case EVENT_NETIF_GOT_IP4:
+            network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
             app_event_send_msg(APP_EVT_WIFI_GOTIP, 0);
@@ -253,7 +259,10 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
             BK_LOGI(TAG, "STA disconnected, reason(%d)\n", sta_disconnected->disconnect_reason);
             msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
             bk_genie_send_msg(&msg);
-            app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+            if (network_disc_evt_posted == 0) {
+                app_event_send_msg(APP_EVT_CONNECT_NETWORK_FAIL, 0);
+                network_disc_evt_posted = 1;
+            }
             break;
 
         default:

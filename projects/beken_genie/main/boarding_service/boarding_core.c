@@ -63,7 +63,7 @@ bk_err_t bk_genie_send_msg(bk_genie_msg_t *msg)
 
 extern char *app_id_record;
 extern char *channel_name_record;
-
+extern uint8_t network_disc_evt_posted;
 static int bk_genie_wifi_sta_connect(char *ssid, char *key)
 {
     int len;
@@ -89,7 +89,7 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
     }
 
     os_strcpy(sta_config.password, key);
-
+    network_disc_evt_posted = 0;
     LOGE("ssid:%s key:%s\r\n", sta_config.ssid, sta_config.password);
     BK_LOG_ON_ERR(bk_wifi_sta_set_config(&sta_config));
     BK_LOG_ON_ERR(bk_wifi_sta_start());
