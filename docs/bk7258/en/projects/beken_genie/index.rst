@@ -139,6 +139,11 @@ and special reminders are signaled by alternating red and green light blinking. 
 
         Response phrase: ``Byebye``
 
+1.8 MOTOR
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.The LDO is connected to the positive terminal of the motor, while the PWM is connected to the negative terminal. The motor's vibration strength can be controlled by adjusting the duty cycle of the PWM signal.
+        - 2.When the power is turned on by long-pressing the button, the motor will vibrate.
+        - 3.Detailed usage examples for PWM can be found in cli_pwm.c.
 
 2. Development Guide
 ---------------------------------
