@@ -35,7 +35,7 @@
 
 #if CONFIG_DEBUG_DUMP
 #include "debug_dump.h"
-extern bool agoora_rx_mic_data_flag;
+extern bool agoora_rx_spk_data_flag;
 #endif//CONFIG_DEBUG_DUMP
 
 
@@ -286,7 +286,7 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
     bk_err_t ret = BK_OK;
 
     #if CONFIG_DEBUG_DUMP
-    if(agoora_rx_mic_data_flag)
+    if(agoora_rx_spk_data_flag)
     {
         //AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
         #if 0
