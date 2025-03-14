@@ -279,6 +279,10 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
         case EVENT_WIFI_STA_DISCONNECTED:
             sta_disconnected = (wifi_event_sta_disconnected_t *)event_data;
             BK_LOGI(TAG, "STA disconnected, reason(%d)\n", sta_disconnected->disconnect_reason);
+            /*drop local generated disconnec event by user*/
+            if (sta_disconnected->disconnect_reason == WIFI_REASON_DEAUTH_LEAVING &&
+				sta_disconnected->local_generated == 1)
+			break;
             msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
             bk_genie_send_msg(&msg);
             if (network_disc_evt_posted == 0) {
@@ -312,6 +316,7 @@ void bk_genie_prepare_for_smart_config(void)
     app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
     network_provisioning_stop_timeout_check();
     agora_stop();
+    bk_wifi_sta_stop();
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
 
