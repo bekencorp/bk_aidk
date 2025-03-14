@@ -154,7 +154,7 @@ int demo_network_auto_reconnect(void)
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if (info.flag == 0x71l) {
 		network_provisioning_stop_timeout_check();
-		network_provisioning_start_timeout_check(30);	//30s
+		network_provisioning_start_timeout_check(30);    //30s
 		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		network_disc_evt_posted = 0;
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
@@ -163,6 +163,8 @@ int demo_network_auto_reconnect(void)
 		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
 #if CONFIG_NET_PAN
 	if (info.flag == 0x74l) {
+		network_provisioning_stop_timeout_check();
+		network_provisioning_start_timeout_check(30);    //30s
 		pan_service_init();
 		bt_start_pan_reconnect();
 	}
