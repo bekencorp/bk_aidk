@@ -102,7 +102,7 @@ static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
 extern bool smart_config_running;
 extern uint32_t volume;
-
+extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -483,7 +483,7 @@ bk_err_t audio_turn_on(void)
 #else
     aud_intf_voc_setup.mic_gain   = 0x3F;
 #endif
-    aud_intf_voc_setup.spk_gain   = volume;
+    aud_intf_voc_setup.spk_gain   = g_volume_gain[volume];
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
 

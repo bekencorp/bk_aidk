@@ -60,7 +60,8 @@ extern void bk_set_jtag_mode(uint32_t cpu_id, uint32_t group_id);
 #endif
 
 #if (CONFIG_SYS_CPU0)
-uint32_t volume = SPK_GAIN_MAX * 0.65;
+uint32_t volume = 7;   // volume level, not gain.
+uint32_t g_volume_gain[SPK_VOLUME_LEVEL] = {0};
 #endif
 
 #if (CONFIG_SYS_CPU0)
@@ -109,15 +110,24 @@ static int agora_rtc_cli_init(void)
 
 #if (CONFIG_SYS_CPU0)
 // 按键 1 的回调函数
+void volume_init(void)
+{
+	/* SPK_GAIN_MAX * [(exp(i/(SPK_VOLUME_LEVEL-1)-1)/(exp(1)-1)] */
+	uint32_t step[SPK_VOLUME_LEVEL] = {0,6,12,20,28,37,47,58,71,84,100};
+	for (uint32_t i = 0; i < SPK_VOLUME_LEVEL; i++) {
+		g_volume_gain[i] = SPK_GAIN_MAX * step[i]/100;
+	}
+}
+
 void volume_increase()
 {
     BK_LOGI(TAG, " volume up\r\n");
-    if (volume == SPK_GAIN_MAX)
+    if (volume == (SPK_VOLUME_LEVEL-1))
     {
         BK_LOGI(TAG, "volume have reached maximum volume: %d\n", SPK_GAIN_MAX);
         return;
     }
-    if (BK_OK == bk_aud_intf_set_spk_gain(volume + 1))
+    if (BK_OK == bk_aud_intf_set_spk_gain(g_volume_gain[volume+1]))
     {
         volume += 1;
         if (0 != bk_config_write("volume", (void *)&volume, 4))
@@ -140,7 +150,7 @@ void volume_decrease()
         BK_LOGI(TAG, "volume have reached minimum volume: 0\n");
         return;
     }
-    if (BK_OK == bk_aud_intf_set_spk_gain(volume - 1))
+    if (BK_OK == bk_aud_intf_set_spk_gain(g_volume_gain[volume-1]))
     {
         volume -= 1;
         if (0 != bk_config_write("volume", (void *)&volume, 4))
@@ -374,6 +384,7 @@ int main(void)
         {
             BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
         }
+        volume_init();
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
         extern bk_err_t audio_turn_on(void);

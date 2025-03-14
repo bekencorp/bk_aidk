@@ -27,7 +27,7 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-static const uint32_t s_factory_volume = 19;
+static const uint32_t s_factory_volume = 7;
 
 const struct factory_config_t s_platform_config[] = {
     {"sys_initialized", (void *)"1", 1, BK_FALSE, 1},   // first config used to check whether factory config initialized.
