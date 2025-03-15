@@ -21,7 +21,7 @@
 #include "aud_intf.h"
 #include "aud_intf_types.h"
 #endif
-
+#include "bat_monitor.h"
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -93,6 +93,9 @@ static void app_event_thread(beken_thread_arg_t data)
     uint32_t network_err = 0;
     uint32_t is_standby = 1;
     uint32_t is_network_provisioning = 0;
+    uint32_t is_low_voltage_warning = 0;
+    uint32_t low_voltage_warning_tick = 0;
+
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -241,15 +244,21 @@ static void app_event_thread(beken_thread_arg_t data)
 
 
                 case APP_EVT_LOW_VOLTAGE:
+                    is_low_voltage_warning = 1;
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
-                    led_app_set(LED_SLOW_BLINK_RED,30000);
+                    low_voltage_warning_tick = rtos_get_time();
+                    led_app_set(LED_SLOW_BLINK_RED,LOW_VOLTAGE_BLINK_TIME);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
 #endif
                     break;
 
                 case APP_EVT_CHARGING:
-                    led_app_set(LED_OFF_RED,0);
+                    if((rtos_get_time() - low_voltage_warning_tick <= LOW_VOLTAGE_BLINK_TIME) && is_low_voltage_warning)
+                        led_app_set(LED_OFF_RED,0);
+
+                    low_voltage_warning_tick = 0;
+                    is_low_voltage_warning = 0;
                     break;
 
                 case APP_EVT_CLOSE_BLUETOOTH:
