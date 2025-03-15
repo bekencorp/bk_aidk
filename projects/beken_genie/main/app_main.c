@@ -365,6 +365,15 @@ int main(void)
 #endif
         bk_init();
 
+#if (CONFIG_SYS_CPU0)
+#ifdef CONFIG_LDO3V3_ENABLE
+        BK_LOG_ON_ERR(gpio_dev_unmap(LDO3V3_CTRL_GPIO));
+        bk_gpio_disable_pull(LDO3V3_CTRL_GPIO);
+        bk_gpio_enable_output(LDO3V3_CTRL_GPIO);
+        bk_gpio_set_output_high(LDO3V3_CTRL_GPIO);
+#endif
+#endif
+
     #if (CONFIG_SYS_CPU0)
     /*to judgement key is long press or short press; long press exit deepsleep*/
 
@@ -416,13 +425,6 @@ int main(void)
 
 #if (CONFIG_SYS_CPU0)
         bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_ON);
-
-#ifdef CONFIG_LDO3V3_ENABLE
-        BK_LOG_ON_ERR(gpio_dev_unmap(LDO3V3_CTRL_GPIO));
-        bk_gpio_disable_pull(LDO3V3_CTRL_GPIO);
-        bk_gpio_enable_output(LDO3V3_CTRL_GPIO);
-        bk_gpio_set_output_high(LDO3V3_CTRL_GPIO);
-#endif
 
         bk_genie_core_init();
 
