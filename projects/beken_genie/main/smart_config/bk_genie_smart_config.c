@@ -45,11 +45,11 @@ extern char *app_id_record;
 bool smart_config_running = false;
 char *app_id_record = NULL;
 char *channel_name_record = NULL;
-static beken2_timer_t network_provisioning_tmr = {0};
+static beken2_timer_t network_reconnect_tmr = {0};
 extern bool agora_runing;
 uint8_t network_disc_evt_posted = 0;
 
-void network_provisioning_check_status(void)
+void network_reconnect_check_status(void)
 {
   if (smart_config_running == false)
   {
@@ -58,29 +58,24 @@ void network_provisioning_check_status(void)
         app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
         network_disc_evt_posted = 1;
     }
-  } else {
-    if (!agora_runing) {
-    BK_LOGI(TAG,"network provisioning timeout!\n");
-    bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
-    }
   }
 }
 
-void network_provisioning_start_timeout_check(uint32_t timeout)
+void network_reconnect_start_timeout_check(uint32_t timeout)
 {
   bk_err_t err = kNoErr;
   uint32_t clk_time;
 
   clk_time = timeout*1000;		//timeout unit: seconds
 
-  if (rtos_is_oneshot_timer_init(&network_provisioning_tmr)) {
+  if (rtos_is_oneshot_timer_init(&network_reconnect_tmr)) {
      BK_LOGI(TAG,"network provisioning status timer reload\n");
-    rtos_oneshot_reload_timer(&network_provisioning_tmr);
+    rtos_oneshot_reload_timer(&network_reconnect_tmr);
   } else {
-    err = rtos_init_oneshot_timer(&network_provisioning_tmr, clk_time, (timer_2handler_t)network_provisioning_check_status, NULL, NULL);
+    err = rtos_init_oneshot_timer(&network_reconnect_tmr, clk_time, (timer_2handler_t)network_reconnect_check_status, NULL, NULL);
     BK_ASSERT(kNoErr == err);
 
-    err = rtos_start_oneshot_timer(&network_provisioning_tmr);
+    err = rtos_start_oneshot_timer(&network_reconnect_tmr);
     BK_ASSERT(kNoErr == err);
      BK_LOGI(TAG,"network provisioning status timer:%d\n", clk_time);
   }
@@ -89,17 +84,17 @@ void network_provisioning_start_timeout_check(uint32_t timeout)
 }
 
 
-void network_provisioning_stop_timeout_check(void)
+void network_reconnect_stop_timeout_check(void)
 {
   bk_err_t ret = kNoErr;
 
-  if (rtos_is_oneshot_timer_init(&network_provisioning_tmr)) {
-    if (rtos_is_oneshot_timer_running(&network_provisioning_tmr)) {
-      ret = rtos_stop_oneshot_timer(&network_provisioning_tmr);
+  if (rtos_is_oneshot_timer_init(&network_reconnect_tmr)) {
+    if (rtos_is_oneshot_timer_running(&network_reconnect_tmr)) {
+      ret = rtos_stop_oneshot_timer(&network_reconnect_tmr);
       BK_ASSERT(kNoErr == ret);
     }
 
-    ret = rtos_deinit_oneshot_timer(&network_provisioning_tmr);
+    ret = rtos_deinit_oneshot_timer(&network_reconnect_tmr);
     BK_ASSERT(kNoErr == ret);
   }
 }
@@ -153,8 +148,8 @@ int demo_network_auto_reconnect(void)
 #endif
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if (info.flag == 0x71l) {
-		network_provisioning_stop_timeout_check();
-		network_provisioning_start_timeout_check(30);    //30s
+		network_reconnect_stop_timeout_check();
+		network_reconnect_start_timeout_check(30);    //30s
 		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		network_disc_evt_posted = 0;
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
@@ -163,8 +158,9 @@ int demo_network_auto_reconnect(void)
 		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
 #if CONFIG_NET_PAN
 	if (info.flag == 0x74l) {
-		network_provisioning_stop_timeout_check();
-		network_provisioning_start_timeout_check(30);    //30s
+		network_reconnect_stop_timeout_check();
+		network_reconnect_start_timeout_check(30);    //30s
+		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
 		pan_service_init();
 		bt_start_pan_reconnect();
 	}
@@ -316,7 +312,7 @@ void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
     app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
-    network_provisioning_stop_timeout_check();
+    network_reconnect_stop_timeout_check();
     agora_stop();
     bk_wifi_sta_stop();
     demo_erase_network_auto_reconnect_info();
@@ -334,7 +330,7 @@ void bk_genie_prepare_for_smart_config(void)
         BK_LOGW(TAG, "%s ATE is enable, ble will not enable!!!!!!\n", __func__);
     }
 
-    network_provisioning_start_timeout_check(300);	//5min
+    //network_reconnect_start_timeout_check(300);	//5min
 }
 
 int bk_genie_smart_config_init(void)

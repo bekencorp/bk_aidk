@@ -19,8 +19,8 @@ typedef struct bk_fast_connect_d
 	uint8_t ap_channel;
 }BK_FAST_CONNECT_D;
 
-void network_provisioning_start_timeout_check(uint32_t timeout);
-void network_provisioning_stop_timeout_check(void);
+void network_reconnect_start_timeout_check(uint32_t timeout);
+void network_reconnect_stop_timeout_check(void);
 int bk_agora_ai_agent_start(char *channel);
 int bk_genie_smart_config_init(void);
 void bk_genie_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);

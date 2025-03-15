@@ -22,7 +22,7 @@ void CountdownCallback()
     bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
 }
 
-void start_countdown()
+void start_countdown(uint32_t time_ms)
 {
     bk_err_t result;
 
@@ -30,7 +30,7 @@ void start_countdown()
 
 	if (g_countdown_timer.handle == NULL)
 	{
-		result = rtos_init_oneshot_timer(&g_countdown_timer, countdown_ms, CountdownCallback, NULL, NULL);
+		result = rtos_init_oneshot_timer(&g_countdown_timer, time_ms, CountdownCallback, NULL, NULL);
 		if(kNoErr != result)
 		{
 			LOGI("rtos_init_timer fail\r\n");
@@ -72,5 +72,4 @@ void stop_countdown()
 		}
 
 	}
-
-}
+}

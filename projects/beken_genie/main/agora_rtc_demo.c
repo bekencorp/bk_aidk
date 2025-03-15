@@ -133,7 +133,7 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             break;
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
-            network_provisioning_stop_timeout_check();
+            network_reconnect_stop_timeout_check();
             app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
             g_connected_flag = true;	//for rejoin success
             smart_config_running = false;

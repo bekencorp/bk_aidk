@@ -119,7 +119,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_ASR_STANDBY\n");
                     led_app_set(LED_SLOW_BLINK_GREEN,LED_LAST_FOREVER);
                     lvgl_app_deinit();
-                    start_countdown();
+                    start_countdown(countdown_ms);
                     break;
 
 //-------------------network event start ------------------------------------------------------------------
@@ -129,6 +129,8 @@ static void app_event_thread(beken_thread_arg_t data)
  * If network retore event APP_EVT_AGENT_JOINED comes, it means all of the network abnormal event can be stop
  */
                 case APP_EVT_NETWORK_PROVISIONING:
+                    stop_countdown();
+                    start_countdown(COUNTDOWN_NETWORK_PROVISIONING);
                     LOGI("APP_EVT_NETWORK_PROVISIONING\n");
                     is_network_provisioning = 1;
                     led_app_set(LED_REG_GREEN_ALTERNATE,LED_LAST_FOREVER);
@@ -142,6 +144,10 @@ static void app_event_thread(beken_thread_arg_t data)
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_SUCCESS);
 #endif
+
+                    stop_countdown();
+                    start_countdown(countdown_ms);
+
                     break;
 
                 case APP_EVT_NETWORK_PROVISIONING_FAIL:
