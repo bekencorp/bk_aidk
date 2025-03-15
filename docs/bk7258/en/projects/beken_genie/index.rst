@@ -116,7 +116,7 @@ and special reminders are signaled by alternating red and green light blinking. 
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.The SD-NAND stores local resource files, such as image resource files on the display screen.
         - 2.The SD-NAND storage device defaults to using the FAT32 file system, allowing applications to indirectly invoke the open-source FATFS program interface through the VFS interface for file access.
-        - 3.On the PC side, files on the SD-NAND can be accessed for reading and writing via the USB interface.
+        - 3.On the PC side, files on the SD-NAND can be accessed for reading and writing via the USB interface.(The USB port located on the left side of the development board.)
         - 4.Please note that files deleted on the PC side may still be in use by the local application, which can lead to system anomalies. It is essential to ensure that deleted files are no longer being accessed.
 
 1.5 Gsensor
