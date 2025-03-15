@@ -14,7 +14,7 @@ Beken Genie AI
 
     并且能够有效，利用云的分布式部署，降低网络延迟，提高交互体验。
 
-    支持端侧AEC，NS等音频处理算法，支持G711/G722编码格式，支持KWS关键字打断唤醒。
+    支持端侧AEC，NS等音频处理算法，支持G711/G722编码格式，支持KWS关键字打断唤醒，支持提示音播放。
 
     包含常用外设的参考设计以及Demo，比如，陀螺仪，NFC，按键，震动马达，Nand Flash，LED灯效，充电管理，DVP camera，双QPSI屏。
 
@@ -165,9 +165,76 @@ Beken Genie AI
         - 2.通过长按按键开机时，马达会振动。
         - 3.PWM详细使用例程见cli_pwm.c。
 
+1.9 提示音
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1.9.1 提示音功能说明
++++++++++++++++++++++++++++++++++
+
+开发板工作过程中会根据事件播放对应提示音，事件对应的提示音内容如下：
+
+    蓝牙配网：
+        - 1.开始蓝牙配网： ``请使用蓝牙配网``
+        - 2.蓝牙配网： ``蓝牙配网失败，请重新配网。``
+        - 3.蓝牙配网成功： ``蓝牙配网成功``
+
+    连网
+        - 1.连网中： ``网络连接中，请稍后。``
+        - 2.连网失败： ``网络连接失败，请检查网络。``
+        - 3.连网成功： ``网络连接成功``
+
+    唤醒和关闭
+        - 1.唤醒： ``A Ha``
+        - 2.关闭： ``Byebye``
+
+    AI智能体
+        - 1.AI智能体连接成功： ``AI智能体已连接``
+        - 2.AI智能体断开连接： ``AI智能体已断开``
+
+    设备断连
+        - 1.设备断开连接： ``设备断开连接``
+
+    电池电量
+        - 1.电池低电量： ``电池电量低，请充电。``
+
+1.9.2 提示音开发指南
++++++++++++++++++++++++++++++++++
+
+    源码路径： ``<source code>/bk_avdk/components/multimedia/prompt_tone_play/``
+
+    如下图所示:
+    提示音开发框架采用模块化的设计方案。主要分为三个模块，提示音播放模块（prompt_tone_play）、提示音读取模块(audio_source)和提示音解码模块（audio_codec）.
+
+    1.提示音播放模块
+        - 提示音播放模块是提供给上层用户使用的app模块，负责集成提示音读取模块和提示音解码模块，完成整个提示音播放的配置和控制。
+
+    2.提示音读取模块
+        - 为了可扩展性，根据功能抽象为一个类，再基于该类开发不同功能实例。
+        - 目前已经支持从数组读取提示音的实例 ``audio_array.c`` 和从vfs文件系统读取提示音的实例 ``audio_vfs.c`` ，客户有其他需求可以参考其他实例自行适配。
+        - 默认使用支持vfs文件系统的sd nand存储提示音，可使用宏选择指定的实例。
+
+    3.提示音解码模块
+        - 为了可扩展性，根据功能抽象为一个类，再基于该类开发不同功能实例。
+        - 目前已经支持pcm格式解码的实例 ``pcm_codec.c`` 和wav格式解码的实例 ``wav_codec.c`` ，客户有其他需求可以参考其他实例自行适配。
+        - 默认使用wav格式的提示音，可使用宏选择指定的实例。
+
+.. figure:: ../../../_static/prompt_tone.png
+    :align: center
+    :alt: Prompt Tone Development Framework
+    :figclass: align-center
+
+    Figure 2. Prompt Tone Development Framework
+
+.. note::
+
+    提示音文件格式必须满足下述要求：
+        - 单声道
+        - 16bit位宽
+        - 16K采样率
+
+    默认提示音文件资源路径：``<source code>/projects/beken_genie/main/resource/``
+
 2. 开发指南
 ---------------------------------
-
 
 2.1 模块架构图
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -181,7 +248,7 @@ Beken Genie AI
     :alt: module architecture Overview
     :figclass: align-center
 
-    Figure 2. software module architecture
+    Figure 3. software module architecture
 
 ..
 
@@ -197,7 +264,7 @@ Beken Genie AI
     :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 3. Operation Flow Sequence
+    Figure 4. Operation Flow Sequence
 
 
 2.3 工作状态机
@@ -208,7 +275,7 @@ Beken Genie AI
     :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 4. module state diagram
+    Figure 5. module state diagram
 
 ::
 

@@ -16,7 +16,7 @@ The solution enables seamless edge-to-cloud integration, supporting various gene
 
 It effectively leverages cloud-based distributed deployment to reduce network latency and enhance interaction experience.
 
-The solution supports edge-side AEC (Acoustic Echo Cancellation) and NS (Noise Suppression) audio processing algorithms, as well as G711/G722 codec formats. It also supports KWS (Keyword Spotting) wake-up functions.
+The solution supports edge-side AEC (Acoustic Echo Cancellation) and NS (Noise Suppression) audio processing algorithms, as well as G711/G722 codec formats. It also supports KWS (Keyword Spotting) wake-up functions and prompt tone playback functions.
 
 The design includes reference solutions and demos for common peripherals, such as gyroscopes, NFC, buttons, vibration motors, Nand Flash, LED light effects, power management, DVP cameras, and dual QPSI screens.
 
@@ -145,6 +145,75 @@ and special reminders are signaled by alternating red and green light blinking. 
         - 2.When the power is turned on by long-pressing the button, the motor will vibrate.
         - 3.Detailed usage examples for PWM can be found in cli_pwm.c.
 
+1.9 Prompt Tone
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1.9.1 Prompt Tone Function Description
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    The development board plays corresponding prompt tones during operation based on different events. Below are the prompt tones associated with each event:
+
+    Provision network Over Bluetooth LE
+        - 1.Provision Network Over Bluetooth LE: ``Please use Bluetooth LE for network provision``
+        - 2.Provision Network fail: ``Network provision over Bluetooth LE failed, please reprovision the network.``
+        - 3.Provision Network success: ``Network provision over Bluetooth LE successed``
+
+    Reconnect Network
+        - 1.Connecting to Network: ``The network is connecting, please wait.``
+        - 2.Reconnect Network fail: ``The network connection has failed, please check the network.``
+        - 3.Reconnect Network success: ``The network connection successful.``
+
+    Wake-Up and Shutdown
+        - 1.Wake-Up: ``A Ha``
+        - 2.Shutdown: ``Byebye``
+
+    AI Entity
+        - 1.AI Entity Connected Successfully: ``AI entity has been connected``
+        - 2.AI Entity Disconnected: ``AI entity has been disconnected``
+
+    Device Disconnection
+        - 1.Device Disconnected: ``Device disconnected``
+
+    Battery Level
+        - 1.Low Battery: ``Battery level is low. Please charge.``
+
+
+1.9.2 Prompt Tone Development Guide
++++++++++++++++++++++++++++++++++++++++++
+
+    Source Code Path: ``<source code>/bk_avdk/components/multimedia/prompt_tone_play/``
+
+    As shown in the following figure:
+    The prompt tone development framework use modular design, mainly consisting of the following three modules:
+
+    1.Prompt Tone Play Module (prompt_tone_play)
+        - This module is an App module provided for upper-layer users. It integrates the prompt tone reading module and the prompt tone decoding module, and is responsible for the configuration and control of the entire prompt tone playback process.
+
+    2.Prompt Tone Reading Module (audio_source)
+        - To improve scalability, a class is abstracted based on functionality, and different functional instances are developed based on this class.
+        - Currently, it supports instances for reading prompt tones from an array( ``audio_array.c`` ) and from the VFS file system( ``audio_vfs.c`` ). Customers with other requirements can refer to these instances for self-adaptation.
+        - Default use of SD NAND storage supporting the VFS file system for prompt tones, and a macro can be used to select a specific instance.
+
+    3.Prompt Tone Decoding Module (audio_codec)
+        - To improve scalability, a class is abstracted based on functionality, and different functional instances are developed based on this class.
+        - Currently, it supports instances for decoding PCM format( ``pcm_codec.c`` ) and WAV format( ``wav_codec.c`` ). Customers with other requirements can refer to these instances for self-adaptation.
+        - Default use of WAV format prompt tones, a macro can be used to select a specific instance.
+
+.. figure:: ../../../_static/prompt_tone.png
+    :align: center
+    :alt: Prompt Tone Development Framework
+    :figclass: align-center
+
+    Figure 2. Prompt Tone Development Framework
+
+.. note::
+
+    The prompt tone file format must meet the following requirements:
+        - Mono
+        - 16-bit bit depth
+        - 16 kHz sampling rate
+
+    The default path for the prompt tone file resources: ``<source code>/projects/beken_genie/main/resource/``
+
 2. Development Guide
 ---------------------------------
 
@@ -166,7 +235,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     :alt: module Overview
     :figclass: align-center
 
-    Figure 2. software module architecture
+    Figure 3. software module architecture
 
 ..
 
@@ -192,7 +261,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 3. Operation Flow Sequence
+    Figure 4. Operation Flow Sequence
 
 
 2.3 AI Work state machine
@@ -203,7 +272,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     :alt: State Machine Overview
     :figclass: align-center
 
-    Figure 4. module state diagram
+    Figure 5. module state diagram
 
 ::
 
