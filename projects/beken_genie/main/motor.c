@@ -6,7 +6,7 @@
 
 #include <driver/gpio.h>
 #include "gpio_map.h"
-
+#include "driver/pwr_clk.h"
 
 #define TAG "MOTOR"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -23,10 +23,10 @@ static uint32_t s_period = PWM_CLOCK_SOURCE / PWM_FREQ;
 static bk_err_t motor_ldo_power_enable(uint8_t enable)
 {
 	if (enable) {
-		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_MOTOR, MOTOR_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
+		bk_pm_module_vote_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_MOTOR, MOTOR_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
 		LOGI("MOTOR_LDO_CTRL_GPIO is %d\r\n",MOTOR_LDO_CTRL_GPIO);
 	} else {
-		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_MOTOR, MOTOR_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
+		bk_pm_module_vote_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_MOTOR, MOTOR_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
 		LOGI("MOTOR_LDO_CTRL_GPIO is %d\r\n",MOTOR_LDO_CTRL_GPIO);
 	}
 
