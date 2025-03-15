@@ -19,6 +19,7 @@ void bk_bt_enter_pairing_mode(void);
 void pan_show_tx_data_cache_count(void);
 int pan_service_deinit(void);
 int cli_pan_demo_deinit(void);
+void bt_pan_reconnect_failure_handler(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -18,6 +18,7 @@
 #include "net.h"
 #include "panif.h"
 #include "netif/etharp.h"
+#include "app_event.h"
 
 #define TAG "pan"
 
@@ -101,6 +102,14 @@ static int pan_push_tx_data_to_list(void *data, uint16_t len)
     return ret;
 }
 
+void bt_pan_reconnect_failure_handler(void)
+{
+    bt_clear_reconnect_info();
+    bt_manager_set_mode(BT_MNG_MODE_IDLE);
+
+    app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+}
+
 void bt_start_pan_reconnect(void)
 {
     uint8_t recon_addr[6] = {0};
@@ -110,7 +119,8 @@ void bt_start_pan_reconnect(void)
     if ((bluetooth_storage_get_newest_linkkey_info(recon_addr, NULL)) < 0)
     {
         LOGI("%s can't find linkkey info\n", __func__);
-        bt_manager_set_mode(BT_MNG_MODE_PAIRING);
+        //bt_manager_set_mode(BT_MNG_MODE_PAIRING);
+        bt_pan_reconnect_failure_handler();
     }
     else
     {

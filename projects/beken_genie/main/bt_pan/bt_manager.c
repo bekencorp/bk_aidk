@@ -12,6 +12,7 @@
 #include "storage/bluetooth_storage.h"
 #include "bt_manager.h"
 #include "pan_user_config.h"
+#include "pan_service.h"
 
 #define TAG "btm"
 
@@ -28,6 +29,7 @@ typedef struct
     uint8_t connect_state;
     uint8_t manual_enter_pairing;
     beken2_timer_t recon_tmr;
+    uint8_t recon_count;
     uint8_t peer_addr[6];
     uint8_t recon_addr[6];
     uint8_t tmp_link_key[16];//BT_LINK_KEY_SIZE];
@@ -102,6 +104,8 @@ static char *bt_manager_mode_2_str(uint8_t mode)
             return "connected-conndisable-inqdisable";
         case BT_MNG_MODE_CONNECTABLE:
             return "connable-inqdisable";
+        case BT_MNG_MODE_IDLE:
+            return "idle-conndisable-inqdisable";
     }
     return "unknow mode";
 }
@@ -131,6 +135,8 @@ void bt_manager_set_mode(uint8_t mode)
         case BT_MNG_MODE_CONNECTABLE:
             bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_NON_DISCOVERABLE);
             break;
+        case BT_MNG_MODE_IDLE:
+            bk_bt_gap_set_visibility(BK_BT_NON_CONNECTABLE, BK_BT_NON_DISCOVERABLE);
         default:
             break;
     }
@@ -154,11 +160,18 @@ void link_timeout_start_reconnect_timer_hdl(void *param, unsigned int ulparam)
         }
     }
     btm_env.connect_state = BT_STATE_RECONNECTING;
+    btm_env.recon_count++;
 }
 
 void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
 {
     uint32_t time_ms = 200;
+
+    if (btm_env.recon_count >= CONFIG_MAX_RECONN_COUNT)
+    {
+        bt_pan_reconnect_failure_handler();
+        return;
+    }
 
     btm_env.connect_state = BT_STATE_IDLE;
 
@@ -177,10 +190,11 @@ void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
     }
 }
 
-static void bt_clear_reconnect_info(void)
+void bt_clear_reconnect_info(void)
 {
     os_memset(btm_env.recon_addr, 0, 6);
     btm_env.connect_state = BT_STATE_IDLE;
+    btm_env.recon_count = 0;
 }
 
 

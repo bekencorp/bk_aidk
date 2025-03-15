@@ -9,6 +9,7 @@ enum
     BT_MNG_MODE_RECONNECTING,      /**< no-connectable and no-discoverable*/
     BT_MNG_MODE_CONNECTEED,        /**< no-connectable and no-discoverable*/
     BT_MNG_MODE_CONNECTABLE,       /**< connectable and no-discoverable */
+    BT_MNG_MODE_IDLE,              /**< no-connectable and no-discoverable*/
 };
 
 enum
@@ -42,3 +43,5 @@ uint8_t bt_manager_get_connect_state();
 void bt_manager_set_connect_state(uint8_t state);
 uint8_t *bt_manager_get_reconnect_device();
 uint8_t *bt_manager_get_connected_device();int bt_manager_deinit(void);
+void bt_clear_reconnect_info(void);
+
