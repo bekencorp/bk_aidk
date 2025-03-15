@@ -83,14 +83,14 @@ There are three button on the lower right side of the board, corresponding to th
 
     2.Precautions for GPIO buttons
         - Ensure that GPIO pins are exclusively used for button functions; otherwise, conflicting functions on the same GPIO pin may result in ineffective button operation.
-        - If the developer's board is different from the bekan_genie development board, please reconfigure the GPIOs according to the hardware design of your development board. 
+        - If the developer's board is different from the bekan_genie development board, please reconfigure the GPIOs according to the hardware design of your development board.
           For details on GPIO usage, refer to the documents on the official website.
 
 
 1.3 LED
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-The development board features red and green status indicator lights. Important information is indicated by red light blinking, general notifications by green light blinking, 
+The development board features red and green status indicator lights. Important information is indicated by red light blinking, general notifications by green light blinking,
 and special reminders are signaled by alternating red and green light blinking. For reference code for LED effects development, see led_blink.c.
 
     Green light remains on or continuously off as an indicator
@@ -127,6 +127,33 @@ and special reminders are signaled by alternating red and green light blinking. 
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.The charging management chip model used in the current development board is ETA3422.
         - 2.When the battery is fully charged, the red light near the charging port will turn off, and the green light will turn on. The red light being on indicates that charging is in progress.
+        - 3.Note: During the charging process or when an external power source is connected, the system switches to the external input voltage source for voltage detection instead of using the battery voltage. At this time, the voltage obtained through commands will be the external input voltage.
+        - 4.Charging status monitoring depends on GPIO51 and GPIO26.
+            - GPIO51 is responsible for detecting the charging status. When GPIO51 is high, there is an external power supply input; otherwise, there is none.
+            - GPIO26 indicates whether the battery is charging. When GPIO26 is high, the battery is charging; when it is low, the battery is fully charged.
+            - Note: This function requires confirming whether the R14 resistor is soldered on the hardware. If not, additional soldering is needed.
+        - 5.To enable the charging management function, configure CONFIG_BAT_MONITOR=y. To enable the test cases for charging management, configure CONFIG_BATTERY_TEST=y.
+        - 6.After enabling the battery test commands, battery information can be obtained using the battery command:
+            - "battery init" initializes the battery monitoring task.
+            - "battery get_battery_info" retrieves basic battery information.
+            - "battery get_voltage" checks the current battery voltage.
+            - "battery get_level" checks the current battery level.
+            - Note: When using the above commands, ensure that the system is not powered by an external power source; otherwise, the detected voltage will be the external power voltage.
+            - For other specific commands, simply enter "battery" to print the supported commands. For further details, refer to the definitions in cli_battery.c.
+        - 7.When the battery level is equal to or below 20%, a low battery warning event will be triggered:
+            - The warning is triggered only when the device is not plugged in; it will not be triggered when connected to external power or charging.
+            - The warning is sent only once per low-battery occurrence.
+            - At this time, the red LED on the other side will blink slowly for 30 seconds.
+        - 8.When charging, the charging management task will print "Device is charging...".
+        - 9.When fully charged, it will print "Battery is full.".
+        - 10.Although the battery has low-voltage protection, users are advised to charge the battery promptly when the battery is low to extend its lifespan.
+        - 11.If users use batteries from other manufacturers, they need to modify the charge interpolation table (s_chargeLUT) and the battery information in iot_battery_open accordingly.
+        - 12.In our SDK, we provide API functions for current, voltage, and battery level. Currently, the battery only supports voltage and battery level detection.
+            - Note: Although the API interface for current detection is retained, it has not been implemented yet. If the user's device supports current detection, they need to implement the current detection API themselves.
+        - 13.Since the hardware currently only supports battery level detection in a non-charging state, hardware modifications are needed to detect voltage during charging:
+            - Removing the D6 diode and R21 resistor will enable voltage detection during charging.
+        - 14.The USB port next to the button serves as both a charging port and a serial port for interaction.
+
 
 1.7 ASR
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
