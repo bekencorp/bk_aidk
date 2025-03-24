@@ -16,6 +16,7 @@ typedef enum
     BOARDING_OP_SET_WIFI_CHANNEL = 11,
     BOARDING_OP_AGORA_AGENT_RSP = 12,
     BOARDING_OP_SET_AGORA_AGENT_INFO = 13,
+    BOARDING_OP_NET_PAN_START = 14,
 } boarding_opcode_t;
 
 typedef void (*ble_boarding_op_cb_t)(uint16_t opcode, uint16_t length, uint8_t *data);
@@ -30,6 +31,8 @@ typedef struct
 } ble_boarding_info_t;
 
 int wifi_boarding_init(ble_boarding_info_t *info);
+int wifi_boarding_deinit();
 int wifi_boarding_adv_start(void);
+int wifi_boarding_adv_stop(void);
 int wifi_boarding_notify(uint8_t *data, uint16_t length);
 

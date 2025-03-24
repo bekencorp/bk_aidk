@@ -17,6 +17,9 @@
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#if CONFIG_DEBUG_DUMP
+#include "debug_dump.h"
+#endif
 
 //#define AGORA_TX_MIC_DATA_DUMP
 
@@ -63,11 +66,17 @@ static uint8_t *mic_data_buffer = NULL;
 #define MIC_FRAME_NUM 4
 
 extern bool agoora_tx_mic_data_flag;
+extern bool g_connected_flag;
 
 
 static int send_agora_audio_frame(uint8_t *data, unsigned int len)
 {
     audio_frame_info_t info = { 0 };
+
+    if (!g_connected_flag)
+    {
+        return 0;
+    }
 
 #ifdef CONFIG_USE_G722_CODEC
     info.data_type = AUDIO_DATA_TYPE_G722;
@@ -75,10 +84,22 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
     info.data_type = AUDIO_DATA_TYPE_PCMA;
 #endif
 
+    #if CONFIG_DEBUG_DUMP
     if (agoora_tx_mic_data_flag)
     {
-        AGORA_TX_MIC_DATA_DUMP_DATA(data, len);
+        //AGORA_TX_MIC_DATA_DUMP_DATA(data, len);
+        #if 0
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_AGORA_TX_MIC,1);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_AGORA_TX_MIC,0,DUMP_FILE_TYPE_G722,len);
+        #else
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_AGORA_TX_MIC,0,len);
+        #endif
+        DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_AGORA_TX_MIC);
+        DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_AGORA_TX_MIC);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_AGORA_TX_MIC);
+        DEBUG_DATA_DUMP_BY_UART_DATA(data, len);
     }
+    #endif
 
     int rval = bk_agora_rtc_audio_data_send(data, len, &info);
     if (rval < 0)
@@ -144,10 +165,12 @@ static void agora_aud_tras_main(void)
 
     uint8_t *mic_temp_buff = NULL;
 
+    #if 0
     if (agoora_tx_mic_data_flag)
     {
         AGORA_TX_MIC_DATA_DUMP_OPEN();
     }
+    #endif
 
     rtos_set_semaphore(&agora_aud_sem);
 
@@ -199,10 +222,12 @@ static void agora_aud_tras_main(void)
 
 aud_tras_exit:
 
+    #if 0
     if (agoora_tx_mic_data_flag)
     {
         AGORA_TX_MIC_DATA_DUMP_CLOSE();
     }
+    #endif
 
     if (mic_data_buffer)
     {

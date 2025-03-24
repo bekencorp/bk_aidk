@@ -8,4 +8,8 @@ menu "Beken_Genie Project Configuration"
         int "Set LDO_3V3 Control Gpio"
         range 0 100
         default 52
+
+	config NETWORK_AUTO_RECONNECT
+		bool "Enable auto reconnect Network"
+		default y
 endmenu

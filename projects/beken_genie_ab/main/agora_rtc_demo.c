@@ -21,9 +21,10 @@
 #include "media_app.h"
 #include "lcd_act.h"
 #include "components/bk_uid.h"
-#if CONFIG_WIFI_AUTO_RESTART
+#if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
+#include "app_event.h"
 
 
 #define TAG "agora_main"
@@ -31,6 +32,12 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
+
+#if CONFIG_DEBUG_DUMP
+#include "debug_dump.h"
+extern bool agoora_rx_spk_data_flag;
+#endif//CONFIG_DEBUG_DUMP
+
 
 //#define AGORA_RX_SPK_DATA_DUMP
 
@@ -57,9 +64,9 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AEC_ENABLE              (1)
 
 
-static bool g_connected_flag = false;
-static char agora_appid[50] = {0};
-static char channel_name[50] = {0};
+bool g_connected_flag = false;
+static char agora_appid[33] = {0};
+static char channel_name[128] = {0};
 static bool audio_en = false;
 static bool video_en = false;
 static media_camera_device_t camera_device =
@@ -88,11 +95,14 @@ static media_camera_device_t camera_device =
 
 static beken_thread_t  agora_thread_hdl = NULL;
 static beken_semaphore_t agora_sem = NULL;
-static bool agora_runing = false;
+bool agora_runing = false;
 static agora_rtc_config_t agora_rtc_config = DEFAULT_AGORA_RTC_CONFIG();
 static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 
 static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
+extern bool smart_config_running;
+extern uint32_t volume;
+extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -123,13 +133,19 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             break;
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
+            network_reconnect_stop_timeout_check();
+            app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
+            g_connected_flag = true;	//for rejoin success
+            smart_config_running = false;
             break;
         case AGORA_RTC_MSG_USER_OFFLINE:
             LOGI("User Offline.\n");
+            app_event_send_msg(APP_EVT_AGENT_OFFLINE, 0);
             break;
         case AGORA_RTC_MSG_CONNECTION_LOST:
             LOGE("Lost connection. Please check wifi status.\n");
             g_connected_flag = false;
+            app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
             break;
         case AGORA_RTC_MSG_INVALID_APP_ID:
             LOGE("Invalid App ID. Please double check.\n");
@@ -269,7 +285,22 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
 {
     bk_err_t ret = BK_OK;
 
-    AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
+    #if CONFIG_DEBUG_DUMP
+    if(agoora_rx_spk_data_flag)
+    {
+        //AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
+        #if 0
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_AGORA_RX_SPK,1);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_AGORA_RX_SPK,0,DUMP_FILE_TYPE_G722,size);
+        #else
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_AGORA_RX_SPK,0,size);
+        #endif
+        DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_AGORA_RX_SPK);
+        DEBUG_DATA_DUMP_BY_UART_DATA(data, size);
+    }
+    #endif//CONFIG_DEBUG_DUMP
 
     ret = bk_aud_intf_write_spk_data((uint8_t *)data, (uint32_t)size);
     if (ret != BK_OK)
@@ -280,7 +311,7 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
     return ret;
 }
 
-static bk_err_t video_turn_off(void)
+bk_err_t video_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
@@ -371,13 +402,19 @@ fail:
     return BK_FAIL;
 }
 
-static bk_err_t audio_turn_off(void)
+bk_err_t audio_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
-
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    if (g_connected_flag)
+    {
+        bk_agora_rtc_register_audio_rx_handle(NULL);
+    }
+#else
     /* deregister callback to handle audio data received from agora rtc */
     bk_agora_rtc_register_audio_rx_handle(NULL);
+#endif
 
     /* stop voice */
     ret = bk_aud_intf_voc_stop();
@@ -408,7 +445,7 @@ static bk_err_t audio_turn_off(void)
     return BK_OK;
 }
 
-static bk_err_t audio_turn_on(void)
+bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
@@ -441,8 +478,12 @@ static bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_DIFFEN;
     aud_intf_voc_setup.aec_enable = AEC_ENABLE;
     aud_intf_voc_setup.samp_rate  = AUDIO_SAMP_RATE;
+#if CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE
+    aud_intf_voc_setup.mic_gain   = 0x30;
+#else
     aud_intf_voc_setup.mic_gain   = 0x3F;
-    aud_intf_voc_setup.spk_gain   = SPK_GAIN_MAX;
+#endif
+    aud_intf_voc_setup.spk_gain   = g_volume_gain[volume];
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
 
@@ -452,11 +493,15 @@ static bk_err_t audio_turn_on(void)
         LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
 
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+
+#else
     ret = bk_agora_rtc_register_audio_rx_handle((agora_rtc_audio_rx_data_handle)agora_rtc_user_audio_rx_data_handle);
     if (ret != BK_OK)
     {
         LOGE("bk_aggora_rtc_register_audio_rx_handle fail, ret:%d \r\n", ret);
     }
+#endif
 
     ret = bk_aud_intf_voc_start();
     if (ret != BK_ERR_AUD_INTF_OK)
@@ -522,6 +567,13 @@ void agora_main(void)
 
     LOGI("-----agora_rtc_join_channel success-----\r\n");
 
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    ret = bk_agora_rtc_register_audio_rx_handle((agora_rtc_audio_rx_data_handle)agora_rtc_user_audio_rx_data_handle);
+    if (ret != BK_OK)
+    {
+        LOGE("bk_aggora_rtc_register_audio_rx_handle fail, ret:%d \r\n", ret);
+    }
+#else
     /* turn on audio */
     if (audio_en)
     {
@@ -533,6 +585,7 @@ void agora_main(void)
         }
         memory_free_show();
     }
+#endif
 
     /* turn on video */
     if (video_en)
@@ -554,11 +607,16 @@ void agora_main(void)
     }
 
 exit:
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    /* deregister callback to handle audio data received from agora rtc */
+    bk_agora_rtc_register_audio_rx_handle(NULL);
+#else
     /* free audio  */
     if (audio_en)
     {
         audio_turn_off();
     }
+#endif
 
     /* free video sources */
     if (video_en)
@@ -600,7 +658,7 @@ exit:
     rtos_delete_thread(NULL);
 }
 
-static bk_err_t agora_stop(void)
+bk_err_t agora_stop(void)
 {
     if (!agora_runing)
     {
@@ -765,30 +823,22 @@ cmd_fail:
 #endif
 /* call this api when wifi autoconnect */
 extern char *app_id_record;
-#define AGORA_DEBUG_APPID "db1ae5462530413e9fd527bbeb909139"
+extern char *channel_name_record;
 void agora_auto_run(void)
 {
-#if CONFIG_WIFI_AUTO_RESTART
-    unsigned char uid[32] = {0};
-
-    bk_uid_get_data(uid);
-    bk_agora_ai_agent_start((char *)uid);
-    if (app_id_record)
+    if (!channel_name_record || !app_id_record)
     {
-        sprintf(agora_appid, "%s", app_id_record);
+        return;
     }
-    else
-    {
-        sprintf(agora_appid, "%s", AGORA_DEBUG_APPID);
-    }
-    sprintf(channel_name, "%s", uid);
 
+    sprintf(agora_appid, "%s", app_id_record);
+    sprintf(channel_name, "%s", channel_name_record);
     if (!agora_runing)
     {
+        bk_genie_wakeup_agent();
         audio_en = true;
         video_en = false;
         agora_start();
     }
-#endif
 }
 

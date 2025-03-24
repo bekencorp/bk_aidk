@@ -331,9 +331,17 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
 
         }
         break;
+
+        case BOARDING_OP_NET_PAN_START:
+        {
+            bk_genie_msg_t msg;
+
+            msg.event = DBEVT_NET_PAN_REQUEST;
+            bk_genie_send_msg(&msg);
+        }
+        break;
     }
 }
-
 
 int bk_genie_boarding_init(void)
 {
@@ -357,10 +365,29 @@ int bk_genie_boarding_init(void)
 
     wifi_boarding_init(&bk_genie_boarding_info->boarding_info);
 
-    //pan_service_init();
-
+#if CONFIG_NET_PAN
+    pan_service_init();
+#endif
     return BK_OK;
 error:
     return BK_FAIL;
 }
 
+int bk_genie_boarding_deinit(void)
+{
+    LOGI("%s\n", __func__);
+
+    wifi_boarding_adv_stop();
+    wifi_boarding_deinit();
+
+    if(bk_genie_boarding_info)
+    {
+        os_free(bk_genie_boarding_info);
+        bk_genie_boarding_info = NULL;
+    }
+
+#if CONFIG_NET_PAN
+    pan_service_deinit();
+#endif
+    return 0;
+}

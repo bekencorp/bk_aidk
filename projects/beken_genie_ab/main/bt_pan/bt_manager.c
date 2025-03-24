@@ -12,6 +12,7 @@
 #include "storage/bluetooth_storage.h"
 #include "bt_manager.h"
 #include "pan_user_config.h"
+#include "pan_service.h"
 
 #define TAG "btm"
 
@@ -28,6 +29,7 @@ typedef struct
     uint8_t connect_state;
     uint8_t manual_enter_pairing;
     beken2_timer_t recon_tmr;
+    uint8_t recon_count;
     uint8_t peer_addr[6];
     uint8_t recon_addr[6];
     uint8_t tmp_link_key[16];//BT_LINK_KEY_SIZE];
@@ -48,6 +50,8 @@ void bt_stop_reconnect_timeout_check(void)
         rtos_deinit_oneshot_timer(&btm_env.recon_tmr);
     }
 
+    btm_env.recon_count = 0;
+
     for (uint8_t i = 0; i < MAX_PROFILE_NUM; i++)
     {
         if (btm_cbs[i].stop_connect_cb)
@@ -57,23 +61,23 @@ void bt_stop_reconnect_timeout_check(void)
     }
 }
 
-void bk_bt_enter_pairing_mode(void)
+void bk_bt_enter_pairing_mode(uint8_t is_visible)
 {
     bt_stop_reconnect_timeout_check();
-
+    LOGI("%s, state %d\r\n",__func__,btm_env.connect_state);
     if (BT_STATE_RECONNECTING == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         bk_bt_gap_create_conn_cancel(btm_env.recon_addr);
     }
     else if (BT_STATE_LINK_CONNECTED == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         bk_bt_gap_disconnect(btm_env.peer_addr, 0x13);
     }
     else if (BT_STATE_PROFILE_CONNECTED == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         for (int i = 0; i < MAX_PROFILE_NUM; i++)
         {
             if (btm_cbs[i].start_disconnect_cb)
@@ -84,7 +88,7 @@ void bk_bt_enter_pairing_mode(void)
     }
     else
     {
-        bt_manager_set_mode(BT_MNG_MODE_PAIRING);
+        bt_manager_set_mode((is_visible ? BT_MNG_MODE_PAIRING : BT_MNG_MODE_IDLE));
     }
 
     btm_env.connect_state = BT_STATE_IDLE;
@@ -102,6 +106,8 @@ static char *bt_manager_mode_2_str(uint8_t mode)
             return "connected-conndisable-inqdisable";
         case BT_MNG_MODE_CONNECTABLE:
             return "connable-inqdisable";
+        case BT_MNG_MODE_IDLE:
+            return "idle-conndisable-inqdisable";
     }
     return "unknow mode";
 }
@@ -131,6 +137,8 @@ void bt_manager_set_mode(uint8_t mode)
         case BT_MNG_MODE_CONNECTABLE:
             bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_NON_DISCOVERABLE);
             break;
+        case BT_MNG_MODE_IDLE:
+            bk_bt_gap_set_visibility(BK_BT_NON_CONNECTABLE, BK_BT_NON_DISCOVERABLE);
         default:
             break;
     }
@@ -154,11 +162,18 @@ void link_timeout_start_reconnect_timer_hdl(void *param, unsigned int ulparam)
         }
     }
     btm_env.connect_state = BT_STATE_RECONNECTING;
+    btm_env.recon_count++;
 }
 
 void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
 {
     uint32_t time_ms = 200;
+
+    if (btm_env.recon_count >= CONFIG_MAX_RECONN_COUNT)
+    {
+        bt_pan_reconnect_failure_handler();
+        return;
+    }
 
     btm_env.connect_state = BT_STATE_IDLE;
 
@@ -177,10 +192,11 @@ void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
     }
 }
 
-static void bt_clear_reconnect_info(void)
+void bt_clear_reconnect_info(void)
 {
     os_memset(btm_env.recon_addr, 0, 6);
     btm_env.connect_state = BT_STATE_IDLE;
+    btm_env.recon_count = 0;
 }
 
 
@@ -196,8 +212,8 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
 
             if (btm_env.manual_enter_pairing)
             {
-                bt_manager_set_mode(BT_MNG_MODE_PAIRING);
-                btm_env.manual_enter_pairing = 0;
+                bt_manager_set_mode(((PAIRING_STATE_PREPARATION == btm_env.manual_enter_pairing) ? BT_MNG_MODE_IDLE : BT_MNG_MODE_PAIRING));
+                btm_env.manual_enter_pairing = PAIRING_STATE_IDLE;
                 break;
             }
 
@@ -242,8 +258,8 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
 
                 if (btm_env.manual_enter_pairing)
                 {
-                    bt_manager_set_mode(BT_MNG_MODE_PAIRING);
-                    btm_env.manual_enter_pairing = 0;
+                    bt_manager_set_mode(((PAIRING_STATE_PREPARATION == btm_env.manual_enter_pairing) ? BT_MNG_MODE_IDLE : BT_MNG_MODE_PAIRING));
+                    btm_env.manual_enter_pairing = PAIRING_STATE_IDLE;
                     break;
                 }
 
@@ -386,7 +402,7 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
     }
 }
 
-int bt_manager_init()
+int bt_manager_init(uint8_t is_visible)
 {
     LOGI("%s\r\n", __func__);
     int ret = 0;
@@ -400,17 +416,40 @@ int bt_manager_init()
     os_memset(&btm_env, 0, sizeof(btm_env_s));
     os_memset(&btm_cbs, 0, sizeof(btm_cbs));
     bk_bt_gap_register_callback(gap_event_cb);
-    bk_bt_gap_set_device_class(COD_SOUNDBAR);
+    bk_bt_gap_set_device_class(0x022804);
     uint8_t bt_mac[6];
     char local_name[30] = {0};
     bk_get_mac((uint8_t *)bt_mac, MAC_TYPE_BLUETOOTH);
     snprintf(local_name, 30, "%s_%02x%02x%02x", LOCAL_NAME, bt_mac[3], bt_mac[4], bt_mac[5]);
     bk_bt_gap_set_local_name((uint8_t *)local_name, os_strlen(local_name));
 
-    bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+    if (is_visible)
+    {
+        bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+    }
 
     bk_bt_gap_set_page_timeout(CONFIG_PAGE_TIMEOUT);
     bk_bt_gap_set_page_scan_activity(PAGE_SCAN_INTV, PAGE_SCAN_WIN);
+    return 0;
+}
+
+int bt_manager_deinit(void)
+{
+    LOGI("%s\r\n", __func__);
+
+    bluetooth_storage_deinit();
+
+    if (rtos_is_oneshot_timer_init(&btm_env.recon_tmr))
+    {
+        if (rtos_is_oneshot_timer_running(&btm_env.recon_tmr))
+        {
+            rtos_stop_oneshot_timer(&btm_env.recon_tmr);
+        }
+        rtos_deinit_oneshot_timer(&btm_env.recon_tmr);
+    }
+
+    os_memset(&btm_env, 0, sizeof(btm_env_s));
+    os_memset(&btm_cbs, 0, sizeof(btm_cbs));
     return 0;
 }
 
@@ -423,11 +462,13 @@ int bt_manager_register_callback(btm_callback_s *cb)
             btm_cbs[i].gap_cb == NULL
             && btm_cbs[i].start_connect_cb == NULL
             && btm_cbs[i].stop_connect_cb == NULL
+            && btm_cbs[i].start_disconnect_cb == NULL
         )
         {
             btm_cbs[i].gap_cb = cb->gap_cb;
             btm_cbs[i].start_connect_cb = cb->start_connect_cb;
             btm_cbs[i].stop_connect_cb = cb->stop_connect_cb;
+            btm_cbs[i].start_disconnect_cb = cb->start_disconnect_cb;
             return i;
         }
     }
@@ -443,6 +484,10 @@ uint8_t bt_manager_get_connect_state()
 void bt_manager_set_connect_state(uint8_t state)
 {
     btm_env.connect_state = state;
+    if (BT_STATE_PROFILE_CONNECTED == state)
+    {
+        btm_env.recon_count = 0;
+    }
 }
 
 uint8_t *bt_manager_get_reconnect_device()

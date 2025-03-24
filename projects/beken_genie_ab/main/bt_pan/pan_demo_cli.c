@@ -1,5 +1,6 @@
 #include "cli.h"
 #include "components/bluetooth/bk_dm_pan.h"
+#include "pan_service.h"
 
 static void pan_usage(void)
 {
@@ -76,8 +77,8 @@ static void cmd_pan_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
     }
     else if (os_strcmp(argv[1], "pair_mode") == 0)
     {
-        void bk_bt_enter_pairing_mode(void);
-        bk_bt_enter_pairing_mode();
+        void bk_bt_enter_pairing_mode(uint8_t is_visible);
+        bk_bt_enter_pairing_mode(1);
     }
     else if (os_strcmp(argv[1], "write") == 0)
     {
@@ -183,6 +184,10 @@ static void cmd_pan_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
             goto __usage;
         }
     }
+    else if (os_strcmp(argv[1], "txmem") == 0)
+    {
+        pan_show_tx_data_cache_count();
+    }
     else
     {
         goto __usage;
@@ -208,5 +213,10 @@ static const struct cli_command s_pan_commands[] =
 int cli_pan_demo_init(void)
 {
     return cli_register_commands(s_pan_commands, sizeof(s_pan_commands) / sizeof(s_pan_commands[0]));
+}
+
+int cli_pan_demo_deinit(void)
+{
+    return cli_unregister_commands(s_pan_commands, sizeof(s_pan_commands) / sizeof(s_pan_commands[0]));
 }
 

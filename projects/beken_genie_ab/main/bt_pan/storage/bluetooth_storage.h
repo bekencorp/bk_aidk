@@ -24,7 +24,7 @@ bt_user_storage_elem_linkkey_t;
 typedef struct __attribute__((packed))
 {
     bt_user_storage_elem_linkkey_t linkkey[BT_LINKKEY_MAX_SAVE_COUNT];
-#if CONFIG_BLE
+#if 0//CONFIG_BLE
     bk_ble_bond_dev_t ble_key[BT_LINKKEY_MAX_SAVE_COUNT];
     bk_ble_local_keys_t local_keys;
 #endif

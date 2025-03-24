@@ -415,7 +415,7 @@ int32_t bluetooth_storage_linkkey_debug(void)
     return 0;
 }
 
-#if CONFIG_BLE
+#if 0//CONFIG_BLE
 
 int32_t bluetooth_storage_save_ble_key_info(bk_ble_bond_dev_t *list, uint32_t count)
 {
