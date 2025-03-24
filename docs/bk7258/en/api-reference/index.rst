@@ -10,3 +10,4 @@ api-reference
    :maxdepth: 1
 
    Notes on using Nand disk <nand_disk_note>
+   GSensor API Usage and Algorithm Demo <gsensor_link>
