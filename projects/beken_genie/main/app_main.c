@@ -18,6 +18,7 @@
 #include <key_main.h>
 #include <key_adapter.h>
 #endif
+#include "sys_driver.h"
 #include "sys_hal.h"
 #include <driver/gpio.h>
 #include "gpio_driver.h"
@@ -291,12 +292,31 @@ static void bk_key_register_wakeup_source()
     }
 
 }
-static bk_err_t app_force_analog_audio_close()
+static bk_err_t app_force_analog_ldo_gpio_close()
 {
+	uint32_t value = 0;
+	/*audio*/
 	sys_hal_set_ana_reg18_value(0);
 	sys_hal_set_ana_reg19_value(0);
 	sys_hal_set_ana_reg20_value(0);
 	sys_hal_set_ana_reg21_value(0);
+	sys_hal_set_ana_reg27_value(0);
+	sys_drv_aud_audbias_en(0);
+	/*usb*/
+	value = sys_hal_analog_get(ANALOG_REG13);
+	value &= ~(1 << 31);
+	sys_hal_analog_set(ANALOG_REG13,value);
+	/*ldo*/
+	gpio_dev_unmap(GPIO_50);
+	gpio_dev_unmap(GPIO_52);
+	/*GPIO*/
+	gpio_dev_unmap(GPIO_10);
+	gpio_dev_unmap(GPIO_11);
+	/*I2C*/
+	gpio_dev_unmap(GPIO_0);
+	gpio_dev_unmap(GPIO_1);
+	/*MOTO*/
+	gpio_dev_unmap(GPIO_9);
 	return 0;
 }
 static void bk_enter_deepsleep()
@@ -311,7 +331,7 @@ static void bk_enter_deepsleep()
     bk_key_register_wakeup_source();
     bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
 	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
-	app_force_analog_audio_close();
+	app_force_analog_ldo_gpio_close();
 	bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
     rtos_delay_milliseconds(10);
 }
