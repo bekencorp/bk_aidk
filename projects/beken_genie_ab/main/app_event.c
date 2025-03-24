@@ -230,7 +230,8 @@ static void app_event_thread(beken_thread_arg_t data)
 #endif
 
                     stop_countdown();
-                    start_countdown(countdown_ms);
+                    if(is_standby)
+                        start_countdown(countdown_ms);
 
                     break;
 
