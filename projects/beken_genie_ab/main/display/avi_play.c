@@ -20,12 +20,6 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-const lcd_open_t lcd_open =
-{
-    .device_ppi = PPI_160X160,
-    .device_name = "gc9d01",
-};
-
 
 #if (CONFIG_SYS_CPU1)
 #include "lv_jpeg_hw_decode.h"
@@ -48,7 +42,6 @@ typedef struct
     uint8_t video_segment_flag;
     uint32_t pos;
 } bk_avi_play_t;
-
 
 static bk_avi_play_t bk_avi_play = {0};
 static lv_vnd_config_t lv_vnd_config = {0};
@@ -263,7 +256,6 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
     return BK_OK;
 }
 
-
 bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
 {
     bk_err_t ret = BK_FAIL;
@@ -354,11 +346,16 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 
     msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 }
-
 #endif
 
 #if (CONFIG_SYS_CPU0)
 static uint8_t lvgl_app_init_flag = 0;
+
+const lcd_open_t lcd_open =
+{
+    .device_ppi = PPI_160X160,
+    .device_name = "gc9d01",
+};
 
 void lvgl_app_init(void)
 {

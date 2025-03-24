@@ -42,7 +42,7 @@ list(APPEND srcs
 endif()
 
 list(APPEND srcs
-    ../../beken_genie/main/avi_play/avi_play.c
+    ../../beken_genie/main/display/avi_play.c
 )
 
 if (CONFIG_SYS_CPU2)

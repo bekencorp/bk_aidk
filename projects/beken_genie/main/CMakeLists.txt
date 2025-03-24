@@ -42,7 +42,8 @@ list(APPEND srcs
 endif()
 
 list(APPEND srcs
-    avi_play/avi_play.c
+    display/avi_play.c
+    display/ota_display.c
 )
 
 if (CONFIG_SYS_CPU2)
@@ -58,4 +59,4 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
 endif()
 
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service)
