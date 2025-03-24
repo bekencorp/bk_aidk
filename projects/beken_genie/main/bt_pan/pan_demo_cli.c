@@ -77,8 +77,8 @@ static void cmd_pan_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
     }
     else if (os_strcmp(argv[1], "pair_mode") == 0)
     {
-        void bk_bt_enter_pairing_mode(void);
-        bk_bt_enter_pairing_mode();
+        void bk_bt_enter_pairing_mode(uint8_t is_visible);
+        bk_bt_enter_pairing_mode(1);
     }
     else if (os_strcmp(argv[1], "write") == 0)
     {

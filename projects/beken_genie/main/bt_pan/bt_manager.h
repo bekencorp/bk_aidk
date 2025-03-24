@@ -22,6 +22,13 @@ enum
     BT_STATE_KEY_MISSING,
 };
 
+enum
+{
+    PAIRING_STATE_IDLE = 0,
+    PAIRING_STATE_PREPARATION = 1,
+    PAIRING_STATE_WAIT_CFM = 2,
+};
+
 typedef void (*btm_gap_event_cb)(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param);
 typedef void (*btm_start_profile_connect_cb)(uint8_t *remote_addr);
 typedef void (*btm_start_profile_disconnect_cb)(uint8_t *remote_addr);

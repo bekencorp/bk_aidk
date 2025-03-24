@@ -317,6 +317,7 @@ void bk_genie_prepare_for_smart_config(void)
     bk_wifi_sta_stop();
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
+    bk_bt_enter_pairing_mode(0);
 
     extern bool ate_is_enabled(void);
 

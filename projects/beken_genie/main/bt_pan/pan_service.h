@@ -15,7 +15,7 @@ extern "C" {
 int pan_service_init(void);
 int cli_pan_demo_init(void);
 void bt_start_pan_reconnect(void);
-void bk_bt_enter_pairing_mode(void);
+void bk_bt_enter_pairing_mode(uint8_t is_visible);
 void pan_show_tx_data_cache_count(void);
 int pan_service_deinit(void);
 int cli_pan_demo_deinit(void);

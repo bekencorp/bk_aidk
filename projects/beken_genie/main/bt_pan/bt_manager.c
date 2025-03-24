@@ -50,6 +50,8 @@ void bt_stop_reconnect_timeout_check(void)
         rtos_deinit_oneshot_timer(&btm_env.recon_tmr);
     }
 
+    btm_env.recon_count = 0;
+
     for (uint8_t i = 0; i < MAX_PROFILE_NUM; i++)
     {
         if (btm_cbs[i].stop_connect_cb)
@@ -59,23 +61,23 @@ void bt_stop_reconnect_timeout_check(void)
     }
 }
 
-void bk_bt_enter_pairing_mode(void)
+void bk_bt_enter_pairing_mode(uint8_t is_visible)
 {
     bt_stop_reconnect_timeout_check();
     LOGI("%s, state %d\r\n",__func__,btm_env.connect_state);
     if (BT_STATE_RECONNECTING == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         bk_bt_gap_create_conn_cancel(btm_env.recon_addr);
     }
     else if (BT_STATE_LINK_CONNECTED == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         bk_bt_gap_disconnect(btm_env.peer_addr, 0x13);
     }
     else if (BT_STATE_PROFILE_CONNECTED == btm_env.connect_state)
     {
-        btm_env.manual_enter_pairing = 1;
+        btm_env.manual_enter_pairing = (is_visible ? PAIRING_STATE_WAIT_CFM : PAIRING_STATE_PREPARATION);
         for (int i = 0; i < MAX_PROFILE_NUM; i++)
         {
             if (btm_cbs[i].start_disconnect_cb)
@@ -86,7 +88,7 @@ void bk_bt_enter_pairing_mode(void)
     }
     else
     {
-        bt_manager_set_mode(BT_MNG_MODE_PAIRING);
+        bt_manager_set_mode((is_visible ? BT_MNG_MODE_PAIRING : BT_MNG_MODE_IDLE));
     }
 
     btm_env.connect_state = BT_STATE_IDLE;
@@ -210,8 +212,8 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
 
             if (btm_env.manual_enter_pairing)
             {
-                bt_manager_set_mode(BT_MNG_MODE_PAIRING);
-                btm_env.manual_enter_pairing = 0;
+                bt_manager_set_mode(((PAIRING_STATE_PREPARATION == btm_env.manual_enter_pairing) ? BT_MNG_MODE_IDLE : BT_MNG_MODE_PAIRING));
+                btm_env.manual_enter_pairing = PAIRING_STATE_IDLE;
                 break;
             }
 
@@ -256,8 +258,8 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
 
                 if (btm_env.manual_enter_pairing)
                 {
-                    bt_manager_set_mode(BT_MNG_MODE_PAIRING);
-                    btm_env.manual_enter_pairing = 0;
+                    bt_manager_set_mode(((PAIRING_STATE_PREPARATION == btm_env.manual_enter_pairing) ? BT_MNG_MODE_IDLE : BT_MNG_MODE_PAIRING));
+                    btm_env.manual_enter_pairing = PAIRING_STATE_IDLE;
                     break;
                 }
 

@@ -410,7 +410,7 @@ static void bk_genie_message_handle(void)
                     LOGI("DBEVT_NET_PAN_REQUEST\n");
                     int status = 1;
 #if CONFIG_NET_PAN
-                    bk_bt_enter_pairing_mode();
+                    bk_bt_enter_pairing_mode(1);
                     status = 0;
 #endif
                     uint8_t bt_mac[6];
