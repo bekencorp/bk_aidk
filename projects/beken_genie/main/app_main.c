@@ -349,7 +349,7 @@ static void bk_wait_power_on()
 void user_app_main(void)
 {
 #if (CONFIG_SYS_CPU0)
-    bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
+    bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
 
     agora_rtc_cli_init();
 #endif

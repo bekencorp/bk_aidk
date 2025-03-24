@@ -9,6 +9,7 @@
 #include <components/system.h>
 #include <os/os.h>
 #include <os/mem.h>
+#include <modules/pm.h>
 
 #include "app_event.h"
 #include "media_app.h"
@@ -187,6 +188,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     is_standby = 0;
                     indicates_state &= ~((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT));
                     LOGI("APP_EVT_ASR_WAKEUP\n");
+                    bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
+                    bk_wifi_sta_pm_disable();
                     lvgl_app_init();
                     stop_countdown();
                     if (!is_network_provisioning){
@@ -199,6 +202,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
                     LOGI("APP_EVT_ASR_STANDBY\n");
                     lvgl_app_deinit();
+                    bk_wifi_sta_pm_enable();
+                    bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
                     start_countdown(countdown_ms);
                     break;
 
