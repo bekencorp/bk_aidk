@@ -484,6 +484,10 @@ uint8_t bt_manager_get_connect_state()
 void bt_manager_set_connect_state(uint8_t state)
 {
     btm_env.connect_state = state;
+    if (BT_STATE_PROFILE_CONNECTED == state)
+    {
+        btm_env.recon_count = 0;
+    }
 }
 
 uint8_t *bt_manager_get_reconnect_device()
