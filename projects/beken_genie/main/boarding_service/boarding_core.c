@@ -162,8 +162,6 @@ static void bk_genie_message_handle(void)
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
                 }
-                if (msg.param)
-                    os_free((void *)(msg.param));
                 break;
 
                 case DBEVT_START_AGORA_AGENT_RSP:
@@ -175,7 +173,7 @@ static void bk_genie_message_handle(void)
                     if (!json)
                     {
                         LOGE("Error before: [%s]\n", cJSON_GetErrorPtr());
-                        break;
+                        goto fail;
                     }
                     if (app_id_record)
                     {
@@ -217,6 +215,9 @@ static void bk_genie_message_handle(void)
                             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
                         }
                     }
+fail:
+                    if (msg.param)
+                        os_free((void *)(msg.param));
                     break;
                 }
                 break;
