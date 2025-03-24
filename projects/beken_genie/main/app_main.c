@@ -302,9 +302,9 @@ static bk_err_t app_force_analog_audio_close()
 static void bk_enter_deepsleep()
 {
     #if CONFIG_GSENSOR_ENABLE
-		extern bk_err_t gsensor_demo_lowpower_wakeup();
-		gsensor_demo_lowpower_wakeup();
-		rtos_delay_milliseconds(50);
+		extern int gsensor_enter_sleep_config();
+		gsensor_enter_sleep_config();
+		rtos_delay_milliseconds(10);
     #endif
 
 	BK_LOGI(TAG,"RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
