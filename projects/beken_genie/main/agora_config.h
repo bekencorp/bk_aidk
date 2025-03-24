@@ -53,11 +53,20 @@
 #define CONFIG_PCM_CHANNEL_NUM          1
 #define CONFIG_SEND_PCM_DATA
 #elif defined(CONFIG_USE_G722_CODEC)  // G722
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
 #define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
 #define CONFIG_PCM_FRAME_LEN            640
 #define CONFIG_PCM_SAMPLE_RATE          16000
 #define CONFIG_PCM_CHANNEL_NUM          1
 #define CONFIG_SEND_PCM_DATA
+#endif
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_TYPE_G722
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#endif
 #else                                // DISABLE
 #define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
 #define CONFIG_PCM_FRAME_LEN            160

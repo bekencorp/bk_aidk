@@ -57,7 +57,12 @@ static beken_semaphore_t agora_aud_sem = NULL;
 static RingBufferContext mic_data_rb;
 static uint8_t *mic_data_buffer = NULL;
 #if defined(CONFIG_USE_G722_CODEC)
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
 #define MIC_FRAME_SIZE   (160)
+#endif
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+#define MIC_FRAME_SIZE   (640)
+#endif
 //#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
 //#define MIC_FRAME_SIZE     160
 #else
@@ -79,7 +84,12 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
     }
 
 #ifdef CONFIG_USE_G722_CODEC
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
     info.data_type = AUDIO_DATA_TYPE_G722;
+#endif
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    info.data_type = AUDIO_DATA_TYPE_PCM;
+#endif
 #else
     info.data_type = AUDIO_DATA_TYPE_PCMA;
 #endif
@@ -127,7 +137,7 @@ static bk_err_t agora_aud_send_msg(void)
         ret = rtos_push_to_queue(&agora_aud_msg_que, &msg, BEKEN_NO_WAIT);
         if (kNoErr != ret)
         {
-            LOGE("audio send msg: AUD_TRAS_TX_DATA fail\n");
+            LOGD("audio send msg: AUD_TRAS_TX_DATA fail\n");
             return kOverrunErr;
         }
 
@@ -204,7 +214,7 @@ static void agora_aud_tras_main(void)
                             psram_free(mic_temp_buff);
                         }
 
-                        rtos_delay_milliseconds(2);
+                        rtos_delay_milliseconds(5);
                         agora_aud_send_msg();
                     }
                     break;

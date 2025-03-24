@@ -471,7 +471,13 @@ bk_err_t audio_turn_on(void)
     }
 
 #ifdef CONFIG_USE_G722_CODEC
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+#endif
+
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+#endif
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
