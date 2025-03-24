@@ -263,7 +263,8 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
                     break;
                 }
 
-                if ((BK_BT_STATUS_PAGE_TIMEOUT == param->acl_conn_cmpl_stat.stat || BK_BT_STATUS_CON_ALREADY_EXISTS == param->acl_conn_cmpl_stat.stat || BK_BT_STATUS_UNKNOWN_CONNECTION_ID == param->acl_conn_cmpl_stat.stat)
+                if ((BK_BT_STATUS_PAGE_TIMEOUT == param->acl_conn_cmpl_stat.stat || BK_BT_STATUS_CON_ALREADY_EXISTS == param->acl_conn_cmpl_stat.stat
+                    || BK_BT_STATUS_UNKNOWN_CONNECTION_ID == param->acl_conn_cmpl_stat.stat || BK_BT_STATUS_CON_TIMEOUT == param->acl_conn_cmpl_stat.stat)
                     && (BT_STATE_RECONNECTING == btm_env.connect_state))
                 {
                     bt_manager_start_reconnect(addr, 0);
