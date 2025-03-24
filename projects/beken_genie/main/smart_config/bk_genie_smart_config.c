@@ -39,7 +39,7 @@
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
 #define SEND_HEADER_SIZE           1024
-#define POST_DATA_MAX_SIZE  1024
+#define POST_DATA_MAX_SIZE  1024*2
 #define MAX_URL_LEN         256
 extern char *app_id_record;
 bool smart_config_running = false;
@@ -896,7 +896,7 @@ int bk_genie_wakeup_agent(void)
 		chan_len = os_snprintf(chan_name, 65, "Openai_%s", uid_str);
 	else
 		chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
-	agent_conf.channel = os_zalloc(chan_len);
+	agent_conf.channel = os_zalloc(chan_len+1);
 	os_strcpy(agent_conf.channel, chan_name);
 
 	agent_conf.custom_llm = custom_llm_default_conf(agent_type);
