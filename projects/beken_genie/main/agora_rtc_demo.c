@@ -832,20 +832,20 @@ extern char *app_id_record;
 extern char *channel_name_record;
 void agora_auto_run(void)
 {
+#if !CONFIG_BK_AGORA_DEV_STARTUP_AGENT
     if (!channel_name_record || !app_id_record)
     {
         return;
     }
-
+#endif
+    bk_genie_wakeup_agent();
     sprintf(agora_appid, "%s", app_id_record);
     sprintf(channel_name, "%s", channel_name_record);
     if (!agora_runing)
     {
-        bk_genie_wakeup_agent();
         audio_en = true;
         video_en = false;
         agora_start();
-    } else
-        bk_genie_wakeup_agent();
+    }
 }
 

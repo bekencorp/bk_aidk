@@ -13,6 +13,10 @@ menu "Beken_Genie Project Configuration"
 		bool "Enable auto reconnect Network"
 		default y
 
+	config BK_AGORA_DEV_STARTUP_AGENT
+                bool "Enable start agent on device"
+                default n
+
 	choice G722_CODEC_RUN_CPU
 		prompt "Select G722 Codec run cpu"
 		default G722_CODEC_RUN_ON_CPU1

@@ -144,7 +144,15 @@ static void bk_genie_message_handle(void)
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_STATION_START, BK_OK, ip4_config.ip, strlen(ip4_config.ip));
                 }
                 break;
-
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+                case DBEVT_START_AGORA_AGENT_ON_DEV:
+                {
+                    LOGI("DBEVT_START_AGORA_AGENT_ON_DEV\n");
+                    unsigned char payload = 'a';
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_AGENT_FROM_DEV, 0, (char *)(&payload), 1);
+                }
+                break;
+#endif
                 case DBEVT_START_AGORA_AGENT_START:
                 {
                     LOGI("DBEVT_START_AGORA_AGENT_START\n");

@@ -50,6 +50,397 @@ extern bool agora_runing;
 uint8_t network_disc_evt_posted = 0;
 bool first_time_for_network_provisioning = true;
 
+#if  CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <os/mem.h>
+#include <os/str.h>
+#include "agora_config.h"
+#include "components/webclient.h"
+#include "cJSON.h"
+
+#define AGORA_OPENAI_URL "https://api.agora.io/api/conversational-ai-agent/v2/projects/"
+#define AGORA_DOUBAO_URL "https://api.agora.io/cn/api/conversational-ai-agent/v2/projects/"
+
+#define AGORA_DEBUG_APPID "xxx"	//need to be replaced by customers
+#define AGORA_DEBUG_AUTH "xxx"		//need to be replaced by customers
+
+#define BK_AGORA_JOIN "join"
+#define BK_AGORA_STOP "leave"
+
+/*custom_llm default config*/
+/*open ai*/
+#define CUSTOM_LLM_DEFAULT_OPENAI_URL "https://api.openai.com/v1/chat/completions"
+#define CUSTOM_LLM_DEFAULT_OPENAI_TOKEN "xxx"		//need to be replaced by customers
+#define CUSTOM_LLM_DEFAULT_OPENAI_PROMPT "You are a helpful voice agent that will get asr result from user speech. I will ask you question. The response should be helpful and informative. The response should be in a friendly and professional tone. The response should be in English. The response should be generated in a timely manner."
+#define CUSTOM_LLM_DEFAULT_OPENAI_MODEL "gpt-4o-mini"
+#define CUSTOM_LLM_DEFAULT_OPENAI_GREETING "Merry Christmas, how can I assist you today?"
+/*doubao*/
+#define CUSTOM_LLM_DEFAULT_DOUBAO_URL "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN "xxx"		//need to be replaced by customers
+#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "你是一个有礼貌的AI助理，请使用诸如“好的”，“没问题”，“抱歉”等这样的词开始你的回答。"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_MODEL "ep-20250213161421-v9m5m"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "新春快乐，有什么可以帮您？"
+
+agent_type_t agent_record = DOUBAO_AGENT;
+char *agent_id_record = NULL;
+
+char tts_str_openai[] = "\"tts\": {"
+	"\"vendor\": \"microsoft\","
+	"\"params\": {"
+		"\"key\": \"xxx\","				//need to be replaced by customers
+		"\"region\": \"koreacentral\","
+		"\"voice_name\": \"en-US-AndrewMultilingualNeural\","
+		"\"vol\": 10"
+       "}"
+ "},";
+
+char tts_str_doubao[] = "\"tts\": {"
+	"\"vendor\": \"bytedance\","
+	"\"params\": {"
+		"\"token\": \"xxx\","		//need to be replaced by customers
+		"\"app_id\": \"xxx\","		//need to be replaced by customers
+		"\"cluster\": \"volcano_tts\","
+		"\"speed_ratio\": 1.0,"
+		"\"volume_ratio\": 0.6,"
+		"\"pitch_ratio\": 1.0,"
+		"\"emotion\": \"happy\""
+       "}"
+ "},";
+
+char vad_str_openai[] = "\"asr\": {"
+            "\"language\": \"en-US\","
+            "\"vendor\": \"tencent\"}";
+char vad_str_doubao[] = "\"asr\": {"
+            "\"language\": \"zh-CN\","
+            "\"vendor\": \"tencent\"}";
+
+int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data, agent_type_t agent)
+{
+	int len = 0;
+	/*Begin*/
+	/*name*/
+	if (agent_conf->channel)
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "{\"name\":\"%s\",\r\n", agent_conf->channel);
+
+	/*properties*/
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"properties\":{\r\n");
+
+	if (agent_conf->channel)
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"channel\": \"%s\",\r\n", agent_conf->channel);
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"token\": \"\",\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"agent_rtc_uid\": \"1234\",\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"remote_rtc_uids\": [\"123\"],\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"advanced_features\": {\"enable_bhvs\": true,\"enable_aivad\": false},\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"parameters\": {\"enable_dump\": true,\"output_audio_codec\": \"G722\"},\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"enable_string_uid\": false,\r\n");
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"idle_timeout\": %d,\r\n", 300);	//5min
+	if (agent_conf->custom_llm) {
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"llm\": {\r\n");
+		if (agent_conf->custom_llm->url)
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"url\": \"%s\",\r\n", agent_conf->custom_llm->url);
+		if (agent_conf->custom_llm->api_key)
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"api_key\": \"%s\",\r\n", agent_conf->custom_llm->api_key);
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"max_history\": %d,\r\n", agent_conf->custom_llm->max_history);
+		if (agent == OPEN_AI_AGENT) {
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"You are a helpful chatbot.\"}],\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"Merry Christmas, how can I assist you today?\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"I am sorry!\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"gpt-4o-mini\"}},\r\n");
+		} else {
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"浣犳槸涓�涓湁绀艰矊鐨凙I鍔╃悊銆俓"}],\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"鏂版槬蹇箰锛屾湁浠�涔堝彲浠ュ府鎮?\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"寰堟姳姝夈�俓",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"ep-20250213161421-v9m5m\"}},\r\n");
+		}
+	}
+	if (agent == OPEN_AI_AGENT) {
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "%s\r\t%s\r\n", tts_str_openai, vad_str_openai);
+	} else {
+		len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "%s\r\t%s\r\n", tts_str_doubao, vad_str_doubao);
+	}
+
+	/*End*/
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "}}\r\n");
+
+	BK_LOGI(TAG,"%s, %s\r\n", __func__, post_data);
+
+	return len;
+}
+
+int bk_agora_ai_agent_start_rsp_parse(char *text)
+{
+	cJSON *json = NULL;
+	__maybe_unused char *StatusCode = NULL, *state, *detail, *reason;
+	__maybe_unused int create_ts;
+
+	json = cJSON_Parse(text);
+	if (!json)
+	{
+	    BK_LOGE(TAG,"Error before: [%s]\n", cJSON_GetErrorPtr());
+	    return BK_FAIL;
+	}
+
+	cJSON *code = cJSON_GetObjectItem(json, "status");
+	if (code && ((code->type & 0xFF) == cJSON_String)) {
+	    StatusCode = os_strdup(code->valuestring);
+	}
+	else
+	{
+	    BK_LOGE(TAG,"[Error] not find statusCode\n");
+	    goto fail;
+	}
+	BK_LOGE(TAG,"%s, StatusCode:%s\r\n", __func__, StatusCode);
+
+	cJSON *agentid = cJSON_GetObjectItem(json, "agent_id");
+	if (agentid && ((agentid->type & 0xFF) == cJSON_String)) {
+		agent_id_record = os_strdup(agentid->valuestring);
+		BK_LOGI(TAG,"agent_id:%s\r\n", agent_id_record);
+	}
+	cJSON_Delete(json);
+
+    return BK_OK;
+
+fail:
+    if (json)
+    {
+        cJSON_Delete(json);
+    }
+
+    return BK_FAIL;
+}
+
+/******************Agent start******************
+Method:	POST
+URL:		https://api.agora.io/cn/api/conversational-ai-agent/v1/projects/{appid}/join
+More details, please check docs locate in /components/docs/agora_ai_agent/
+****************************************************************/
+int bk_agora_ai_agent_start(agora_ai_agent_start_conf_t *agent_conf, agent_type_t agent)
+{
+	struct webclient_session* session = NULL;
+	char *buffer = NULL, *post_data = NULL;
+	char generate_url[256] = {0};
+	int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0;
+
+	/* create webclient session and set header response size */
+	session = webclient_session_create(SEND_HEADER_SIZE);
+	if (session == NULL) {
+	    goto __exit;
+	}
+	agent_record = agent;
+	/*Generate https url*/
+	if (agent == OPEN_AI_AGENT)
+		url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s%s/%s", AGORA_OPENAI_URL, AGORA_DEBUG_APPID, BK_AGORA_JOIN);
+	else if (agent == DOUBAO_AGENT)
+		url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s%s/%s", AGORA_DOUBAO_URL, AGORA_DEBUG_APPID, BK_AGORA_JOIN);
+	if ((url_len < 0) || (url_len >= MAX_URL_LEN)) {
+		BK_LOGE(TAG,"URL len overflow\r\n");
+		return BK_FAIL;
+	}
+
+	/*Generate data*/
+	post_data = os_malloc(POST_DATA_MAX_SIZE);
+	if (post_data == NULL) {
+		BK_LOGE(TAG,"no memory for post_data buffer\n");
+		goto __exit;
+	}
+	os_memset(post_data, 0, POST_DATA_MAX_SIZE);
+	data_len = bk_parse_agent_conf(agent_conf, post_data, agent);
+
+	/*Generate https header*/
+	webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
+	webclient_header_fields_add(session, "Content-Type: application/json\r\n");
+	webclient_header_fields_add(session, "Authorization: Basic %s\r\n", AGORA_DEBUG_AUTH);
+
+	buffer = (char *) web_malloc(RCV_BUF_SIZE);
+	if (buffer == NULL) {
+		BK_LOGE(TAG,"no memory for receive response buffer.\n");
+		goto __exit;
+	}
+	os_memset(buffer, 0, RCV_BUF_SIZE);
+
+	/* send POST request by default header */
+	if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200) {
+		BK_LOGE(TAG,"webclient POST request failed, response(%d) error.\n", resp_status);
+	}
+
+	BK_LOGI(TAG,"webclient post response data: \n");
+	do {
+		bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
+		if (bytes_read > 0)
+		{
+			break;
+		}
+	} while (1);
+	BK_LOGI(TAG,"bytes_read: %d\n", bytes_read);
+
+	BK_LOGI(TAG,"buffer %s.\n", buffer);
+
+	resp_status = bk_agora_ai_agent_start_rsp_parse(buffer);
+
+__exit:
+	if (session) {
+		webclient_close(session);
+	}
+
+	if (buffer) {
+		web_free(buffer);
+	}
+
+	if (post_data) {
+		os_free(post_data);
+	}
+
+    return BK_OK;
+}
+
+int bk_agora_ai_agent_stop_rsp_parse(char *text)
+{
+	cJSON *json = NULL;
+	__maybe_unused char *StatusCode = NULL, *state, *detail, *reason;
+	__maybe_unused int create_ts;
+
+	json = cJSON_Parse(text);
+	if (!json)
+	{
+	    BK_LOGE(TAG,"Error before: [%s]\n", cJSON_GetErrorPtr());
+	    return BK_FAIL;
+	}
+
+
+	cJSON *code = cJSON_GetObjectItem(json, "statusCode");
+	if (code && ((code->type & 0xFF) == cJSON_String)) {
+	    StatusCode = os_strdup(code->valuestring);
+	}
+	else
+	{
+	    BK_LOGE(TAG,"[Error] not find statusCode\n");
+	    goto fail;
+	}
+	BK_LOGE(TAG,"%s, StatusCode:%s\r\n", __func__, StatusCode);
+
+    cJSON_Delete(json);
+
+    return BK_OK;
+
+fail:
+    if (json)
+    {
+        cJSON_Delete(json);
+    }
+
+    return BK_FAIL;
+}
+
+/******************agent stop******************
+Method:	POST
+URL:		https://api.agora.io/cn/api/conversational-ai-agent/v1/projects/{appid}/agents/{agentId}/leave
+More details, please check docs locate in /components/docs/agora_ai_agent/
+****************************************************************/
+int bk_agora_ai_agent_stop(char* agentID)
+{
+	struct webclient_session* session = NULL;
+	char *buffer = NULL ,*post_data = NULL;
+	char generate_url[256] = {0};
+	int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0;
+
+	/* create webclient session and set header response size */
+	session = webclient_session_create(SEND_HEADER_SIZE);
+	if (session == NULL) {
+	    goto __exit;
+	}
+
+	/*Generate https url*/
+	if (agent_record == OPEN_AI_AGENT)
+		url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s%s/agents/%s/%s", AGORA_OPENAI_URL, AGORA_DEBUG_APPID, agentID, BK_AGORA_STOP);
+	else if (agent_record == DOUBAO_AGENT)
+		url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s%s/agents/%s/%s", AGORA_DOUBAO_URL, AGORA_DEBUG_APPID, agentID, BK_AGORA_STOP);
+	if ((url_len < 0) || (url_len >= MAX_URL_LEN)) {
+		BK_LOGE(TAG,"URL len overflow\r\n");
+		return BK_FAIL;
+	}
+
+	/*Generate https header*/
+	webclient_header_fields_add(session, "Authorization: Basic %s\r\n", AGORA_DEBUG_AUTH);
+
+	buffer = (char *) web_malloc(RCV_BUF_SIZE);
+	if (buffer == NULL) {
+		BK_LOGE(TAG,"no memory for receive response buffer.\n");
+		goto __exit;
+	}
+	os_memset(buffer, 0, RCV_BUF_SIZE);
+
+	/* send POST request by default header */
+	if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200) {
+		BK_LOGE(TAG,"webclient POST request failed, response(%d) error.\n", resp_status);
+	}
+
+	BK_LOGI(TAG,"webclient post response data: \n");
+	do {
+		bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
+		if (bytes_read > 0)
+		{
+			break;
+		}
+	} while (1);
+	BK_LOGI(TAG,"bytes_read: %d\n", bytes_read);
+
+	BK_LOGI(TAG,"buffer %s.\n", buffer);
+
+	resp_status = bk_agora_ai_agent_stop_rsp_parse(buffer);
+
+__exit:
+	if (session) {
+		webclient_close(session);
+	}
+
+	if (buffer) {
+		web_free(buffer);
+	}
+
+	if (post_data) {
+		os_free(post_data);
+	}
+
+	if (agent_id_record)
+		os_free(agent_id_record);
+
+    return BK_OK;
+}
+
+agora_custom_llm_t * custom_llm_default_conf(agent_type_t agent)
+{
+	agora_custom_llm_t *custom_llm;
+
+	custom_llm = os_zalloc(sizeof(agora_custom_llm_t));
+	BK_LOGI(TAG,"custom_llm %p\r\n", custom_llm);
+
+	if (agent == OPEN_AI_AGENT) {
+		custom_llm->url = os_strdup(CUSTOM_LLM_DEFAULT_OPENAI_URL);
+		custom_llm->api_key= os_strdup(CUSTOM_LLM_DEFAULT_OPENAI_TOKEN);
+		custom_llm->max_history = 10;
+	} else {
+		custom_llm->url = os_strdup(CUSTOM_LLM_DEFAULT_DOUBAO_URL);
+		custom_llm->api_key= os_strdup(CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN);
+		custom_llm->max_history = 10;
+	}
+
+	return custom_llm;
+}
+
+void custom_llm_default_conf_free(agora_custom_llm_t *custom_llm)
+{
+	if (custom_llm) {
+		if (custom_llm->url)
+			os_free(custom_llm->url);
+		if (custom_llm->api_key)
+			os_free(custom_llm->api_key);
+			os_free(custom_llm);
+	}
+}
+#endif
+
 void network_reconnect_check_status(void)
 {
     BK_LOGI(TAG,"reconnect timeout!\n");
@@ -276,8 +667,14 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
                     goto skip_agent_request;
                 }
 #endif
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+                msg.event = DBEVT_START_AGORA_AGENT_ON_DEV;
+                bk_genie_send_msg(&msg);
+#else
                 msg.event = DBEVT_START_AGORA_AGENT_START;
                 bk_genie_send_msg(&msg);
+#endif
+
             }
             else
             {
@@ -285,6 +682,9 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
 #if CONFIG_STA_AUTO_RECONNECT
 skip_agent_request:
 #endif
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+                agora_auto_run();
+#else
                 if (bk_genie_get_agent_info(&info) == 0)
                 {
                     if (info.valid != 1)
@@ -304,6 +704,7 @@ skip_agent_request:
                     BK_LOGI(TAG, "%s, %s\r\n", app_id_record, channel_name_record);
                     agora_auto_run();
                 }
+#endif
             }
 
             break;
@@ -480,6 +881,46 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info)
 extern char *bk_get_bk_server_url(void);
 int bk_genie_wakeup_agent(void)
 {
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+	agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
+	__maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
+	unsigned char uid[32] = {0};
+	char uid_str[65] = {0}, chan_name[65] = {0};
+	int chan_len;
+
+	bk_uid_get_data(uid);
+	for (int i = 0; i < 24; i++)
+	{
+		sprintf(uid_str + i * 2, "%02x", uid[i]);
+	}
+	if (agent_type == OPEN_AI_AGENT)
+		chan_len = os_snprintf(chan_name, 65, "Openai_%s", uid_str);
+	else
+		chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
+	agent_conf.channel = os_zalloc(chan_len);
+	os_strcpy(agent_conf.channel, chan_name);
+
+	agent_conf.custom_llm = custom_llm_default_conf(agent_type);
+	bk_agora_ai_agent_start(&agent_conf, agent_type);
+
+	if (agent_conf.channel)
+		os_free(agent_conf.channel);
+	custom_llm_default_conf_free(agent_conf.custom_llm);
+extern char *app_id_record;
+extern char *channel_name_record;
+	if (app_id_record)
+	{
+	    os_free(app_id_record);
+	}
+	app_id_record = os_strdup(AGORA_DEBUG_APPID);
+	if (channel_name_record)
+	{
+	    os_free(channel_name_record);
+	}
+	channel_name_record = os_strdup(chan_name);
+
+	return 0;
+#else
     struct webclient_session *session = NULL;
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
@@ -560,5 +1001,6 @@ __exit:
     }
 
     return ret;
+#endif
 }
 

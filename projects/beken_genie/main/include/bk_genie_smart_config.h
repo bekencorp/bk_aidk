@@ -19,10 +19,44 @@ typedef struct bk_fast_connect_d
 	uint8_t ap_channel;
 }BK_FAST_CONNECT_D;
 
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+typedef struct {
+	char *url;
+	char *api_key;
+	char *system_messages;
+	char *params;
+	int max_history;
+	char *input_modalities;
+	char *output_modalities;
+	char *greeting_message;
+	char *failure_message;
+}agora_custom_llm_t;
+
+typedef struct {
+	char *channel;
+	agora_custom_llm_t *custom_llm;
+}agora_ai_agent_start_conf_t;
+
+#define BK_AGORA_AGENT_DEFAULT_CONFIG() {\
+	.channel = NULL,\
+	.custom_llm = NULL,\
+}
+
+typedef enum {
+	OPEN_AI_AGENT,
+	DOUBAO_AGENT,
+	MAX_AGENT
+}agent_type_t;
+
+agora_custom_llm_t * custom_llm_default_conf(agent_type_t agent);
+void custom_llm_default_conf_free(agora_custom_llm_t *custom_llm);
+int bk_agora_ai_agent_start(agora_ai_agent_start_conf_t *agent_conf, agent_type_t agent);
+int bk_agora_ai_agent_stop(char* agentID);
+#endif
+
 void network_reconnect_start_timeout_check(uint32_t timeout);
 void network_reconnect_stop_timeout_check(void);
 int demo_network_auto_reconnect(bool val);
-int bk_agora_ai_agent_start(char *channel);
 int bk_genie_smart_config_init(void);
 void bk_genie_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void event_handler_deinit(void);
