@@ -839,7 +839,6 @@ void agora_auto_run(void)
         audio_en = true;
         video_en = false;
         agora_start();
-    } else
-        bk_genie_wakeup_agent();
+    }
 }
 

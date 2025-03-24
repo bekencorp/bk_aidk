@@ -121,14 +121,6 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
         }
         break;
 
-        case BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME:
-        {
-extern uint8_t first_time_for_network_provisioning;
-            LOGI("BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME\r\n");
-            if (*data)
-                first_time_for_network_provisioning = false;
-        }
-
         case BOARDING_OP_SERVICE_UDP_START:
         {
             bk_genie_msg_t msg;
