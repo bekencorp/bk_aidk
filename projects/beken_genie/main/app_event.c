@@ -109,7 +109,7 @@ enum {
 	INDICATES_AGENT_CONNECT,	//LED_SLOW_BLINK_GREEN if at standby states, else clear it
 }indicates_t;
 
-static void led_blink(uint32_t warning_state, uint32_t indicates_state)
+static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
 {
 	static uint32_t last_warning_state = 0;
 	static uint32_t last_indicates_state = (1<<INDICATES_POWER_ON);
@@ -118,7 +118,7 @@ static void led_blink(uint32_t warning_state, uint32_t indicates_state)
     if(indicates_state & (1<<INDICATES_PROVISIONING))
     { 
         led_app_set(LED_REG_GREEN_ALTERNATE, LED_LAST_FOREVER);
-    }else if (HIGH_PRIORITY_WARNING_MASK & warning_state)
+    }else if (HIGH_PRIORITY_WARNING_MASK & (*warning_state))
     {
         led_app_set(LED_OFF_GREEN, 0);
     }else{
@@ -138,24 +138,25 @@ static void led_blink(uint32_t warning_state, uint32_t indicates_state)
     if (indicates_state & (1<<INDICATES_PROVISIONING))
     {
         ;
-    }else if(HIGH_PRIORITY_WARNING_MASK & warning_state){
+    }else if(HIGH_PRIORITY_WARNING_MASK & (*warning_state)){
         led_app_set(LED_FAST_BLINK_RED, LED_LAST_FOREVER);
-    }else if(WARNING_LOW_BATTERY & warning_state){
+    }else if(LOW_PRIORITY_WARNING_MASK & (*warning_state)){
         led_app_set(LED_SLOW_BLINK_RED, LOW_VOLTAGE_BLINK_TIME);
+        *warning_state = *warning_state & ~(1<<WARNING_LOW_BATTERY);
     }else{
         led_app_set(LED_OFF_RED, 0);
     }
 
     if(indicates_state != last_indicates_state)
 	{
-		LOGI("indicate=%d,last_indicat=%d,warning_state=%d\r\n", indicates_state, last_indicates_state, warning_state);
+		LOGI("indicate=%d,last_indicat=%d,warning_state=%d\r\n", indicates_state, last_indicates_state, *warning_state);
 		last_indicates_state = indicates_state;
 	}
 
-	if(warning_state != last_warning_state)
+	if(*warning_state != last_warning_state)
 	{
-		LOGI("warning=%d,last_warning=%d,indicate=%d\r\n", warning_state, last_warning_state, indicates_state);
-		last_warning_state = warning_state;
+		LOGI("warning=%d,last_warning=%d,indicate=%d\r\n", *warning_state, last_warning_state, indicates_state);
+		last_warning_state = *warning_state;
 	}
 
 }
@@ -348,7 +349,7 @@ static void app_event_thread(beken_thread_arg_t data)
             }
 
 			//led blink by states
-            led_blink(warning_state, indicates_state);
+            led_blink(&warning_state, indicates_state);
         }
     }
 
