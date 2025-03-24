@@ -97,7 +97,8 @@ enum {
 }warning_t;
 #define HIGH_PRIORITY_WARNING_MASK ((1<<WARNING_PROVIOSION_FAIL) | (1<<WARNING_WIFI_FAIL) | (1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE))
 #define LOW_PRIORITY_WARNING_MASK ((1<<WARNING_LOW_BATTERY))
-
+#define AI_RTC_CONNECT_LOST_FAIL   (1<<WARNING_RTC_CONNECT_LOST)
+#define AI_AGENT_OFFLINE_FAIL      (1<<WARNING_AGENT_OFFLINE)
 //green led, or red/green alternate led
 enum {
 	INDICATES_WIFI_RECONNECT,	//LED_FAST_BLINK_GREEN
@@ -113,40 +114,46 @@ static void led_blink(uint32_t warning_state, uint32_t indicates_state)
 	static uint32_t last_indicates_state = (1<<INDICATES_POWER_ON);
 
     //indicates
-	if(indicates_state != last_indicates_state)
-	{
-		LOGI("indicate=%d,last_indicat=%d,warning_state=%d\r\n", indicates_state, last_indicates_state, warning_state);
-		if(indicates_state & (1<<INDICATES_WIFI_RECONNECT))
+    if(indicates_state & (1<<INDICATES_PROVISIONING))
+    { 
+        led_app_set(LED_REG_GREEN_ALTERNATE, LED_LAST_FOREVER);
+    }else if (HIGH_PRIORITY_WARNING_MASK & warning_state)
+    {
+        led_app_set(LED_OFF_GREEN, 0);
+    }else{
+        if(indicates_state & (1<<INDICATES_WIFI_RECONNECT))
 		{
 			led_app_set(LED_FAST_BLINK_GREEN, LED_LAST_FOREVER);
-		}
-		else if(indicates_state & (1<<INDICATES_PROVISIONING))
-		{
-			led_app_set(LED_REG_GREEN_ALTERNATE, LED_LAST_FOREVER);
-		}
-		else if(indicates_state & ((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT)))
+		}else if(indicates_state & ((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT)))
 		{
 			led_app_set(LED_SLOW_BLINK_GREEN, LED_LAST_FOREVER);
-		}
-		else
-			led_app_set(LED_OFF_GREEN, 0);
+		}else
+        {
+        led_app_set(LED_OFF_GREEN, 0);
+        }
+    }
+    
+    //warning
+    if (indicates_state & (1<<INDICATES_PROVISIONING))
+    {
+        ;
+    }else if(HIGH_PRIORITY_WARNING_MASK & warning_state){
+        led_app_set(LED_FAST_BLINK_RED, LED_LAST_FOREVER);
+    }else if(WARNING_LOW_BATTERY & warning_state){
+        led_app_set(LED_SLOW_BLINK_RED, LOW_VOLTAGE_BLINK_TIME);
+    }else{
+        led_app_set(LED_OFF_RED, 0);
+    }
 
+    if(indicates_state != last_indicates_state)
+	{
+		LOGI("indicate=%d,last_indicat=%d,warning_state=%d\r\n", indicates_state, last_indicates_state, warning_state);
 		last_indicates_state = indicates_state;
 	}
 
-	//warning
 	if(warning_state != last_warning_state)
 	{
 		LOGI("warning=%d,last_warning=%d,indicate=%d\r\n", warning_state, last_warning_state, indicates_state);
-		if(warning_state)
-		{
-			if(HIGH_PRIORITY_WARNING_MASK & warning_state)
-				led_app_set(LED_FAST_BLINK_RED, LED_LAST_FOREVER);
-			else if(WARNING_LOW_BATTERY & warning_state)
-				led_app_set(LED_SLOW_BLINK_RED, LOW_VOLTAGE_BLINK_TIME);
-		}
-		else
-			led_app_set(LED_OFF_RED, 0);
 		last_warning_state = warning_state;
 	}
 
@@ -217,7 +224,6 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
                     warning_state &= ~(1<<WARNING_PROVIOSION_FAIL);
-
                     LOGI("APP_EVT_NETWORK_PROVISIONING_SUCCESS\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_SUCCESS);
@@ -232,10 +238,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_NETWORK_PROVISIONING_FAIL\n");
                     // network_err = 1;
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
-                    if(is_standby)
-                    {
-                        indicates_state &= ~(1<<INDICATES_STANDBY);
-                    }
                     warning_state |= 1<<WARNING_PROVIOSION_FAIL;
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
@@ -256,6 +258,13 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_RECONNECT_NETWORK_SUCCESS:
 					warning_state &= ~(1<<WARNING_WIFI_FAIL);
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
+                    if ((warning_state & AI_RTC_CONNECT_LOST_FAIL) == 0 && (warning_state & AI_AGENT_OFFLINE_FAIL) == 0)
+                    {
+                        if (is_standby)
+                        {
+                            indicates_state |= (1<<INDICATES_STANDBY);
+                        }
+                    }
                     LOGI("APP_EVT_RECONNECT_NETWORK_SUCCESS\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_SUCCESS);
@@ -267,10 +276,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     // network_err = 1;
                     warning_state |= 1<<WARNING_WIFI_FAIL;
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
-                    if(is_standby)
-                    {
-                        indicates_state &= ~(1<<INDICATES_STANDBY);
-                    }
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_FAIL);
 #endif
@@ -279,10 +284,6 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_RTC_CONNECTION_LOST:
                     // network_err = 1;
                     LOGI("APP_EVT_RTC_CONNECTION_LOST\n");
-                    if(is_standby)
-                    {
-                        indicates_state &= ~(1<<INDICATES_STANDBY);
-                    }
                     warning_state |= 1<<WARNING_RTC_CONNECT_LOST;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RTC_CONNECTION_LOST);
@@ -292,13 +293,13 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error
                     //indicates_state |= 1<<INDICATES_AGENT_CONNECT;
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
-                    warning_state &= ~((1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE));
+                    warning_state &= ~((1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE) | (1<<WARNING_WIFI_FAIL));
                     LOGI("APP_EVT_AGENT_JOINED \n");
                     is_network_provisioning = 0;
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
                     if(is_standby)  //mie
                     {
-                        indicates_state |= (1<<INDICATES_AGENT_CONNECT);
+                        indicates_state |= (1<<INDICATES_STANDBY);
                     }
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_JOINED);
@@ -309,10 +310,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
                     indicates_state &= ~(1<<INDICATES_AGENT_CONNECT);
                     warning_state |= 1<<WARNING_AGENT_OFFLINE;
-                    if(is_standby)
-                    {
-                        indicates_state &= ~(1<<INDICATES_STANDBY);
-                    }
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_OFFLINE);
 #endif
@@ -323,10 +320,6 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_LOW_VOLTAGE:
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
-                    if(is_standby)
-                    {
-                        indicates_state &= ~(1<<INDICATES_STANDBY);
-                    }
                     warning_state |= 1<<WARNING_LOW_BATTERY;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
@@ -334,6 +327,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_CHARGING:
+                    LOGI("APP_EVT_CHARGING\n");
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
