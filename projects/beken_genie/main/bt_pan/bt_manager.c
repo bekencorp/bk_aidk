@@ -169,10 +169,10 @@ void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
 {
     uint32_t time_ms = 200;
 
-    if (btm_env.recon_count == CONFIG_MAX_RECONN_COUNT)
+    if (btm_env.recon_count >= CONFIG_MAX_RECONN_COUNT)
     {
         bt_pan_reconnect_failure_handler();
-        //return; //after CONFIG_MAX_RECONN_COUNT failures,remind users,but continue to reconect
+        return;
     }
 
     btm_env.connect_state = BT_STATE_IDLE;

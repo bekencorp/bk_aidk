@@ -21,6 +21,7 @@ typedef struct bk_fast_connect_d
 
 void network_reconnect_start_timeout_check(uint32_t timeout);
 void network_reconnect_stop_timeout_check(void);
+int demo_network_auto_reconnect(bool val);
 int bk_agora_ai_agent_start(char *channel);
 int bk_genie_smart_config_init(void);
 void bk_genie_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -30,5 +31,5 @@ int bk_genie_save_agent_info(char *appid, char *channel_name);
 int bk_genie_get_agent_info(bk_genie_agent_info_t *info);
 void bk_genie_prepare_for_smart_config(void);
 int bk_genie_wakeup_agent(void);
-int bk_genie_is_net_pan_mode(void);
+int bk_genie_is_net_pan_configured(void);
 #endif

@@ -48,17 +48,15 @@ char *channel_name_record = NULL;
 static beken2_timer_t network_reconnect_tmr = {0};
 extern bool agora_runing;
 uint8_t network_disc_evt_posted = 0;
+bool first_time_for_network_provisioning = true;
 
 void network_reconnect_check_status(void)
 {
-  if (smart_config_running == false)
-  {
     BK_LOGI(TAG,"reconnect timeout!\n");
     if (network_disc_evt_posted == 0) {
         app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
         network_disc_evt_posted = 1;
     }
-  }
 }
 
 void network_reconnect_start_timeout_check(uint32_t timeout)
@@ -111,7 +109,24 @@ int is_wifi_sta_auto_restart_info_saved(void)
 		return 1;
 }
 
-int bk_genie_is_net_pan_mode(void)
+int bk_genie_is_wifi_sta_configured(void)
+{
+	BK_FAST_CONNECT_D info = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
+#endif
+
+	if ((info.flag & 0x71l) == 0x71l)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int bk_genie_is_net_pan_configured(void)
 {
 	BK_FAST_CONNECT_D info = {0};
 #if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
@@ -119,7 +134,7 @@ int bk_genie_is_net_pan_mode(void)
 #endif
 
 #if CONFIG_NET_PAN
-	if (info.flag == 0x74l)
+	if ((info.flag & 0x74l) == 0x74l)
 	{
 		return 1;
 	}
@@ -140,32 +155,41 @@ void demo_erase_network_auto_reconnect_info(void)
 
 extern int demo_sta_app_init(char *oob_ssid, char *connect_key);
 extern int demo_softap_app_init(char *ap_ssid, char *ap_key, char *ap_channel);
-int demo_network_auto_reconnect(void)
+int demo_network_auto_reconnect(bool val)	//val true means from disconnect to reconnecting
 {
 	BK_FAST_CONNECT_D info = {0};
 #if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
 	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 #endif
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
-	if (info.flag == 0x71l) {
-		network_reconnect_stop_timeout_check();
-		network_reconnect_start_timeout_check(30);    //30s
-		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
-		network_disc_evt_posted = 0;
+	if ((info.flag & 0x71l) == 0x71l) {
+		if (val == false) {
+			network_reconnect_stop_timeout_check();
+			network_reconnect_start_timeout_check(50);    //50s
+			app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+			network_disc_evt_posted = 0;
+		}
 		demo_sta_app_init((char *)info.sta_ssid, (char *)info.sta_pwd);
+		return 0x71l;
 	}
-	if (info.flag == 0x72l)
+	if ((info.flag & 0x72l)  == 0x72l) {
 		demo_softap_app_init((char *)info.ap_ssid, (char *)info.ap_pwd, NULL);
+		return 0x72l;
+	}
 #if CONFIG_NET_PAN
-	if (info.flag == 0x74l) {
-		network_reconnect_stop_timeout_check();
-		network_reconnect_start_timeout_check(30);    //30s
-		app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+	if ((info.flag & 0x74l) == 0x74l) {
+		if (val == false) {
+			network_reconnect_stop_timeout_check();
+			network_reconnect_start_timeout_check(50);    //50s
+			app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+			network_disc_evt_posted = 0;
+		}
 		pan_service_init();
 		bt_start_pan_reconnect();
+		return 0x74l;
 	}
 #endif
-	return info.flag;
+	return 0;
 }
 
 int demo_save_network_auto_restart_info(netif_if_t type, void *val)
@@ -176,6 +200,10 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 #if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
 	bk_get_env_enhance("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
 #endif
+	if ((info_tmp.flag & 0xf0l) != 0x70l) {
+		BK_LOGI(TAG, "erase network provisioning info, %x\r\n", info_tmp.flag);
+		info_tmp.flag = 0x70l;
+	}
 	if (type == NETIF_IF_STA) {
 		info_tmp.flag |= 0x71l;
 		sta_config = (wifi_sta_config_t *)val;
@@ -202,12 +230,32 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 	return 0;
 }
 
+#if CONFIG_NET_PAN
+static int bk_genie_reselect_pan(void)
+{
+	BK_FAST_CONNECT_D info = {0};
+#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
+	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
+#endif
+	if (info.flag & 0x74l) {
+		BK_LOGI(TAG, "%s\r\n", __func__);
+		bk_wifi_sta_stop();
+		bk_bluetooth_init();
+		pan_service_init();
+		bt_start_pan_reconnect();
+		return 1;
+	}
+	return 0;
+}
+#endif
+
 extern void agora_auto_run(void);
 static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
 {
     netif_event_got_ip4_t *got_ip;
     bk_genie_msg_t msg;
     __maybe_unused wifi_sta_config_t sta_config = {0};
+    __maybe_unused bk_genie_agent_info_t info = {0};
 
     switch (event_id)
     {
@@ -222,15 +270,21 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
                 demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
                 msg.event = DBEVT_WIFI_STATION_CONNECTED;
                 bk_genie_send_msg(&msg);
-
+#if CONFIG_STA_AUTO_RECONNECT
+                if (!first_time_for_network_provisioning) {
+                    BK_LOGI(TAG, "first_time_for_network_provisioning\r\n");
+                    goto skip_agent_request;
+                }
+#endif
                 msg.event = DBEVT_START_AGORA_AGENT_START;
                 bk_genie_send_msg(&msg);
             }
             else
             {
-                bk_genie_agent_info_t info = {0};
-
                 app_event_send_msg(APP_EVT_RECONNECT_NETWORK_SUCCESS, 0);
+#if CONFIG_STA_AUTO_RECONNECT
+skip_agent_request:
+#endif
                 if (bk_genie_get_agent_info(&info) == 0)
                 {
                     if (info.valid != 1)
@@ -277,18 +331,33 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
         case EVENT_WIFI_STA_DISCONNECTED:
             sta_disconnected = (wifi_event_sta_disconnected_t *)event_data;
             BK_LOGI(TAG, "STA disconnected, reason(%d)\n", sta_disconnected->disconnect_reason);
-            /*drop local generated disconnec event by user*/
-            if (sta_disconnected->disconnect_reason == WIFI_REASON_DEAUTH_LEAVING &&
-				sta_disconnected->local_generated == 1)
+            /*drop local generated disconnect event by user*/
+            if ((sta_disconnected->disconnect_reason == WIFI_REASON_DEAUTH_LEAVING &&
+				sta_disconnected->local_generated == 1) ||
+				(sta_disconnected->disconnect_reason == WIFI_REASON_RESERVED))
 			break;
-            msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
-            bk_genie_send_msg(&msg);
-            if (network_disc_evt_posted == 0) {
-                if (smart_config_running == false)
-                    app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
-                else
-                    app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_FAIL, 0);
-                network_disc_evt_posted = 1;
+#if CONFIG_STA_AUTO_RECONNECT
+
+            if (bk_genie_is_net_pan_configured()) {
+#if CONFIG_NET_PAN
+			bk_genie_reselect_pan();
+#endif
+            } else
+#endif
+            {
+			if (network_disc_evt_posted == 0) {
+				if (smart_config_running == false)
+					app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+				else {
+					msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
+					bk_genie_send_msg(&msg);
+					app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_FAIL, 0);
+				}
+				network_disc_evt_posted = 1;
+			}
+#if CONFIG_STA_AUTO_RECONNECT
+			demo_network_auto_reconnect(true);
+#endif
             }
             break;
 
@@ -311,12 +380,17 @@ extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
+#if CONFIG_STA_AUTO_RECONNECT
+    first_time_for_network_provisioning = true;
+#endif
     app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
     network_reconnect_stop_timeout_check();
     agora_stop();
     bk_wifi_sta_stop();
+#if !CONFIG_STA_AUTO_RECONNECT
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
+#endif
     bk_bt_enter_pairing_mode(0);
 
     extern bool ate_is_enabled(void);
@@ -339,7 +413,7 @@ int bk_genie_smart_config_init(void)
     int flag;
 
     event_handler_init();
-    flag = demo_network_auto_reconnect();
+    flag = demo_network_auto_reconnect(false);
 
     if (flag != 0x71l && flag != 0x73l
 #if CONFIG_NET_PAN

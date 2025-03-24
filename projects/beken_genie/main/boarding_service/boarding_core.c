@@ -212,7 +212,7 @@ static void bk_genie_message_handle(void)
                         LOGI("begin agora_auto_run\n");
                         agora_auto_run();
 
-                        if (!bk_genie_is_net_pan_mode())
+                        if (!bk_genie_is_net_pan_configured())
                         {
                             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
                         }

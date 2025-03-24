@@ -104,10 +104,20 @@ static int pan_push_tx_data_to_list(void *data, uint16_t len)
 
 void bt_pan_reconnect_failure_handler(void)
 {
-    //bt_clear_reconnect_info();
-    //bt_manager_set_mode(BT_MNG_MODE_IDLE);
+    bt_clear_reconnect_info();
+    bt_manager_set_mode(BT_MNG_MODE_IDLE);
 
-    app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+#if CONFIG_STA_AUTO_RECONNECT
+extern uint8_t network_disc_evt_posted;
+    if (network_disc_evt_posted == 0) {
+        app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+        network_disc_evt_posted = 1;
+    }
+extern int demo_network_auto_reconnect(bool val);
+    demo_network_auto_reconnect(true);
+#else
+	app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+#endif
 }
 
 void bt_start_pan_reconnect(void)
