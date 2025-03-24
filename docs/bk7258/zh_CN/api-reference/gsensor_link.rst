@@ -6,13 +6,13 @@ Gsensor API使用及算法demo
 Gsensor API使用及算法demo
 ------------------------------------------------------
 
-通过下述连接可查看 Gsensor相关的API使用。
+通过下述链接可查看 Gsensor相关的API使用。
 
 
-Gsensor API 描述的相关连接
+Gsensor API 描述的相关链接
 -------------------------------------
 
-   API描述 连接如下图。
+   API描述链接如下图。
 
 .. figure:: ../../_static/gsensor_link.png
     :align: center

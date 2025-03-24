@@ -12,3 +12,4 @@ api-reference
 
    Nand磁盘使用注意事项 <nand_disk_note>
    Gsensor API使用及算法demo <gsensor_link>
+   Nfc API介绍 <nfc_link>

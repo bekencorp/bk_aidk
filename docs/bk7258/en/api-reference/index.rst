@@ -11,3 +11,4 @@ api-reference
 
    Notes on using Nand disk <nand_disk_note>
    GSensor API Usage and Algorithm Demo <gsensor_link>
+   Nfc API Usage <nfc_link>
