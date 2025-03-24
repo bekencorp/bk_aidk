@@ -100,6 +100,8 @@ static bk_err_t bk_avi_play_open(bk_avi_play_t *avi_play, const char *filename, 
 
     os_memset(avi_play, 0x00, sizeof(bk_avi_play_t));
 
+    lv_vendor_fs_init();
+
     avi_play->avi = AVI_open_input_file(filename, 1);
     if (avi_play->avi == NULL)
     {
@@ -110,7 +112,7 @@ static bk_err_t bk_avi_play_open(bk_avi_play_t *avi_play, const char *filename, 
     {
         avi_play->video_num = AVI_video_frames(avi_play->avi);
         avi_play->frame_size = avi_play->avi->width * avi_play->avi->height * 2;
-        LOGI("avi video_num: %d, width: %d, height: %d, frame_size: %d\r\n", avi_play->video_num, avi_play->avi->width, avi_play->avi->height, avi_play->frame_size);
+        LOGI("avi video_num: %d, width: %d, height: %d, frame_size: %d, fps: %d\r\n", avi_play->video_num, avi_play->avi->width, avi_play->avi->height, avi_play->frame_size, (uint32_t)avi_play->avi->fps);
     }
 
     avi_play->pos = 0;
@@ -170,6 +172,8 @@ static void bk_avi_play_close(bk_avi_play_t *avi_play)
 #endif
 
     bk_avi_play_config_free(avi_play);
+
+    lv_vendor_fs_deinit();
 
     LOGI("%s complete\r\n", __func__);
 }
