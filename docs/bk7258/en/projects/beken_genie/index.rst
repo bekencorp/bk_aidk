@@ -20,8 +20,14 @@ The solution supports edge-side AEC (Acoustic Echo Cancellation) and NS (Noise S
 
 The design includes reference solutions and demos for common peripherals, such as gyroscopes, NFC, buttons, vibration motors, Nand Flash, LED light effects, power management, DVP cameras, and dual QPSI screens.
 
+1.1 Hardware Reference
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-1.1 Features
+   AI Toy Dev Board SCH <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E5%8E%9F%E7%90%86%E5%9B%BE.pdf>
+   AI Toy Dev Board Bottom <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E5%BA%95%E5%B1%82%E4%BD%8D%E5%8F%B7%E5%9B%BE.pdf>
+   AI Toy Dev Board Top <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E9%A1%B6%E5%B1%82%E4%BD%8D%E5%8F%B7%E5%9B%BE.pdf>
+
+1.2 Features
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     * Hardware:
@@ -50,9 +56,9 @@ The design includes reference solutions and demos for common peripherals, such a
 
     Figure 1. Hardware Development Board
 
-1.2 Button
+1.3 Button
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-1.2.1 Button Function Description
+1.3.1 Button Function Description
 ++++++++++++++++++++++++++++++++++++
 There are three button on the lower right side of the board, corresponding to the silk screen markings S1, S2, and S3; and there is one button K1 on the right side.
 
@@ -74,7 +80,7 @@ There are three button on the lower right side of the board, corresponding to th
         - 1.Reset in shutdown state: Single - click the ``K1`` button to power on the system from the shutdown state.
         - 2.Reset in the powered-on state: Single - click the ``K1`` button, and the system will perform a hard restart while it is powered-on.
 
-1.2.2 Guide to Button Development
+1.3.2 Guide to Button Development
 ++++++++++++++++++++++++++++++++++++
     1.GPIO Button
         - Button Function Configuration, Refer to key_config, the developer can fill in the corresponding IO pins and the callback function events for the buttons in the table.
@@ -87,7 +93,7 @@ There are three button on the lower right side of the board, corresponding to th
           For details on GPIO usage, refer to the documents on the official website.
 
 
-1.3 LED
+1.4 LED
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 The development board features red and green status indicator lights. Important information is indicated by red light blinking, general notifications by green light blinking,
@@ -112,18 +118,18 @@ and special reminders are signaled by alternating red and green light blinking. 
         - 4.Battery level below 20%: Red light flashes slowly for 30 seconds and then automatically stops; if charging, the red light does not blink.
         - 5.No important reminder events: When there are no important reminder events, the red light is in an off state.
 
-1.4 SD-NAND  Memory
+1.5 SD-NAND  Memory
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.The SD-NAND stores local resource files, such as image resource files on the display screen.
         - 2.The SD-NAND storage device defaults to using the FAT32 file system, allowing applications to indirectly invoke the open-source FATFS program interface through the VFS interface for file access.
         - 3.On the PC side, files on the SD-NAND can be accessed for reading and writing via the USB interface.(The USB port located on the left side of the development board.)
         - 4.Please note that files deleted on the PC side may still be in use by the local application, which can lead to system anomalies. It is essential to ensure that deleted files are no longer being accessed.
 
-1.5 Gsensor
+1.6 Gsensor
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.Local G-sensor supports wake-up function. Users can wake up the system by shaking the development board in an S-shape trajectory.
 
-1.6 Charging management
+1.7 Charging management
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.The charging management chip model used in the current development board is ETA3422.
         - 2.When the battery is fully charged, the red light near the charging port will turn off, and the green light will turn on. The red light being on indicates that charging is in progress.
@@ -155,7 +161,7 @@ and special reminders are signaled by alternating red and green light blinking. 
         - 14.The USB port next to the button serves as both a charging port and a serial port for interaction.
 
 
-1.7 ASR
+1.8 ASR
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     1. ``Hi Armino`` is used to wake up, enabling interaction between local and cloud AI, while the LCD lights up and displays eye animations.
@@ -166,15 +172,15 @@ and special reminders are signaled by alternating red and green light blinking. 
 
         Response phrase: ``Byebye``
 
-1.8 MOTOR
+1.9 MOTOR
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.The LDO is connected to the positive terminal of the motor, while the PWM is connected to the negative terminal. The motor's vibration strength can be controlled by adjusting the duty cycle of the PWM signal.
         - 2.When the power is turned on by long-pressing the button, the motor will vibrate.
         - 3.Detailed usage examples for PWM can be found in cli_pwm.c.
 
-1.9 Prompt Tone
+1.10 Prompt Tone
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-1.9.1 Prompt Tone Function Description
+1.10.1 Prompt Tone Function Description
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     The development board plays corresponding prompt tones during operation based on different events. Below are the prompt tones associated with each event:
@@ -204,7 +210,7 @@ and special reminders are signaled by alternating red and green light blinking. 
         - 1.Low Battery: ``Battery level is low. Please charge.``
 
 
-1.9.2 Prompt Tone Development Guide
+1.10.2 Prompt Tone Development Guide
 +++++++++++++++++++++++++++++++++++++++++
 
     Source Code Path: ``<source code>/bk_avdk/components/multimedia/prompt_tone_play/``
