@@ -107,16 +107,18 @@ void bt_pan_reconnect_failure_handler(void)
     bt_clear_reconnect_info();
     bt_manager_set_mode(BT_MNG_MODE_IDLE);
 
-#if CONFIG_STA_AUTO_RECONNECT
 extern uint8_t network_disc_evt_posted;
     if (network_disc_evt_posted == 0) {
         app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
         network_disc_evt_posted = 1;
     }
+
+#if CONFIG_STA_AUTO_RECONNECT
 extern int demo_network_auto_reconnect(bool val);
-    demo_network_auto_reconnect(true);
-#else
-	app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
+extern bool smart_config_running;
+    if (!smart_config_running) {
+        demo_network_auto_reconnect(true);
+    }
 #endif
 }
 

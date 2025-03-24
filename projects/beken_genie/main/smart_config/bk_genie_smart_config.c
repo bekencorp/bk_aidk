@@ -738,8 +738,7 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
 				(sta_disconnected->disconnect_reason == WIFI_REASON_RESERVED))
 			break;
 #if CONFIG_STA_AUTO_RECONNECT
-
-            if (bk_genie_is_net_pan_configured()) {
+            if (bk_genie_is_net_pan_configured() && !smart_config_running) {
 #if CONFIG_NET_PAN
 			bk_genie_reselect_pan();
 #endif
@@ -757,7 +756,7 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
 				network_disc_evt_posted = 1;
 			}
 #if CONFIG_STA_AUTO_RECONNECT
-			demo_network_auto_reconnect(true);
+			bk_wifi_sta_start();
 #endif
             }
             break;
