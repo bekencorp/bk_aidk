@@ -104,8 +104,8 @@ static int pan_push_tx_data_to_list(void *data, uint16_t len)
 
 void bt_pan_reconnect_failure_handler(void)
 {
-    bt_clear_reconnect_info();
-    bt_manager_set_mode(BT_MNG_MODE_IDLE);
+    //bt_clear_reconnect_info();
+    //bt_manager_set_mode(BT_MNG_MODE_IDLE);
 
     app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
 }
