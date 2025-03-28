@@ -33,6 +33,13 @@
 #define RAW_READ_SIZE    (960)
 
 
+#if(CONFIG_WANSON_ASR_GROUP_VERSION)
+Fst fst_1;
+Fst fst_2;
+static unsigned char asr_curr_group_id; // 当前使用的分组ID
+#endif
+
+
 typedef enum {
     WANSON_ASR_IDLE = 0,
     WANSON_ASR_START,
@@ -84,6 +91,31 @@ static bk_err_t wanson_asr_send_msg(beken_queue_t *msg_que, wanson_asr_op_t op, 
     return kNoResourcesErr;
 }
 
+#if(CONFIG_WANSON_ASR_GROUP_VERSION)
+/**
+ * @brief 分组设置 
+ * 
+ * 当前设备没有播放音乐时，切换成分组1
+ * 当设备需要播放音乐前，将其切换成分组2
+ * 
+ * @param group_id 分组ID
+ */
+void wanson_fst_group_change(unsigned char group_id)
+{
+    /* 如果需要设置的分组和当前分组ID不一致，则进行切换 */
+    if(asr_curr_group_id != group_id) {
+        asr_curr_group_id = group_id;
+
+        if (group_id == 1) {
+            Wanson_ASR_Set_Fst(&fst_1);
+        } else if (group_id == 2) {
+            Wanson_ASR_Set_Fst(&fst_2);
+        }
+        LOGI("fst_group_change_to: %d\n", group_id);
+    }
+}
+#endif
+
 static void wanson_asr_task_main(beken_thread_arg_t param_data)
 {
     bk_err_t ret = BK_OK;
@@ -108,7 +140,27 @@ static void wanson_asr_task_main(beken_thread_arg_t param_data)
         LOGE("%s, %d, Wanson_ASR_Init Fail\n", __func__, __LINE__);
         goto wanson_asr_exit;
     }
+#if (CONFIG_WANSON_ASR_GROUP_VERSION)
+    /* 指令分组初始化 */
+    fst_1.states = fst01_states;
+    fst_1.num_states = fst01_num_states;
+    fst_1.finals = fst01_finals;
+    fst_1.num_finals = fst01_num_finals;
+    fst_1.words = fst01_words;
+
+    fst_2.states = fst02_states;
+    fst_2.num_states = fst02_num_states;
+    fst_2.finals = fst02_finals;
+    fst_2.num_finals = fst02_num_finals;
+    fst_2.words = fst02_words;
+
+    /* 设置默认分组 */
+    wanson_fst_group_change(2); // 默认设置分组一
+    bk_printf("Wanson_ASR_Init GRP OK!\n");
+#else
     Wanson_ASR_Reset();
+#endif
+    
     LOGI("Wanson_ASR_Init OK!\n");
 
     wanson_asr_op_t task_state = WANSON_ASR_IDLE;
