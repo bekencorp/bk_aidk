@@ -11,7 +11,7 @@
 #if (CONFIG_LCD_SPI_DISPLAY)
 #include <lcd_spi_display_service.h>
 #endif
-
+#include "media_evt.h"
 
 static uint16_t *seg_frame = NULL;
 
@@ -180,5 +180,35 @@ bk_err_t bk_ota_image_disp_close(void)
 
     return BK_OK;
 }
+
+#if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+void media_ui_ota_event_handle(media_mailbox_msg_t *msg)
+{
+	int ret = BK_FAIL;
+
+	switch(msg->event)
+	{
+		case EVENT_OTA_DISP_OPEN_IND:
+			if(bk_ota_image_disp_open("/ota_image.jpg") == BK_OK)
+			{
+				ret = BK_OK;
+			}
+			else
+			{
+				ret = BK_FAIL;
+			}
+			break;
+
+		case EVENT_OTA_DISP_CLOSE_IND:
+			bk_ota_image_disp_close();
+			ret = BK_OK;
+			break;
+
+		default :
+			break;
+	}
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+}
+#endif
 #endif
 

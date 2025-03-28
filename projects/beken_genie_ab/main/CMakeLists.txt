@@ -1,54 +1,54 @@
-set(incs . include asr bt_pan)
+set(incs . main ../../beken_genie/main/ ../../beken_genie/main/include ../../beken_genie/main/asr ../../beken_genie/main/bt_pan)
 set(srcs)
 
 list(APPEND srcs
-	app_main.c
+	../../beken_genie/main/app_main.c
 )
 
 if (CONFIG_SYS_CPU0)
 list(APPEND srcs
-    app_event.c
-    agora_rtc_demo.c
-    agora_sdk/agora_rtc.c
-    audio/audio_transfer.c
-    boarding_service/boarding_core.c
-    boarding_service/boarding_service.c
-    boarding_service/wifi_boarding_utils.c
-    agora_debug.c
-    led_blink.c
-    countdown.c
-    motor.c
+    ../../beken_genie/main/app_event.c
+    ../../beken_genie/main/agora_rtc_demo.c
+    ../../beken_genie/main/agora_sdk/agora_rtc.c
+    ../../beken_genie/main/audio/audio_transfer.c
+    ../../beken_genie/main/boarding_service/boarding_core.c
+    ../../beken_genie/main/boarding_service/boarding_service.c
+    ../../beken_genie/main/boarding_service/wifi_boarding_utils.c
+    ../../beken_genie/main/agora_debug.c
+    ../../beken_genie/main/led_blink.c
+    ../../beken_genie/main/countdown.c
+    ../../beken_genie/main/motor.c
 )
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
-   smart_config/bk_genie_smart_config.c
+   ../../beken_genie/main/smart_config/bk_genie_smart_config.c
 )
 endif()
 if (CONFIG_NET_PAN)
 list(APPEND srcs
-    bt_pan/bt_manager.c
-    bt_pan/pan_service.c
-    bt_pan/pan_demo_cli.c
-    bt_pan/storage/bluetooth_storage.c
-    bt_pan/bt_comm_list.c
+    ../../beken_genie/main/bt_pan/bt_manager.c
+    ../../beken_genie/main/bt_pan/pan_service.c
+    ../../beken_genie/main/bt_pan/pan_demo_cli.c
+    ../../beken_genie/main/bt_pan/storage/bluetooth_storage.c
+    ../../beken_genie/main/bt_pan/bt_comm_list.c
 )
 endif()
 endif()
 
 if (CONFIG_SYS_CPU1)
 list(APPEND srcs
-    agora_debug.c
+    ../../beken_genie/main/agora_debug.c
 )
 endif()
 
 list(APPEND srcs
-    display/avi_play.c
-    display/ota_display.c
+    ../../beken_genie/main/display/avi_play.c
+    ../../beken_genie/main/display/ota_display.c
 )
 
 if (CONFIG_SYS_CPU2)
 list(APPEND srcs
-    asr/armino_asr.c
+    ../../beken_genie/main/asr/armino_asr.c
 )
 endif()
 

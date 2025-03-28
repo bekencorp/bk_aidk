@@ -88,7 +88,7 @@ void app_event_asr_evt_callback(media_app_evt_type_t event, uint32_t param)
     }
 }
 
-uint8_t ota_event_asr_callback(evt_ota event_param)
+static uint8_t ota_event_callback(evt_ota event_param)
 {
 
     switch(event_param)
@@ -263,7 +263,7 @@ static void app_event_thread(beken_thread_arg_t data)
     uint32_t is_network_provisioning = 0;
 
     s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
-    ota_event_callback_register(ota_event_asr_callback);
+    ota_event_callback_register(ota_event_callback);
     update_countdown();
 
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
