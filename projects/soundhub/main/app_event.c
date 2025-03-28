@@ -24,6 +24,7 @@
 #endif
 #include "bat_monitor.h"
 #include "a2dp_sink_demo.h"
+#include "bk_ota_private.h" 
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -87,6 +88,27 @@ void app_event_asr_evt_callback(media_app_evt_type_t event, uint32_t param)
             break;
     }
 }
+
+uint8_t ota_event_asr_callback(evt_ota event_param)
+{
+
+    switch(event_param)
+    {
+        case EVT_OTA_START:
+            app_event_send_msg(APP_EVT_OTA_START, 0);
+            break;
+        case EVT_OTA_FAIL:
+            app_event_send_msg(APP_EVT_OTA_FAIL, 0);
+            break;  
+        case EVT_OTA_SUCCESS:
+            app_event_send_msg(APP_EVT_OTA_SUCCESS, 0);
+            break;
+        default :
+            break;
+    }
+    return 0;
+}
+
 
 //red:if high priority conflicts with low-priority, should stay at high priority states
 enum {
@@ -242,6 +264,7 @@ static void app_event_thread(beken_thread_arg_t data)
     uint32_t is_network_provisioning = 0;
 
     s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
+    ota_event_callback_register(ota_event_asr_callback);
     update_countdown();
 
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
