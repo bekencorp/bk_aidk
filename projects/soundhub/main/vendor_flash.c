@@ -51,31 +51,31 @@ const bk_logic_partition_t bk_flash_partitions[BK_PARTITION_MAX_USER] = {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "application",
         .partition_start_addr = 0x11000,
-        .partition_length = 0x2ca000,
+        .partition_length = 0x2db000,
         .partition_options = PAR_OPT_EXECUTE_EN | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_APPLICATION1_USER] = 
     {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "application1",
-        .partition_start_addr = 0x2db000,
-        .partition_length = 0xaa000,
+        .partition_start_addr = 0x2ec000,
+        .partition_length = 0x176000,
         .partition_options = PAR_OPT_EXECUTE_EN | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_APPLICATION2_USER] = 
     {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "application2",
-        .partition_start_addr = 0x385000,
+        .partition_start_addr = 0x462000,
         .partition_length = 0x77000,
         .partition_options = PAR_OPT_EXECUTE_EN | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
-    [BK_PARTITION_S_APP_USER] = 
+    [BK_PARTITION_OTA_USER] = 
     {
         .partition_owner = BK_FLASH_EMBEDDED,
-        .partition_description = "s_app",
-        .partition_start_addr = 0x3fc000,
-        .partition_length = 0x3eb000,
+        .partition_description = "ota",
+        .partition_start_addr = 0x4d9000,
+        .partition_length = 0x30e000,
         .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_USR_CONFIG_USER] = 
@@ -83,23 +83,15 @@ const bk_logic_partition_t bk_flash_partitions[BK_PARTITION_MAX_USER] = {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "usr_config",
         .partition_start_addr = 0x7e7000,
-        .partition_length = 0x13000,
+        .partition_length = 0x15000,
         .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_EASYFLASH_USER] = 
     {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "easyflash",
-        .partition_start_addr = 0x7fb000,
+        .partition_start_addr = 0x7fc000,
         .partition_length = 0x2000,
-        .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-    },
-    [BK_PARTITION_OTA_FINA_EXECUTIVE_USER] = 
-    {
-        .partition_owner = BK_FLASH_EMBEDDED,
-        .partition_description = "ota_fina_executive",
-        .partition_start_addr = 0x7fd000,
-        .partition_length = 0x1000,
         .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_RF_FIRMWARE_USER] = 

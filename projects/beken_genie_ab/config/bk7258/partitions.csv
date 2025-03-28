@@ -1,7 +1,7 @@
 Name,Offset,Size,Execute,Read,Write
 primary_bootloader,0x0,68K,TRUE,TRUE,
-primary_cpu0_app,0x11000,2788K,TRUE,TRUE,
-primary_cpu1_app,0x2ca000,748K,TRUE,TRUE,
+primary_cpu0_app,0x11000,2856K,TRUE,TRUE,
+primary_cpu1_app,0x2db000,680K,TRUE,TRUE,
 primary_cpu2_app,0x385000,476K,TRUE,TRUE,
 s_app,0x3fc000,4012K,,TRUE,
 usr_config,0x7e7000,76K,,TRUE,
