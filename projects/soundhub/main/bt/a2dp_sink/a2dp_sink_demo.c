@@ -158,12 +158,16 @@ static coex_to_bt_func_p_t s_coex_to_bt_func = {0};
 
 static beken_semaphore_t s_bt_api_event_cb_sema = NULL;
 static beken_semaphore_t s_bt_avrcp_event_cb_sema = NULL;
+static uint32_t s_a2dp_play_vote_flag = (1 << A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
+static beken_mutex_t s_a2dp_play_vote_mutex;
 
 #if CONFIG_AUDIO_PLAY
 static audio_play_t *s_audio_play_obj;
 #endif
 
 static uint32_t s_headset_a2dp_data_path = 1;
+static uint8_t s_avrcp_play_status = BK_AVRCP_PLAYBACK_STOPPED;
+//static uint8_t s_avrcp_play_last_status = s_avrcp_play_status;
 
 static bk_err_t bk_bt_dac_set_gain(uint8_t gain)
 {
@@ -350,19 +354,22 @@ void bt_audio_sink_demo_main(void *arg)
 #endif
                 s_spk_is_started = 1;
 #if USE_AMP_CALL
-                err = media_send_msg_sync(EVENT_BT_AUDIO_INIT_REQ, 0);
-
-                if (err)
-                {
-                    LOGE("%s mail box EVENT_BT_AUDIO_INIT_REQ err %d !!", __func__, err);
-                }
-
+//                err = media_send_msg_sync(EVENT_BT_AUDIO_INIT_REQ, 0);
+//
+//                if (err)
+//                {
+//                    LOGE("%s mail box EVENT_BT_AUDIO_INIT_REQ err %d !!", __func__, err);
+//                }
+#if 0
+                a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_BT);
+#else
                 err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 1);
 
                 if (err)
                 {
-                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ start err %d !!", __func__, err);
+                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, err);
                 }
+#endif
 #endif
                 speaker_task_init();
 #endif
@@ -493,19 +500,25 @@ void bt_audio_sink_demo_main(void *arg)
                 }
 
 #if USE_AMP_CALL
+#if 0
+                a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_BT);
+
+#else
                 err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
 
                 if (err)
                 {
-                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ stop err %d !!", __func__, err);
+                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d stop err %d !!\n", __func__, err);
                 }
+#endif
 
-                err = media_send_msg_sync(EVENT_BT_AUDIO_DEINIT_REQ, 0);
 
-                if (err)
-                {
-                    LOGE("%s mail box EVENT_BT_AUDIO_DEINIT_REQ err %d !!", __func__, err);
-                }
+//                err = media_send_msg_sync(EVENT_BT_AUDIO_DEINIT_REQ, 0);
+//
+//                if (err)
+//                {
+//                    LOGE("%s mail box EVENT_BT_AUDIO_DEINIT_REQ err %d !!", __func__, err);
+//                }
 #endif
 #endif
 
@@ -553,6 +566,14 @@ int bt_audio_sink_demo_task_init(void)
 
     if ((!bt_audio_sink_demo_thread_handle) && (!bt_audio_sink_demo_msg_que))
     {
+        ret = rtos_init_mutex(&s_a2dp_play_vote_mutex);
+
+        if (ret)
+        {
+            LOGE("%s rtos_init_mutex failed\n", __func__);
+            return BK_FAIL;
+        }
+
         ret = rtos_init_queue(&bt_audio_sink_demo_msg_que,
                               "bt_audio_sink_demo_msg_que",
                               sizeof(bt_audio_sink_demo_msg_t),
@@ -804,6 +825,7 @@ static void bt_av_notify_evt_handler(uint8_t event_id, bk_avrcp_rn_param_t *even
         case BK_AVRCP_RN_PLAY_STATUS_CHANGE:
         {
             LOGI("Playback status changed: 0x%x\r\n", event_parameter->playback);
+            s_avrcp_play_status = event_parameter->playback;
             bk_bt_avrcp_ct_send_register_notification_cmd(avrcp_remote_bda, BK_AVRCP_RN_PLAY_STATUS_CHANGE, 0);
         }
         break;
@@ -850,10 +872,11 @@ static void bk_bt_app_avrcp_ct_cb(bk_avrcp_ct_cb_event_t event, bk_avrcp_ct_cb_p
         case BK_AVRCP_CT_CONNECTION_STATE_EVT:
         {
             uint8_t *bda = avrcp->conn_state.remote_bda;
-        LOGI("AVRCP CT connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
-                      avrcp->conn_state.connected, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
+            LOGI("AVRCP CT connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
+                          avrcp->conn_state.connected, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
 
-        s_bt_env.avrcp_state = avrcp->conn_state.connected;
+            s_bt_env.avrcp_state = avrcp->conn_state.connected;
+            s_avrcp_play_status = BK_AVRCP_PLAYBACK_STOPPED;
             if (avrcp->conn_state.connected)
             {
                 os_memcpy(avrcp_remote_bda, bda, 6);
@@ -1402,6 +1425,17 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
     };
     bt_manager_register_callback(&btm_cb);
 
+#if USE_AMP_CALL
+    ret = media_send_msg_sync(EVENT_BT_AUDIO_INIT_REQ, 0);
+
+    if (ret)
+    {
+        LOGE("%s mail box EVENT_BT_AUDIO_INIT_REQ err %d !!", __func__, ret);
+    }
+
+    a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_BT);
+#endif
+
     bt_audio_sink_demo_task_init();
 
     bk_bt_avrcp_ct_init();
@@ -1551,8 +1585,6 @@ static void speaker_task(void *arg)
             int i = 0;
             uint8_t s_frame = (CODEC_AUDIO_SBC == bt_audio_a2dp_sink_codec.type ? (frame_nodes>A2DP_SPEAKER_WRITE_SBC_FRAME_NUM ? A2DP_SPEAKER_WRITE_SBC_FRAME_NUM:frame_nodes) : frame_nodes);
             s_frame = frame_nodes;
-
-
 
             for (; i < s_frame; i++)
             {
@@ -1776,4 +1808,130 @@ int32_t wait_a2dp_speaker_task_end(void)
 void a2dp_sink_demo_set_path(uint32_t path)
 {
     s_headset_a2dp_data_path = path;
+}
+
+
+void a2dp_sink_demo_vote_enable(uint8_t enable, uint32_t flag)
+{
+    uint32_t tmp = 0;
+    int32_t err = 0;
+
+    if(!s_a2dp_play_vote_mutex)
+    {
+        LOGE("%s mutex not init !!!\n", __func__);
+        return;
+    }
+
+    LOGW("%s", enable ? "enable" : "disable");
+
+    err = rtos_lock_mutex(&s_a2dp_play_vote_mutex);
+
+    if (err)
+    {
+        LOGE("%s rtos_lock_mutex err %d !!\n", __func__, err);
+    }
+
+    if (enable)
+    {
+        s_a2dp_play_vote_flag |= (1 << flag);
+    }
+    else
+    {
+        s_a2dp_play_vote_flag &= ~(1 << flag);
+    }
+
+    err = rtos_unlock_mutex(&s_a2dp_play_vote_mutex);
+
+    if (err)
+    {
+        LOGE("%s rtos_unlock_mutex err %d !!\n", __func__, err);
+    }
+
+    if (enable)
+    {
+        LOGW("%s s_a2dp_play_vote_flag 0x%x, all vote play, start\n", __func__, s_a2dp_play_vote_flag);
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 1);
+        bk_bt_app_avrcp_ct_play();
+    }
+    else
+    {
+        LOGW("%s s_a2dp_play_vote_flag 0x%x, not all vote play, so stop, avrcp status %d\n", __func__, s_a2dp_play_vote_flag, s_avrcp_play_status);
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
+        bk_bt_app_avrcp_ct_pause();
+    }
+
+    if (err)
+    {
+        LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, s_a2dp_play_vote_flag == tmp, err);
+    }
+}
+
+void a2dp_sink_demo_vote_enable_org(uint8_t enable, uint32_t flag)
+{
+    uint32_t tmp = 0;
+    int32_t err = 0;
+    uint8_t final = 0;
+
+    if(!s_a2dp_play_vote_mutex)
+    {
+        LOGE("%s mutex not init !!!\n", __func__);
+        return;
+    }
+
+    LOGW("%s", enable ? "enable" : "disable");
+
+    err = rtos_lock_mutex(&s_a2dp_play_vote_mutex);
+
+    if (err)
+    {
+        LOGE("%s rtos_lock_mutex err %d !!\n", __func__, err);
+    }
+
+    if (enable)
+    {
+        s_a2dp_play_vote_flag |= (1 << flag);
+    }
+    else
+    {
+        s_a2dp_play_vote_flag &= ~(1 << flag);
+    }
+
+    err = rtos_unlock_mutex(&s_a2dp_play_vote_mutex);
+
+    if (err)
+    {
+        LOGE("%s rtos_unlock_mutex err %d !!\n", __func__, err);
+    }
+
+    for (int i = A2DP_PLAY_VOTE_FLAG_START; i < A2DP_PLAY_VOTE_FLAG_END; ++i)
+    {
+        tmp |= (1 << i);
+    }
+
+    if (s_a2dp_play_vote_flag == tmp || (tmp & ~A2DP_PLAY_VOTE_FLAG_FROM_BT))
+    {
+        LOGW("%s s_a2dp_play_vote_flag 0x%x, all vote play, start\n", __func__, s_a2dp_play_vote_flag);
+        final = 1;
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 1);
+        bk_bt_app_avrcp_ct_play();
+    }
+    else
+    {
+        LOGW("%s s_a2dp_play_vote_flag 0x%x, not all vote play, so stop, avrcp status %d\n", __func__, s_a2dp_play_vote_flag, s_avrcp_play_status);
+        final = 0;
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
+
+//        s_avrcp_play_last_status = s_avrcp_play_status;
+//
+//        if(s_avrcp_play_status == BK_AVRCP_PLAYBACK_PLAYING)
+        {
+            bk_bt_app_avrcp_ct_pause();
+        }
+    }
+
+//    rtos_get_current_thread
+    if (err)
+    {
+        LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, s_a2dp_play_vote_flag == tmp, err);
+    }
 }

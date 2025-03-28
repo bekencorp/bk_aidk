@@ -23,6 +23,7 @@
 #include "aud_intf_types.h"
 #endif
 #include "bat_monitor.h"
+#include "a2dp_sink_demo.h"
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -148,7 +149,7 @@ static void update_countdown()
     for(int i = 0; i < COUNTDOWN_TICKET_MAX; i++) {
         if (i == COUNTDOWN_TICKET_OTA)
             continue;
-        
+
         if(s_active_tickets & (1 << i))
         {
             selected_ticket = i;
@@ -262,10 +263,12 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_ASR_WAKEUP\n");
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
-                    lvgl_app_init();
+                    //lvgl_app_init();
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
+
+                    a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
@@ -273,9 +276,10 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_STANDBY\n");
-                    lvgl_app_deinit();
+                    //lvgl_app_deinit();
                     bk_wifi_sta_pm_enable();
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
+                    a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
                     break;
 
 //-------------------network event start ------------------------------------------------------------------
@@ -431,7 +435,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_OTA_SUCCESS\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
                     break;
-                
+
                 case APP_EVT_OTA_FAIL:
                     LOGI("APP_EVT_OTA_FAIL\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
