@@ -111,6 +111,21 @@ static int agora_rtc_cli_init(void)
 #endif
 
 #if (CONFIG_SYS_CPU0)
+#define CONFIG_NETWORK_TASK_PRIORITY 4
+static beken_thread_t config_network_thread_handle = NULL;
+
+void prepare_config_network_main()
+{
+	if(bk_bluetooth_init())
+	{
+		BK_LOGE(TAG, "bluetooth init err\n");
+	}
+	bk_genie_prepare_for_smart_config();
+
+	config_network_thread_handle = NULL;
+	rtos_delete_thread(NULL);
+}
+
 // 按键 1 的回调函数
 void volume_init(void)
 {
@@ -232,12 +247,18 @@ static void handle_system_event(key_event_t event)
             break;
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!\n");
-            if(bk_bluetooth_init())
-            {
-                BK_LOGE(TAG, "bluetooth init err\n");
-            }
 
-            bk_genie_prepare_for_smart_config();
+            int ret = rtos_create_thread(&config_network_thread_handle,
+                                        CONFIG_NETWORK_TASK_PRIORITY,
+                                        "wifi_config_network",
+                                        (beken_thread_function_t)prepare_config_network_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+            if (ret != kNoErr)
+            {
+                BK_LOGE(TAG, "wifi config network task fail \r\n");
+                config_network_thread_handle = NULL;
+            }
             break;
         case FACTORY_RESET:
             BK_LOGW(TAG, "trigger factory config reset\r\n");
