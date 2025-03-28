@@ -265,7 +265,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
     s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
     ota_event_callback_register(ota_event_asr_callback);
-    update_countdown();
+    //update_countdown();
 
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
@@ -477,7 +477,7 @@ static void app_event_thread(beken_thread_arg_t data)
                 default:
                     break;
             }
-            update_countdown();
+            //update_countdown();
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }
