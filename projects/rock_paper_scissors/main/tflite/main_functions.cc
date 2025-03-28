@@ -138,7 +138,7 @@ typedef struct {
 float g_scale;
 int32_t g_zero_point;
 
-uint8_t post_process(int8_t *out_data)
+uint8_t post_process(int8_t *out_data, uint8_t *result)
 {
     int max_boxes_num = 128;
     int boxes_num = 0;
@@ -192,14 +192,21 @@ uint8_t post_process(int8_t *out_data)
             if (paper > 90)
             {
                 MicroPrintf("\n\n\n\n\n\n======Paper is detected, x1:%d, y1:%d, x2:%d, y2:%d======\n\n\n\n\n\n", x1, y1, x2, y2);
+                *result = GESTURE_PAPER;
             }
             else if (rock > 90)
             {
                 MicroPrintf("\n\n\n\n\n\n======Rock is detected, x1:%d, y1:%d, x2:%d, y2:%d======\n\n\n\n\n\n", x1, y1, x2, y2);
+                *result = GESTURE_ROCK;
             }
             else if (scissors > 90)
             {
                 MicroPrintf("\n\n\n\n\n\n======Scissors is detected, x1:%d, y1:%d, x2:%d, y2:%d======\n\n\n\n\n\n", x1, y1, x2, y2);
+                *result = GESTURE_SCISSORS;
+            }
+            else
+            {
+                *result = GESTURE_NONE;
             }
 
             break;
@@ -240,7 +247,7 @@ void loop() {
 
     //MicroPrintf("arena_used_bytes = %ld, %ld, %.16f,%ld\r\n", interpreter->arena_used_bytes(),output->bytes,output->params.scale,output->params.zero_point);
 
-    post_process(output->data.int8);
+    post_process(output->data.int8, NULL);
     after = (uint64_t)rtos_get_time();
     MicroPrintf("detection time: %d ms\r\n", (uint32_t)(after - before));
 
@@ -262,7 +269,7 @@ void loop() {
 
     //MicroPrintf("arena_used_bytes = %ld, %ld, %.16f,%ld\r\n", interpreter->arena_used_bytes(),output->bytes,output->params.scale,output->params.zero_point);
 
-    post_process(output->data.int8);
+    post_process(output->data.int8, NULL);
     after = (uint64_t)rtos_get_time();
     MicroPrintf("detection time: %d ms\r\n", (uint32_t)(after - before));
 
@@ -284,13 +291,13 @@ void loop() {
 
     //MicroPrintf("arena_used_bytes = %ld, %ld, %.16f,%ld\r\n", interpreter->arena_used_bytes(),output->bytes,output->params.scale,output->params.zero_point);
 
-    post_process(output->data.int8);
+    post_process(output->data.int8, NULL);
     after = (uint64_t)rtos_get_time();
     MicroPrintf("detection time: %d ms\r\n", (uint32_t)(after - before));
     //debug_pin_output(52,0);
 }
 
-void process_pic(uint8_t *data, uint32_t len)
+void process_pic(uint8_t *data, uint32_t len, uint8_t *result)
 {
     TfLiteTensor* output = NULL;
     uint64_t before;
@@ -310,7 +317,7 @@ void process_pic(uint8_t *data, uint32_t len)
     g_scale = output->params.scale;
     g_zero_point = output->params.zero_point;
 
-    post_process(output->data.int8);
+    post_process(output->data.int8, result);
     after = (uint64_t)rtos_get_time();
     MicroPrintf("======detection time: %d ms======\n", (uint32_t)(after - before));
 }

@@ -31,9 +31,9 @@ int32_t media_main(void)
     else if (CAMERA_TYPE == DVP_CAMERA)
     {
         device.type = DVP_CAMERA;
-        device.mode = JPEG_YUV_MODE;
+        device.mode = YUV_MODE;//JPEG_YUV_MODE;
         device.fmt = PIXEL_FMT_JPEG;
-        device.info.fps = CAMERA_FPS;//FPS25,
+        device.info.fps = 25;//CAMERA_FPS;
         device.info.resolution.width = PIXEL_WIDTH;
         device.info.resolution.height = PIXEL_HEIGHT;
     }

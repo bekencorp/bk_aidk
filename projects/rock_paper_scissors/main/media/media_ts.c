@@ -7,6 +7,10 @@
 #include "driver/jpeg_dec_types.h"
 #include <os/os.h>
 #include <os/mem.h>
+#if CONFIG_LVGL
+#include "lvgl.h"
+#endif
+#include "main_functions.h"
 
 enum
 {
@@ -38,6 +42,12 @@ static beken_thread_t s_media_ts_thread;
 static mux_callback_t s_release_cb;
 static beken_timer_t s_process_timer;
 static uint8_t s_ts_process_status = TS_PROCESS_IDLE;
+static uint8_t *display_frame = NULL;
+
+#if CONFIG_LVGL
+extern lv_img_dsc_t gesture_img_dsc;
+extern lv_obj_t *camera_img;
+#endif
 
 __attribute__((section(".itcm_sec_code"))) static int rgb565_to_rgb888_convert_ext(uint16_t *src_buffer, uint8_t *dst_buffer, int img_width, int img_height, uint8_t sign)
 {
@@ -173,10 +183,11 @@ static bk_err_t pipeline_user_data_reset_cb(mux_callback_t cb)
     return 0;
 }
 
-static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint32_t width, uint32_t height)
+static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint32_t width, uint32_t height, uint8_t *rgb565_data)
 {
     int32_t ret = 0;
     uint8_t *tmp_buff1 = NULL, *tmp_buff2 = NULL;
+    uint32_t final_pixel = 192;
 
     do
     {
@@ -213,24 +224,14 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
         ret = image_center_crop(tmp_buff1, tmp_buff2, width, height, central_edge, central_edge);
         appm_logd("cut to center done");
         psram_free(tmp_buff1);
-
-        uint32_t final_pixel = 192;
-        tmp_buff1 = psram_malloc(final_pixel *final_pixel * 2);
-
-        if (!tmp_buff1)
-        {
-            appm_loge("alloc fail 3");
-            ret = -1;
-            break;
-        }
+        tmp_buff1 = NULL;
 
         appm_logd("scale to %dx%d from %dx%d", final_pixel, final_pixel, central_edge, central_edge);
-        image_scale_crop_compress(tmp_buff2, tmp_buff1 + 2 /* image_scale_crop_compress bug */, central_edge, central_edge, final_pixel, final_pixel);
+        image_scale_crop_compress(tmp_buff2, rgb565_data + 2 /* image_scale_crop_compress bug */, central_edge, central_edge, final_pixel, final_pixel);
         appm_logd("scale to %dx%d done", final_pixel, final_pixel);
         psram_free(tmp_buff2);
 
         tmp_buff2 = psram_malloc(final_pixel *final_pixel * 3);
-
         if (!tmp_buff2)
         {
             appm_loge("alloc fail 4");
@@ -239,9 +240,7 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
         }
 
         appm_logd("covert to rgb888 signed");
-        rgb565_to_rgb888_convert_ext((uint16_t *)tmp_buff1, tmp_buff2, final_pixel, final_pixel, 1);
-        psram_free(tmp_buff1);
-        tmp_buff1 = NULL;
+        rgb565_to_rgb888_convert_ext((uint16_t *)rgb565_data, tmp_buff2, final_pixel, final_pixel, 1);
         appm_logd("covert to rgb888 signed done");
 
         if (output)
@@ -258,12 +257,6 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
 
     if (ret)
     {
-        if (tmp_buff1)
-        {
-            psram_free(tmp_buff1);
-            tmp_buff1 = NULL;
-        }
-
         if (tmp_buff2)
         {
             psram_free(tmp_buff2);
@@ -277,7 +270,7 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
 static void media_ts_thread_task(beken_thread_arg_t data)
 {
     extern void tflite_task_init_c(void *arg);
-    extern void tflite_process(uint8_t *data, uint32_t len);
+    extern void tflite_process(uint8_t *data, uint32_t len, uint8_t *result);
     int ret = BK_OK;
     uint8_t *final_frame = NULL;
     uint32_t last_dec_index = 0;
@@ -287,6 +280,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
     uint8_t *tmp_buff1 = NULL, *tmp_buff2 = NULL;
     complex_buffer_t *request_buff = NULL;
     frame_buffer_t *frame = NULL;
+    uint8_t detect_result = GESTURE_NONE;
 
     appm_logi("");
 
@@ -415,7 +409,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                 appm_logd("completed line index %d covert now !", last_dec_index);
                 last_dec_index = 0;
 
-                ret = yuyv_big_endian_to_rgb888(final_frame, &tmp_buff2, msg.width, msg.height);
+                ret = yuyv_big_endian_to_rgb888(final_frame, &tmp_buff2, msg.width, msg.height, display_frame);
 
                 if (ret)
                 {
@@ -424,7 +418,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                 }
 
                 appm_logi("try ts");
-                tflite_process(tmp_buff2, 192 * 192 * 3);
+                tflite_process(tmp_buff2, 192 * 192 * 3, &detect_result);
                 appm_logi("ts done");
                 s_ts_process_status = TS_PROCESS_IDLE;
             }
@@ -458,7 +452,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
 
             if (frame->fmt == PIXEL_FMT_YUYV)
             {
-                ret = yuyv_big_endian_to_rgb888(frame->frame, &tmp_buff2, frame->width, frame->height);
+                ret = yuyv_big_endian_to_rgb888(frame->frame, &tmp_buff2, frame->width, frame->height, display_frame);
 
                 if (ret)
                 {
@@ -489,7 +483,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
 
                 appm_logd("soft jdec %dx%d %d", jpeg_res.pixel_x, jpeg_res.pixel_y, jpeg_res.size);
 
-                ret = yuyv_big_endian_to_rgb888(tmp_buff1, &tmp_buff2, frame->width, frame->height);
+                ret = yuyv_big_endian_to_rgb888(tmp_buff1, &tmp_buff2, frame->width, frame->height, display_frame);
 
                 if (ret)
                 {
@@ -505,8 +499,19 @@ static void media_ts_thread_task(beken_thread_arg_t data)
 
             uint32_t end_time = rtos_get_time();
             appm_logi("try ts, covert time %d ms", end_time - start_time);//124ms(soft jpeg dec) + 78ms(covert) with soft covert
-            tflite_process(tmp_buff2, 192 * 192 * 3);
+            tflite_process(tmp_buff2, 192 * 192 * 3, &detect_result);
             appm_logi("ts done");
+            if (detect_result != GESTURE_NONE)
+            {
+                appm_logi("+++++++++detect_result = %d\r\n", detect_result);
+
+                uint16_t *buf16 = (uint16_t *)display_frame;
+                for (int k = 0; k < 192 * 192; k++)
+                {
+                    buf16[k] = ((buf16[k] & 0xff00) >> 8) | ((buf16[k] & 0x00ff) << 8);
+                }
+                lv_img_set_src(camera_img, &gesture_img_dsc);
+            }
         }
 
 END:;
@@ -578,6 +583,15 @@ int32_t media_ts_main(void)
     int32_t ret = 0;
 
     appm_logi("");
+
+    display_frame = psram_malloc(192 * 192 * 2);
+    if (display_frame == NULL)
+    {
+        appm_loge("%s display_frame malloc failed", __func__);
+        return -1;
+    }
+    gesture_img_dsc.data = display_frame;
+
     ret = rtos_init_queue(&s_media_ts_queue,
                           "s_media_ts_queue",
                           sizeof(jdec_data_to_app_data_msg_t),

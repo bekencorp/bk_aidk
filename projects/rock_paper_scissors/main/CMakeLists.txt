@@ -30,7 +30,6 @@ elseif (CONFIG_SYS_CPU1)
     list(APPEND srcs
             app_cpu1_main.c
             app_main_cpu1.cc
-            media/media_lvgl.c
             media/media_ts.c
             ${TF_SOURCES}
         )
@@ -38,11 +37,16 @@ elseif (CONFIG_SYS_CPU1)
     list(APPEND incs
             tflite
             media
+            display
         )
 
 elseif (CONFIG_SYS_CPU2)
 	message("build cpu1")
 endif()
+
+list(APPEND srcs
+	display/lvgl_app.c
+)
 
 if (CONFIG_OVERRIDE_FLASH_PARTITION)
     list(APPEND srcs

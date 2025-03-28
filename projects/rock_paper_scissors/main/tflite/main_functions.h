@@ -23,6 +23,13 @@ extern "C" {
 
 #include "stdint.h"
 
+typedef enum {
+    GESTURE_ROCK,
+    GESTURE_PAPER,
+    GESTURE_SCISSORS,
+    GESTURE_NONE,
+} gesture_result_t;
+
 // Initializes all data needed for the example. The name is important, and needs
 // to be setup() for Arduino compatibility.
 void setup();
@@ -31,7 +38,7 @@ void setup();
 // repeatedly from the application code. The name needs to be loop() for Arduino
 // compatibility.
 void loop();
-void process_pic(uint8_t *data, uint32_t len);
+void process_pic(uint8_t *data, uint32_t len, uint8_t *result);
 #ifdef __cplusplus
 }
 #endif

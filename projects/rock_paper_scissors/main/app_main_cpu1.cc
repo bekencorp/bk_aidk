@@ -82,9 +82,9 @@ extern "C" void tflite_task_init_c(void *arg)
     setup();
 }
 
-extern "C" void tflite_process(uint8_t *data, uint32_t len)
+extern "C" void tflite_process(uint8_t *data, uint32_t len, uint8_t *result)
 {
-    process_pic(data, len);
+    process_pic(data, len, result);
 }
 
 extern "C" void app_main_cpu1(void *arg)
