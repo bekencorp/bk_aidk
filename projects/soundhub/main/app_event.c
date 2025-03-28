@@ -292,6 +292,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     }
 
                     a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_WAKEUP);
+#endif
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
@@ -303,6 +306,13 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_wifi_sta_pm_enable();
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
                     a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    /* If bluetooth a2dp has been connected, not play prompt tone "byebye", because of playing a2dp music
+                        otherwise play prompt "byebye".
+                     */
+                     //TODO
+                    //bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_STANDBY);
+#endif
                     break;
 
 //-------------------network event start ------------------------------------------------------------------

@@ -283,6 +283,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT));
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_WAKEUP\n");
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_WAKEUP);
+#endif
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
                     lvgl_app_init();
@@ -296,6 +299,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_STANDBY\n");
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_STANDBY);
+#endif
                     lvgl_app_deinit();
                     bk_wifi_sta_pm_enable();
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
