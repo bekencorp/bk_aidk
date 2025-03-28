@@ -13,7 +13,7 @@ Armino AIDK SDK代码下载
 
     mkdir -p ~/armino
     cd ~/armino
-    git clone --recurse-submodules http://gitlab.bekencorp.com/armino/bk_aidk.git -b branch_name
+    git clone --recurse-submodules http://gitlab.bekencorp.com/armino/bk_ai/bk_aidk.git -b branch_name
 
 !Note:
 

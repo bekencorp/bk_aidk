@@ -563,3 +563,10 @@ customers may need to adapter their own solution
     +----------------+------------+-------------------------------------------------+
     |stop            |  Mandatory | Parameter, disconnects the current RTC Channel  |
     +----------------+------------+-------------------------------------------------+
+
+5. Q&A
+---------------------------------
+
+Q: Why doesn't the application layer report mic data?
+
+A: Currently, beken_genie defaults to supporting command word-based voice wake-up functionality. Only after wake-up will it report the mic-collected data to the application layer, which then sends the data to AI for conversation. If the customer does not need voice wake-up functionality, they can disable this feature by defining the macro "CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE".
