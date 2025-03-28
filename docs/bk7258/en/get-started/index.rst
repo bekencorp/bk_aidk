@@ -28,4 +28,4 @@ For burning methods, please refer to the guidance documents within the burning t
 
 For Windows platform, as an example, Armino currently supports UART burning.
 
- `Burning Process Documentation <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v2.0.1/get-started/index.html>`_ please refer to the IDK Documentation `IDK <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v2.0.1/index.html>`_
+ `Burning Process Documentation <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/get-started/index.html>`_ please refer to the IDK Documentation `IDK <https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/index.html>`_
