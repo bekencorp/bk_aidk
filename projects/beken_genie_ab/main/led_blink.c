@@ -30,7 +30,7 @@ static AlternateGroup s_alt_group;
 
 static int led_handle_1 = 0;
 static int led_handle_2 = 0;
-
+static bool s_timer_initialized = false;
 
 static int led_register(uint8_t gpio);
 
@@ -79,6 +79,8 @@ static void alternate_timer_cb(void *arg) {
 
 //设置交替闪
 static void led_set_alternate(uint8_t led_handle_1, uint8_t led_handle_2, uint32_t interval_ms) {
+
+    bk_err_t ret;
     // 参数校验
     if(led_handle_1 == led_handle_2 || led_handle_1 <0 || led_handle_2 <0 || 
        led_handle_1 >= MAX_LED_NUM || led_handle_2 >= MAX_LED_NUM) return;
@@ -100,16 +102,20 @@ static void led_set_alternate(uint8_t led_handle_1, uint8_t led_handle_2, uint32
     led_pool[led_handle_2].alt_partner = led_handle_1;
     
     // 创建/重置定时器
-    
-    rtos_init_timer(&s_alt_group.timer,interval_ms, alternate_timer_cb, NULL);
-    
+    if (!s_timer_initialized)
+    {
+        s_timer_initialized = true;
+        ret = rtos_init_timer(&s_alt_group.timer,interval_ms, alternate_timer_cb, NULL);
+        BK_ASSERT(kNoErr == ret);
+    }
     // 强制设置初始状态
     s_alt_group.current_state = true;
     bk_gpio_set_value(led_pool[led_handle_1].gpio_num, 0x2);
     bk_gpio_set_value(led_pool[led_handle_2].gpio_num, 0x0);
 
-    rtos_start_timer(&s_alt_group.timer);
-    
+    ret = rtos_start_timer(&s_alt_group.timer);
+    BK_ASSERT(kNoErr == ret);
+
     rtos_unlock_mutex(&led_mutex);
 }
 
@@ -170,13 +176,15 @@ void led_driver_init() {
 
 
 int led_register(uint8_t gpio) {
+    bk_err_t ret; 
     rtos_lock_mutex(&led_mutex);
      // 查找空闲控制块
     for(int i=0; i<MAX_LED_NUM; i++){
         if(led_pool[i].gpio_num == 0){
             led_pool[i].gpio_num = gpio;
             led_pool[i].active_error = ERROR_TYPE_COUNT;
-            rtos_init_timer(&led_pool[i].timer,100, timer_callback, (void*)i);
+            ret = rtos_init_timer(&led_pool[i].timer,100, timer_callback, (void*)i);
+            BK_ASSERT(kNoErr == ret);
             rtos_unlock_mutex(&led_mutex);
             return i; // 返回LED句柄
         }

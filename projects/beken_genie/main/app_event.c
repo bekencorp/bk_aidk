@@ -109,6 +109,73 @@ enum {
 	INDICATES_AGENT_CONNECT,	//LED_SLOW_BLINK_GREEN if at standby states, else clear it
 }indicates_t;
 
+
+#define COUNTDOWN_INFINITE 0xFFFFFFFF
+/* 新增倒计时票源类型,按照优先级排序*/
+typedef enum {
+    COUNTDOWN_TICKET_PROVISIONING,   // 配网倒计时(5分钟), 最高优先级
+    COUNTDOWN_TICKET_NETWORK_ERROR,  //网络错误倒计时(5分钟) ，中优先级
+    COUNTDOWN_TICKET_STANDBY,        // 待机倒计时(3分钟)，低优先级
+    COUNTDOWN_TICKET_OTA,      // OTA 事件，特殊逻辑，不参与比较
+    COUNTDOWN_TICKET_MAX
+} countdown_ticket_t;
+
+/* 各票源对应的倒计时时长(毫秒) */
+static const uint32_t s_ticket_durations[COUNTDOWN_TICKET_MAX] = {
+    [COUNTDOWN_TICKET_PROVISIONING] = 5 * 60 * 1000,  // 5分钟
+    [COUNTDOWN_TICKET_NETWORK_ERROR] = 5 * 60 * 1000,  // 5分钟
+    [COUNTDOWN_TICKET_STANDBY]      = 3 * 60 * 1000,  // 3分钟
+    [COUNTDOWN_TICKET_OTA]    = COUNTDOWN_INFINITE,              // 暂停倒计时
+};
+
+static uint32_t s_active_tickets = 0;  // 使用位掩码记录活跃票源
+
+/* 更新倒计时状态 */
+static void update_countdown()
+{
+
+    // 检查OTA暂停票（最高优先级）
+    if(s_active_tickets & (1 << COUNTDOWN_TICKET_OTA)) {
+        LOGI("ota event start, stop countdown\r\n");
+        stop_countdown();
+        return;
+    }
+
+    static countdown_ticket_t last_selected_ticket = COUNTDOWN_TICKET_MAX;
+    countdown_ticket_t selected_ticket = COUNTDOWN_TICKET_MAX;
+
+
+    for(int i = 0; i < COUNTDOWN_TICKET_MAX; i++) {
+        if (i == COUNTDOWN_TICKET_OTA)
+            continue;
+        
+        if(s_active_tickets & (1 << i))
+        {
+            selected_ticket = i;
+            break;
+        }
+    }
+
+    // 应用倒计时裁决结果
+    if(selected_ticket != COUNTDOWN_TICKET_MAX) {
+        const uint32_t max_duration = s_ticket_durations[selected_ticket];
+
+        if (selected_ticket != last_selected_ticket)
+        {
+            const uint32_t duration = max_duration;
+            start_countdown(duration);
+            LOGI("selected_ticket is %d, last_selected_ticket is %d,duration is %d\r\n",selected_ticket , last_selected_ticket, duration);
+            last_selected_ticket = selected_ticket;
+        }
+    } else {
+        LOGI("selected_ticket is %d, COUNTDOWN_TICKET_MAX is %d\r\n",selected_ticket , COUNTDOWN_TICKET_MAX);
+        LOGI("stop countdown\r\n");
+        stop_countdown();
+        last_selected_ticket = COUNTDOWN_TICKET_MAX;
+    }
+
+}
+
 static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
 {
 	static uint32_t last_warning_state = 0;
@@ -173,6 +240,9 @@ static void app_event_thread(beken_thread_arg_t data)
     // uint32_t network_err = 0;
     uint32_t is_network_provisioning = 0;
 
+    s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
+    update_countdown();
+
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -188,11 +258,11 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_ASR_WAKEUP:	//hi armino
                     is_standby = 0;
                     indicates_state &= ~((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT));
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_WAKEUP\n");
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
                     lvgl_app_init();
-                    stop_countdown();
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
@@ -201,11 +271,11 @@ static void app_event_thread(beken_thread_arg_t data)
                     is_standby = 1;
                     indicates_state |= (1<<INDICATES_STANDBY);
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_STANDBY\n");
                     lvgl_app_deinit();
                     bk_wifi_sta_pm_enable();
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
-                    start_countdown(countdown_ms);
                     break;
 
 //-------------------network event start ------------------------------------------------------------------
@@ -215,10 +285,11 @@ static void app_event_thread(beken_thread_arg_t data)
  * If network retore event APP_EVT_AGENT_JOINED comes, it means all of the network abnormal event can be stop
  */
                 case APP_EVT_NETWORK_PROVISIONING:
-                    stop_countdown();
-                    start_countdown(COUNTDOWN_NETWORK_PROVISIONING);
                     LOGI("APP_EVT_NETWORK_PROVISIONING\n");
                     is_network_provisioning = 1;
+                    //优先级最高
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_NETWORK_ERROR);
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_PROVISIONING);
                     indicates_state |= (1<<INDICATES_PROVISIONING);
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
                     warning_state &= ~(1<<WARNING_PROVIOSION_FAIL);
@@ -230,20 +301,19 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
                     warning_state &= ~(1<<WARNING_PROVIOSION_FAIL);
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_PROVISIONING);
+                    // s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_NETWORK_PROVISIONING_SUCCESS\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_SUCCESS);
 #endif
-
-                    stop_countdown();
-                    if(is_standby)
-                        start_countdown(countdown_ms);
-
                     break;
 
                 case APP_EVT_NETWORK_PROVISIONING_FAIL:
                     LOGI("APP_EVT_NETWORK_PROVISIONING_FAIL\n");
                     // network_err = 1;
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_PROVISIONING);
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
                     warning_state |= 1<<WARNING_PROVIOSION_FAIL;
 
@@ -263,8 +333,10 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_RECONNECT_NETWORK_SUCCESS:
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_PROVISIONING);
 					warning_state &= ~(1<<WARNING_WIFI_FAIL);
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
+
                     if ((warning_state & AI_RTC_CONNECT_LOST_FAIL) == 0 && (warning_state & AI_AGENT_OFFLINE_FAIL) == 0)
                     {
                         if (is_standby)
@@ -279,6 +351,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_RECONNECT_NETWORK_FAIL:
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     LOGI("APP_EVT_RECONNECT_NETWORK_FAIL\n");
                     // network_err = 1;
                     warning_state |= 1<<WARNING_WIFI_FAIL;
@@ -299,6 +372,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error
                     //indicates_state |= 1<<INDICATES_AGENT_CONNECT;
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
                     warning_state &= ~((1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE) | (1<<WARNING_WIFI_FAIL));
                     LOGI("APP_EVT_AGENT_JOINED \n");
@@ -314,6 +388,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
                 case APP_EVT_AGENT_OFFLINE:
                     // network_err = 1;
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
                     indicates_state &= ~(1<<INDICATES_AGENT_CONNECT);
                     warning_state |= 1<<WARNING_AGENT_OFFLINE;
@@ -344,10 +419,26 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_bluetooth_deinit();
                     break;
 
+                // OTA相关事件
+                case APP_EVT_OTA_START:
+                    LOGI("APP_EVT_OTA_START\n");
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_OTA);
+                    break;
+
+                case APP_EVT_OTA_SUCCESS:
+                    LOGI("APP_EVT_OTA_SUCCESS\n");
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    break;
+                
+                case APP_EVT_OTA_FAIL:
+                    LOGI("APP_EVT_OTA_FAIL\n");
+                    s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    break;
+
                 default:
                     break;
             }
-
+            update_countdown();
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }

@@ -416,7 +416,7 @@ int main(void)
 
 
         //No operation countdown 3 minutes to shut down
-        start_countdown(countdown_ms);
+        // start_countdown(countdown_ms);
         //led init move before
         led_driver_init();
         led_app_set(LED_ON_GREEN,LED_LAST_FOREVER);

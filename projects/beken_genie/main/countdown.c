@@ -44,7 +44,8 @@ void start_countdown(uint32_t time_ms)
 			return;
 		}
 	} else {
-		rtos_oneshot_reload_timer(&g_countdown_timer);
+		rtos_oneshot_reload_timer_ex(&g_countdown_timer,time_ms,CountdownCallback,NULL, NULL);
+		LOGI("rtos_oneshot_reload_timer_ex time is %d\r\n",time_ms);
 	}
     
 }
@@ -72,4 +73,4 @@ void stop_countdown()
 		}
 
 	}
-}
+}
