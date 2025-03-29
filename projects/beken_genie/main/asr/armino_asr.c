@@ -42,6 +42,7 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 {
     uint32_t asr_result = 0;
 
+#if (CONFIG_WANSON_ASR_GROUP_VERSION_WORDS_V1)
     if (os_strcmp(result, "嗨阿米诺") == 0)                 //识别出唤醒词 嗨阿米诺
     {
         LOGI("%s \n", "hi armino, cmd: 0 ");
@@ -76,6 +77,25 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
     {
         //nothing
     }
+#else
+
+    if (os_strcmp(result, "你好阿米诺") == 0)                 //识别出唤醒词 你好阿米诺
+    {
+        LOGI("%s \n", "nihao armino, cmd: 0 ");
+        asr_result = 1;
+    }
+    else if (os_strcmp(result, "再见阿米诺") == 0)
+    {
+        LOGI("%s \n", "zaijian armino, cmd: 1 ");
+        asr_result = 2;
+    }
+    else
+    {
+        //nothing
+    }
+
+#endif
+
 
     if (asr_result > 0)
     {
