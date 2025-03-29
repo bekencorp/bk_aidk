@@ -199,10 +199,10 @@ void power_off()
 {
     BK_LOGI(TAG, " power_off\r\n");
     BK_LOGW(TAG, " ************TODO:Just force deep sleep for Demo!\r\n");
-	extern bk_err_t audio_turn_off(void);
-	extern bk_err_t video_turn_off(void);
-	audio_turn_off();
-	video_turn_off();
+	//extern bk_err_t audio_turn_off(void);
+	//extern bk_err_t video_turn_off(void);
+	//audio_turn_off();
+	//video_turn_off();
     bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
 }
 
@@ -322,7 +322,9 @@ static bk_err_t app_force_analog_ldo_gpio_close()
 	sys_hal_set_ana_reg20_value(0);
 	sys_hal_set_ana_reg21_value(0);
 	sys_hal_set_ana_reg27_value(0);
+	sys_drv_aud_aud_en(0);
 	sys_drv_aud_audbias_en(0);
+	sys_drv_apll_en(0);
 	/*usb*/
 	value = sys_hal_analog_get(ANALOG_REG13);
 	value &= ~(1 << 31);
@@ -330,7 +332,7 @@ static bk_err_t app_force_analog_ldo_gpio_close()
 	/*ldo*/
 	gpio_dev_unmap(GPIO_50);
 	gpio_dev_unmap(GPIO_52);
-	/*GPIO*/
+	/*UART*/
 	gpio_dev_unmap(GPIO_10);
 	gpio_dev_unmap(GPIO_11);
 	/*I2C*/
