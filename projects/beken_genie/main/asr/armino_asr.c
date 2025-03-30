@@ -33,8 +33,8 @@ int aec_output_callback(void *asr_data, void *user_data)
 {
     asr_data_t *asr_data_ptr = (asr_data_t *)asr_data;
 
-    LOGD("%s, %p, %d\n", __func__, asr_data_ptr->data, asr_data_ptr->size);
-
+    LOGD("%s, %p, %d %d \n", __func__, asr_data_ptr->data, asr_data_ptr->size,asr_data_ptr->spk_play_flag);
+    bk_wanson_asr_set_spk_play_flag(asr_data_ptr->spk_play_flag);
     return bk_wanson_asr_data_write(gl_wanson_asr, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
 }
 

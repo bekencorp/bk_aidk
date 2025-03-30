@@ -469,3 +469,16 @@ int bk_wanson_asr_data_write(wanson_asr_handle_t wanson_asr, int16_t *buffer, ui
     return rb_write(wanson_asr->pool_rb, (char *)buffer, len, 0);
 }
 
+void bk_wanson_asr_set_spk_play_flag(uint8 spk_play_flag)
+{
+    if(spk_play_flag)
+    {
+        wanson_fst_group_change(1);
+    }
+    else
+    {
+        wanson_fst_group_change(2);
+    }
+}
+
+

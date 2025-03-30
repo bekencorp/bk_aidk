@@ -16,6 +16,7 @@ typedef struct
 {
     unsigned char *data;
     unsigned int size;
+    unsigned int spk_play_flag;
 } asr_data_t;
 
 

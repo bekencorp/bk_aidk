@@ -33,8 +33,8 @@ int aec_output_callback(void *asr_data, void *user_data)
 {
     asr_data_t *asr_data_ptr = (asr_data_t *)asr_data;
 
-    LOGD("%s, %p, %d\n", __func__, asr_data_ptr->data, asr_data_ptr->size);
-
+    LOGD("%s, %p, %d %d \n", __func__, asr_data_ptr->data, asr_data_ptr->size,asr_data_ptr->spk_play_flag);
+    bk_wanson_asr_set_spk_play_flag(asr_data_ptr->spk_play_flag);
     return bk_wanson_asr_data_write(gl_wanson_asr, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
 }
 
@@ -42,6 +42,7 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 {
     uint32_t asr_result = 0;
 
+#if (CONFIG_WANSON_ASR_GROUP_VERSION_WORDS_V1)
     if (os_strcmp(result, "嗨阿米诺") == 0)                 //识别出唤醒词 嗨阿米诺
     {
         LOGI("%s \n", "hi armino, cmd: 0 ");
@@ -76,6 +77,25 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
     {
         //nothing
     }
+#else
+
+    if (os_strcmp(result, "你好阿米诺") == 0)                 //识别出唤醒词 你好阿米诺
+    {
+        LOGI("%s \n", "nihao armino, cmd: 0 ");
+        asr_result = 1;
+    }
+    else if (os_strcmp(result, "再见阿米诺") == 0)
+    {
+        LOGI("%s \n", "zaijian armino, cmd: 1 ");
+        asr_result = 2;
+    }
+    else
+    {
+        //nothing
+    }
+
+#endif
+
 
     if (asr_result > 0)
     {

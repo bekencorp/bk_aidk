@@ -47,6 +47,7 @@ bk_err_t bk_wanson_asr_start(wanson_asr_handle_t wanson_asr);
 bk_err_t bk_wanson_asr_stop(wanson_asr_handle_t wanson_asr);
 
 int bk_wanson_asr_data_write(wanson_asr_handle_t wanson_asr, int16_t *buffer, uint32_t len);
+void bk_wanson_asr_set_spk_play_flag(uint8 spk_play_flag);
 
 #ifdef __cplusplus
 }
