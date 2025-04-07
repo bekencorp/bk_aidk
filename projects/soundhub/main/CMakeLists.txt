@@ -28,6 +28,7 @@ list(APPEND srcs
 if (CONFIG_SYS_CPU0)
 	list(APPEND srcs
 	    app_event.c
+	    app_audio_arbiter.c
 	    agora_rtc_demo.c
 	    agora_sdk/agora_rtc.c
 	    audio/audio_transfer.c

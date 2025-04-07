@@ -2,8 +2,7 @@
 #include "components/bluetooth/bk_dm_a2dp.h"
 #include "a2dp_sink/a2dp_sink_demo.h"
 #include "hfp_hf/hfp_hf_demo.h"
-
-uint32_t g_headset_a2dp_data_path = 0;
+#include "bt_manager.h"
 
 static void headset_usage(void)
 {
@@ -136,22 +135,18 @@ static void cmd_headset_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     }
     else if (os_strcmp(argv[1], "play") == 0)
     {
-        void bk_bt_app_avrcp_ct_play(void);
         bk_bt_app_avrcp_ct_play();
     }
     else if (os_strcmp(argv[1], "pause") == 0)
     {
-        void bk_bt_app_avrcp_ct_pause(void);
         bk_bt_app_avrcp_ct_pause();
     }
     else if (os_strcmp(argv[1], "prev") == 0)
     {
-        void bk_bt_app_avrcp_ct_prev(void);
         bk_bt_app_avrcp_ct_prev();
     }
     else if (os_strcmp(argv[1], "next") == 0)
     {
-        void bk_bt_app_avrcp_ct_next(void);
         bk_bt_app_avrcp_ct_next();
     }
     else if (os_strcmp(argv[1], "rewind") == 0)
@@ -169,7 +164,6 @@ static void cmd_headset_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             }
         }
 
-        void bk_bt_app_avrcp_ct_rewind(uint32_t ms);
         bk_bt_app_avrcp_ct_rewind(option);
     }
     else if (os_strcmp(argv[1], "fast_forward") == 0)
@@ -187,23 +181,19 @@ static void cmd_headset_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             }
         }
 
-        void bk_bt_app_avrcp_ct_fast_forward(uint32_t ms);
         bk_bt_app_avrcp_ct_fast_forward(option);
     }
     else if (os_strcmp(argv[1], "vol_up") == 0)
     {
-        void bk_bt_app_avrcp_ct_vol_up(void);
         bk_bt_app_avrcp_ct_vol_up();
     }
     else if (os_strcmp(argv[1], "vol_down") == 0)
     {
-        void bk_bt_app_avrcp_ct_vol_down(void);
         bk_bt_app_avrcp_ct_vol_down();
     }
     else if (os_strcmp(argv[1], "pair_mode") == 0)
     {
-        void bk_bt_enter_pairing_mode(void);
-        bk_bt_enter_pairing_mode();
+        bk_bt_enter_pairing_mode(1);
     }
     else if (os_strcmp(argv[1], "set_delay_value") == 0)
     {

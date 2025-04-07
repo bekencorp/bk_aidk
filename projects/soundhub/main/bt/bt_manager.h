@@ -51,4 +51,4 @@ void bt_manager_set_connect_state(uint8_t state);
 uint8_t *bt_manager_get_reconnect_device();
 uint8_t *bt_manager_get_connected_device();int bt_manager_deinit(void);
 void bt_clear_reconnect_info(void);
-
+void bk_bt_enter_pairing_mode(uint8_t is_visible);

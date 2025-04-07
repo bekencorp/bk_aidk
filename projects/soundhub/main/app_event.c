@@ -24,7 +24,9 @@
 #endif
 #include "bat_monitor.h"
 #include "a2dp_sink_demo.h"
-#include "bk_ota_private.h" 
+#include "bk_ota_private.h"
+#include "app_audio_arbiter.h"
+
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -99,7 +101,7 @@ uint8_t ota_event_asr_callback(evt_ota event_param)
             break;
         case EVT_OTA_FAIL:
             app_event_send_msg(APP_EVT_OTA_FAIL, 0);
-            break;  
+            break;
         case EVT_OTA_SUCCESS:
             app_event_send_msg(APP_EVT_OTA_SUCCESS, 0);
             break;
@@ -251,10 +253,30 @@ static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
 
 }
 
+static void ai_audio_source_entry_cb(AUDIO_SOURCE_ENTRY_CB_EVT evt, void *arg)
+{
+    LOGI("%s evt %d\n", __func__, evt);
+
+    switch(evt)
+    {
+    case AUDIO_SOURCE_ENTRY_CB_EVT_NEED_START:
+        break;
+
+    case AUDIO_SOURCE_ENTRY_CB_EVT_IGNORE:
+        break;
+
+    case AUDIO_SOURCE_ENTRY_CB_EVT_NEED_STOP:
+        break;
+
+    default:
+        break;
+    }
+}
+
 static void app_event_thread(beken_thread_arg_t data)
 {
 	int ret = BK_OK;
-
+	AUDIO_SOURCE_ENTRY_STATUS audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_STOP;
     uint32_t is_standby = 1;
 
     uint32_t warning_state = 0;
@@ -268,6 +290,7 @@ static void app_event_thread(beken_thread_arg_t data)
     //update_countdown();
 
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
+    app_audio_arbiter_reg_callback(AUDIO_SOURCE_ENTRY_AI, ai_audio_source_entry_cb, NULL);
 
     while (1)
     {
@@ -291,7 +314,14 @@ static void app_event_thread(beken_thread_arg_t data)
                         led_app_set(LED_OFF_GREEN,0);
                     }
 
-                    a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
+                    a2dp_sink_demo_vote_enable_leagcy(0);
+                    audio_source_arbiter_entry_status = app_audio_arbiter_report_source_req(AUDIO_SOURCE_ENTRY_AI, AUDIO_SOURCE_ENTRY_ACTION_START_REQ);
+
+                    if(audio_source_arbiter_entry_status != AUDIO_SOURCE_ENTRY_STATUS_PLAY)
+                    {
+                        LOGE("%s audio arbiter start status err %d\n", __func__, audio_source_arbiter_entry_status);
+                    }
+
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_WAKEUP);
 #endif
@@ -305,7 +335,14 @@ static void app_event_thread(beken_thread_arg_t data)
                     //lvgl_app_deinit();
                     bk_wifi_sta_pm_enable();
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
-                    a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_AI_VOICE);
+                    a2dp_sink_demo_vote_enable_leagcy(1);
+                    audio_source_arbiter_entry_status = app_audio_arbiter_report_source_req(AUDIO_SOURCE_ENTRY_AI, AUDIO_SOURCE_ENTRY_ACTION_STOP_REQ);
+
+                    if(audio_source_arbiter_entry_status != AUDIO_SOURCE_ENTRY_STATUS_STOP)
+                    {
+                        LOGI("%s audio arbiter stop status err %d\n", __func__, audio_source_arbiter_entry_status);
+                    }
+
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     /* If bluetooth a2dp has been connected, not play prompt tone "byebye", because of playing a2dp music
                         otherwise play prompt "byebye".
