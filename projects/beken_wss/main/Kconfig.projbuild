@@ -1,0 +1,15 @@
+menu "Beken_Genie Project Configuration"
+    config LDO3V3_ENABLE
+        bool "Enabel LDO_3V3"
+        default n
+
+    config LDO3V3_CTRL_GPIO
+        depends on LDO3V3_ENABLE
+        int "Set LDO_3V3 Control Gpio"
+        range 0 100
+        default 52
+
+	config NETWORK_AUTO_RECONNECT
+		bool "Enable auto reconnect Network"
+		default y
+endmenu
