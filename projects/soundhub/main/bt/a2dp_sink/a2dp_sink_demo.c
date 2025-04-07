@@ -287,13 +287,13 @@ static void a2dp_sink_arbiter_entry_cb(AUDIO_SOURCE_ENTRY_CB_EVT evt, void *arg)
             bt_audio_a2dp_sink_avrcp_req(0);
         }
 
-        //        LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ 0\n", __func__);
-        //        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
-        //
-        //        if (err)
-        //        {
-        //            LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, err);
-        //        }
+        LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ 0\n", __func__);
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
+
+        if (err)
+        {
+            LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, err);
+        }
 
         break;
 
