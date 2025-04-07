@@ -111,7 +111,7 @@ void wanson_fst_group_change(unsigned char group_id)
         } else if (group_id == 2) {
             Wanson_ASR_Set_Fst(&fst_2);
         }
-        LOGI("fst_group_change_to: %d\n", group_id);
+        LOGD("fst_group_change_to: %d\n", group_id);
     }
 }
 #endif
