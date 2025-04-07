@@ -76,4 +76,5 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info);
 void bk_genie_prepare_for_smart_config(void);
 int bk_genie_wakeup_agent(void);
 int bk_genie_is_net_pan_configured(void);
+int bk_genie_post_nfc_id(uint8_t *nfc_id);
 #endif
