@@ -476,6 +476,34 @@ Beken Genie AI
 
       对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
 
+3.5.2 重新配网
++++++++++++++++++++++++++++++++++
+
+.. warning::
+
+    重新配网之前，需要原来的配网的手机上，把设备移除，然后再重复上述章节的操作。
+
+    移除设备方法如下：
+
+..
+
+    a)长按图示区域，会弹出提示框。
+
+    .. figure:: ../../../_static/remove_ai_device_1.png
+        :scale: 30%
+
+    b)点击确认，完成操作。
+
+    .. figure:: ../../../_static/remove_ai_device_2.png
+        :scale: 30%
+
+.. note::
+
+    更多APP操作，请参考APP文档：
+
+    https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_usage/app_usage_guide/index.html#ai
+
+..
 
 4. 调试命令
 ---------------------------------

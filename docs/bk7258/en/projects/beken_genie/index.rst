@@ -500,6 +500,35 @@ customers may need to adapter their own solution
       Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it,
       then go to sleep and stop talking to the AI
 
+3.5.2 Reconfiguring the Network
++++++++++++++++++++++++++++++++++
+
+.. warning::
+
+    Before reconfiguring the network, you need to remove the device from the original network configuration on your phone, and then repeat the steps in the previous chapter.
+
+    To remove the device, follow these steps:
+
+..
+
+    a) Long press the indicated area, and a prompt box will pop up.
+
+    .. figure:: ../../../_static/remove_ai_device_1.png
+        :scale: 30%
+
+    b) Click OK to complete the operation.
+
+    .. figure:: ../../../_static/remove_ai_device_2.png
+        :scale: 30%
+
+.. note::
+
+    For more APP operations, please refer to the APP documentation:
+
+    https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_usage/app_usage_guide/index.html#ai
+
+..
+
 
 4. Debugging Commands
 ---------------------------------
