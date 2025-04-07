@@ -73,6 +73,7 @@ typedef enum
 
     DBEVT_IMAGE_TCP_SERVICE_DISCONNECTED,
     DBEVT_NET_PAN_REQUEST,
+    DBECT_NFC_GOT_ID,
 } dbevt_t;
 
 typedef enum

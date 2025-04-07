@@ -97,11 +97,42 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
     return BK_OK;
 }
 
+
+#include "components/bk_nfc.h"
+typedef struct
+{
+	uint32_t event;
+	uint8_t *param;
+} nfc_msg_t;
+
+#define NFC_GOT_ID  1
+
+uint8_t nfc_callback(uint8_t event_param, void*card_id)
+{
+    nfc_msg_t msg;
+
+    switch(event_param)
+    {
+        case NFC_GOT_ID:
+        {
+            msg.event = DBECT_NFC_GOT_ID;
+            msg.param = (uint8_t*)(card_id);
+            bk_genie_send_msg((bk_genie_msg_t *)&msg);
+        }
+        break;
+        
+        default :
+        break;
+    }
+    return 0;
+}
+
 extern void agora_auto_run(void);
 static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
     bk_genie_msg_t msg;
+    nfc_event_callback_register(nfc_callback);
 
     while (1)
     {
@@ -427,6 +458,19 @@ fail:
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_NET_PAN_START, status, (char *)bt_mac, 6);
                 }
                 break;
+
+                case DBECT_NFC_GOT_ID:
+                {
+                    uint8_t nfc_id[7];
+                    nfc_msg_t nfc_info;
+                    nfc_info.param = (uint8_t *)(msg.param);
+                    os_memcpy(nfc_id, nfc_info.param, 7);
+                    LOGI("DBECT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
+                    nfc_id[3], nfc_id[4], nfc_id[5], nfc_id[6]);
+
+                    bk_genie_post_nfc_id(nfc_id);
+                }
+                    break;
 
                 default:
                     break;
