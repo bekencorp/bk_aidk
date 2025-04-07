@@ -838,7 +838,10 @@ void agora_auto_run(void)
         return;
     }
 #endif
-    bk_genie_wakeup_agent();
+    if (bk_genie_wakeup_agent()) {
+        LOGE("%s, wake up agent fail!\n", __func__);
+        return;
+    }
     sprintf(agora_appid, "%s", app_id_record);
     sprintf(channel_name, "%s", channel_name_record);
     if (!agora_runing)

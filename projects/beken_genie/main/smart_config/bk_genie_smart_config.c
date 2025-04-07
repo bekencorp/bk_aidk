@@ -877,6 +877,92 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info)
     return 0;
 }
 
+int bk_genie_rsp_parse_update(char *buffer)
+{
+	char *app_id_update = NULL;
+	int code_update = 0;
+	__maybe_unused bk_genie_agent_info_t info = {0};
+	cJSON *json = cJSON_Parse(buffer);
+	if (!json)
+	{
+		BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
+		return BK_FAIL;
+	}
+	cJSON *code = cJSON_GetObjectItem(json, "code");
+	if (code && ((code->type & 0xFF) == cJSON_Number)) {
+		code_update = code->valueint;
+		switch(code_update)
+		{
+			case HTTP_STATUS_SUCCESS:
+				break;
+			case HTTP_STATUS_TRIAL_LIMIT_EXCEEDED:
+				BK_LOGI(TAG, "[UPDATE] the maximum number of agent expiriences has been reached, please contact armino_support@bekencorp.com for in-depth communication !\n");
+			case HTTP_STATUS_PARAM_ERROR:
+			case HTTP_STATUS_MAX_AGENT_UPTIME_EXCEEDED:
+			case HTTP_STATUS_DEVICE_REMOVED:
+			case HTTP_STATUS_AGENT_START_FAILED:
+				cJSON_Delete(json);
+				return BK_FAIL;
+				break;
+
+			default:
+				cJSON_Delete(json);
+				return BK_FAIL;
+				break;
+		}
+	}
+	else {
+		BK_LOGE(TAG, "[Error] not find code msg\n");
+		cJSON_Delete(json);
+		return BK_FAIL;
+	}
+
+	cJSON *data = cJSON_GetObjectItem(json, "data");
+	if (data)
+	{
+		cJSON *app_id = cJSON_GetObjectItem(data, "app_id");
+		if (app_id && ((app_id->type & 0xFF) == cJSON_String)) {
+			app_id_update = os_strdup(app_id->valuestring);
+			BK_LOGI(TAG, "[UPDATE] appid:%s size:%d\n", app_id_update, strlen(app_id_update));
+		}
+		else {
+			BK_LOGE(TAG, "[Error] not find app_id msg\n");
+			cJSON_Delete(json);
+			return BK_FAIL;
+		}
+	}
+	else
+	{
+		BK_LOGE(TAG, "[Error] not find data msg\n");
+		cJSON_Delete(json);
+		return BK_FAIL;
+	}
+	cJSON_Delete(json);
+
+	if (bk_genie_get_agent_info(&info) == 0)
+	{
+		if (info.valid != 1)
+		{
+			return BK_FAIL;
+		}
+		BK_LOGI(TAG, "[ORGINAL] appid:%s size:%d\r\n", info.appid, strlen(info.appid));
+	}
+
+	if (app_id_update && info.appid && (strcmp(app_id_update, info.appid)!=0))
+	{
+		BK_LOGI(TAG, "need update app id\n");
+		if (app_id_record)
+		{
+			os_free(app_id_record);
+		}
+		app_id_record = os_strdup(app_id_update);
+		bk_genie_save_agent_info(app_id_record, channel_name_record);
+	}
+	if (app_id_update)
+		os_free(app_id_update);
+	return BK_OK;
+}
+
 extern char *bk_get_bk_server_url(void);
 int bk_genie_wakeup_agent(void)
 {
@@ -923,12 +1009,13 @@ extern char *channel_name_record;
     struct webclient_session *session = NULL;
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
-    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = -1;
+    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
 
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
     if (session == NULL)
     {
+        ret = -1;
         goto __exit;
     }
 
@@ -936,6 +1023,7 @@ extern char *channel_name_record;
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
+        ret = -1;
         return ret;
     }
 
@@ -943,6 +1031,7 @@ extern char *channel_name_record;
     post_data = os_malloc(POST_DATA_MAX_SIZE);
     if (post_data == NULL)
     {
+        ret = -1;
         BK_LOGE(TAG, "no memory for post_data buffer\n");
         goto __exit;
     }
@@ -957,6 +1046,7 @@ extern char *channel_name_record;
     buffer = (char *) web_malloc(RCV_BUF_SIZE);
     if (buffer == NULL)
     {
+        ret = -1;
         BK_LOGE(TAG, "no memory for receive response buffer.\n");
         goto __exit;
     }
@@ -965,6 +1055,7 @@ extern char *channel_name_record;
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
     {
+        ret = -1;
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
         goto __exit;
     }
@@ -983,6 +1074,7 @@ extern char *channel_name_record;
 
     BK_LOGI(TAG, "buffer %s.\n", buffer);
 
+    ret = bk_genie_rsp_parse_update(buffer);
 __exit:
     if (session)
     {

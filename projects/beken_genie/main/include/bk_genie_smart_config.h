@@ -19,6 +19,16 @@ typedef struct bk_fast_connect_d
 	uint8_t ap_channel;
 }BK_FAST_CONNECT_D;
 
+typedef enum
+{
+	HTTP_STATUS_SUCCESS = 200,
+	HTTP_STATUS_PARAM_ERROR = 400,
+	HTTP_STATUS_MAX_AGENT_UPTIME_EXCEEDED = 403,
+	HTTP_STATUS_TRIAL_LIMIT_EXCEEDED = 404,
+	HTTP_STATUS_DEVICE_REMOVED = 405,
+	HTTP_STATUS_AGENT_START_FAILED = 406,
+}agent_status_code;
+
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
 typedef struct {
 	char *url;
