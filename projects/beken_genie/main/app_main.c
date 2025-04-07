@@ -247,16 +247,24 @@ static void handle_system_event(key_event_t event)
             break;
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!\n");
-
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+            int ret = rtos_create_psram_thread(&config_network_thread_handle,
+                                        CONFIG_NETWORK_TASK_PRIORITY,
+                                        "wifi_config_network",
+                                        (beken_thread_function_t)prepare_config_network_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+#else
             int ret = rtos_create_thread(&config_network_thread_handle,
                                         CONFIG_NETWORK_TASK_PRIORITY,
                                         "wifi_config_network",
                                         (beken_thread_function_t)prepare_config_network_main,
                                         4096,
                                         (beken_thread_arg_t)0);
+#endif
             if (ret != kNoErr)
             {
-                BK_LOGE(TAG, "wifi config network task fail \r\n");
+                BK_LOGE(TAG, "wifi config network task fail: %d\r\n", ret);
                 config_network_thread_handle = NULL;
             }
             break;
