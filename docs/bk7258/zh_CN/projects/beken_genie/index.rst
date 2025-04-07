@@ -408,17 +408,27 @@ Beken Genie AI
 
         * 烧录的二进制文件位于``<source code>/build/beken_genie/bk7258/all-app.bin``
 
-3.2 UI资源格式调整
+3.2 UI资源替换
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     - 1、将要使用的avi视频文件通过SDK中的 ``<bk_aidk源代码路径>/bk_avdk/components/multimedia/tools/aviconvert/bk_avi.7z`` 转换工具进行格式转换，具体使用方法可参考工具中的readme.txt说明
 
     - 2、将转换后的文件重新放进SD NAND中，并修改为只包含英文或数字的名称
 
-    - 3、修改 ``<bk_aidk源代码路径>/project/beken_genie/main/av_play/avi_play.c`` 文件中传入函数 ``AVI_open_input_file("/genie_eye.avi", 1)`` 的文件名。
+    - 3、修改 ``<bk_aidk源代码路径>/project/beken_genie/main/display/avi_play.c`` 文件中传入函数 ``bk_avi_play_open()`` 的文件名。
 
+3.3 多个UI资源切换
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-3.3 APP注册和下载
+    - 1、按照章节3.2中的说明，对AVI视频文件进行转换并放入到SD NAND中；
+
+    - 2、调用函数 ``bk_avi_play_stop()`` 和函数 ``bk_avi_play_close()`` 停止播放avi文件；
+
+    - 3、重新调用函数 ``bk_avi_play_open()`` 打开新的avi文件；
+
+    - 4、调用函数 ``bk_avi_video_prase_to_rgb565()`` 和函数 ``bk_avi_play_start()`` 开始播放新的avi文件；
+
+3.4 APP注册和下载
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     APP下载：https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_download/index.html
@@ -426,7 +436,7 @@ Beken Genie AI
     注册登录：使用邮箱注册登录
 
 
-3.4 固件烧录和资源文件烧录
+3.5 固件烧录和资源文件烧录
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     - 1、将要播放的avi视频文件存放到SD NAND中，SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-reference/nand_disk_note.html>`_
@@ -436,10 +446,10 @@ Beken Genie AI
     - 3、烧录编译好的all-app.bin文件并上电执行即可。
 
 
-3.5 操作步骤
+3.6 操作步骤
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-3.5.1 Beken App配网方式
+3.6.1 Beken App配网方式
 +++++++++++++++++++++++++++++++++
 
     a)手机进入如下界面，按照图片步骤操作
@@ -476,7 +486,7 @@ Beken Genie AI
 
       对板载mic说关键词词 ``byebye armino`` ，设备检测到后会播放提示音 ``byebye`` ，然后进入睡眠，停止与AI的对话
 
-3.5.2 重新配网
+3.6.2 重新配网
 +++++++++++++++++++++++++++++++++
 
 .. warning::

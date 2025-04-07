@@ -434,16 +434,27 @@ customers may need to adapter their own solution
 
         * The binary file for programming is located at ``<source code>/build/beken_genie/bk7258/all-app.bin``
 
-3.2 Adjusting UI Resource Formats
+3.2 UI Resource Replacement
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     - 1. Convert the avi video files to be used using the format conversion tool located at ``<bk_aidk source code path>/bk_avdk/components/multimedia/tools/aviconvert/bk_avi.7z`` in the SDK. For detailed usage instructions, please refer to the readme.txt file included with the tool.
 
     - 2. Place the converted files back into the SD NAND and rename them to contain only English letters or numbers.
 
-    - 3. Modify the file name passed to the function ``AVI_open_input_file("/genie_eye.avi", 1)`` in the file ``<bk_aidk source code path>/project/beken_genie/main/av_play/avi_play.c``.
+    - 3. Modify the file name passed to the function ``bk_avi_play_open()`` in the file ``<bk_aidk source code path>/project/beken_genie/main/display/avi_play.c``.
 
-3.3 APP Registration and Download
+3.3 UI Resource Switching
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+    - 1. Follow the instructions in section 3.2 to convert the avi video flie and put it into the SD Nand.
+
+    - 2. Call function ``bk_avi_play_stop()`` and function ``bk_avi_play_close()`` to stop playing the avi file.
+
+    - 3. Call function ``bk_avi_play_open()`` to open new avi file.
+    
+    - 4. Call function ``bk_avi_video_parse_to_rgb565()`` and function ``bk_avi_play_start()`` to start playing the new avi file.
+
+3.4 APP Registration and Download
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     APP download: https://docs.bekencorp.com/arminodoc/bk_app/app/zh_CN/v2.0.1/app_download/index.html
@@ -451,17 +462,17 @@ customers may need to adapter their own solution
     Registration: use email
 
 
-3.4 Firmware Burning and Resource File Burning
+3.5 Firmware Burning and Resource File Burning
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 	- 1. Store the avi video file to be played in the SD NAND. For specific usage of SD NAND, refer to Nand Disk Usage Notes <../../api-reference/nand_disk_note.html>_.
 	- 2. Store the file <bk_aidk source code path>/project/beken_genie/main/resource/genie_eye.avi from the SDK into the SD NAND.
 	- 3. Burn the compiled all-app.bin file and power on to execute.
 
-3.5 Operation Steps
+3.6 Operation Steps
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-3.5.1 Beken App
+3.6.1 Beken App
 +++++++++++++++++++++++++++++++++
 
     a)operate beken app as follow pictures:
@@ -500,7 +511,7 @@ customers may need to adapter their own solution
       Say the key word ``byebye armino`` to the onboard mic, the device will play the prompt tone ``byebye`` after detecting it,
       then go to sleep and stop talking to the AI
 
-3.5.2 Reconfiguring the Network
+3.6.2 Reconfiguring the Network
 +++++++++++++++++++++++++++++++++
 
 .. warning::
