@@ -507,7 +507,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
 			if (data->op_code == WS_TRANSPORT_OPCODES_BINARY) {
-				rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len, rtc_user_audio_rx_data_handle);
+				rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
 			}
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
@@ -526,7 +526,7 @@ void beken_rtc_main(void)
 	websocket_client_input_t websocket_cfg = {0};
 	websocket_cfg.uri = "wss://ai.aclsemi.com:9015/xiaozhi/v1/";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
-    rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg);
+    rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle);
     if (rtc_session == NULL)
     {
         LOGE("rtc_websocket_create fail\r\n");
