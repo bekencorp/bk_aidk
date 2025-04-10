@@ -426,6 +426,10 @@ static void app_event_thread(beken_thread_arg_t data)
 #endif
                     break;
 
+                case APP_EVT_AGENT_START_FAIL:
+                    LOGI("APP_EVT_AGENT_START_FAIL\n");
+                    break;
+
 //-------------------network event end ------------------------------------------------------------------////
 
 

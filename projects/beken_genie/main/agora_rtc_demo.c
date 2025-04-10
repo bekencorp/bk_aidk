@@ -840,6 +840,7 @@ void agora_auto_run(void)
 #endif
     if (bk_genie_wakeup_agent()) {
         LOGE("%s, wake up agent fail!\n", __func__);
+        app_event_send_msg(APP_EVT_AGENT_START_FAIL, 0);
         return;
     }
     sprintf(agora_appid, "%s", app_id_record);
