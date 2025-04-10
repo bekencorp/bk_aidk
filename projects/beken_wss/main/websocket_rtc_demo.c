@@ -436,32 +436,6 @@ int rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const 
     return ret;
 }
 
-void rtc_websocket_parse_hello(cJSON *root) {
-    cJSON *code = cJSON_GetObjectItem(root, "code");
-    cJSON *msg = cJSON_GetObjectItem(root, "msg");
-
-    if (code == NULL || msg == NULL) {
-        LOGE("Error: Missing required fields in hello.\n");
-        return;
-    }
-
-    LOGE("Parsing hello_response:\n");
-    LOGE("  code: %d\n", code->valueint);
-    LOGE("  msg: %s\n", msg->valuestring);
-}
-
-void rtc_websocket_parse_tts(cJSON *root) {
-    cJSON *state = cJSON_GetObjectItem(root, "state");
-
-    if (state == NULL) {
-        LOGE("Error: Missing required fields in tts.\n");
-        return;
-    }
-
-    LOGE("Parsing tts:\n");
-    LOGE("  state: %d\n", state->valuestring);
-}
-
 void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
     cJSON *root = cJSON_Parse(json_text);
     if (root == NULL) {
@@ -478,8 +452,11 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
 
     if (strcmp(type->valuestring, "hello_response") == 0) {
         rtc_websocket_parse_hello(root);
-    } else if (strcmp(type->valuestring, "tts") == 0) {
-        rtc_websocket_parse_tts(root);
+    } else if ((strcmp(type->valuestring, "reply_text") == 0) || (strcmp(type->valuestring, "request_text") == 0)) {
+        text_info_t info = {};
+        info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
+        rtc_websocket_parse_text(&info, root);
+        LOGE("text: type:%d data:%s\n", info.text_type, info.text_data);
     } else {
         LOGE("Error: Unknown type: %s\n", type->valuestring);
     }
@@ -497,7 +474,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
 			smart_config_running = false;
 			LOGE("Connected to WebSocket server\r\n");
-			rtc_websocket_send_text(client, NULL, BEKEN_RTC_SEND_HELLO);
+			rtc_websocket_send_text(client, "g722", BEKEN_RTC_SEND_HELLO);
 			break;
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");

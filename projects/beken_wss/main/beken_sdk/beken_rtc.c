@@ -653,8 +653,8 @@ int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtyp
     switch (msgtype) {
         case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
-						"{\"type\":\"hello\",\"version\": 1,\"transport\":\"websocket\",\"audio_params\":{\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}",
-						100);
+						"{\"type\":\"hello\",\"version\": 1,\"transport\":\"websocket\",\"audio_params\":{\"format\":\"%s\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}",
+						str, 100);
             BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
@@ -665,6 +665,32 @@ int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtyp
 	if(buf)
 		free(buf);
 	return n;  // Returns the number of bytes sent
+}
+
+void rtc_websocket_parse_hello(cJSON *root) {
+    cJSON *code = cJSON_GetObjectItem(root, "code");
+    cJSON *msg = cJSON_GetObjectItem(root, "msg");
+
+    if (code == NULL || msg == NULL) {
+        LOGE("Error: Missing required fields in hello.\n");
+        return;
+    }
+
+    LOGE("Parsing hello_response:\n");
+    LOGE("  code: %d\n", code->valueint);
+    LOGE("  msg: %s\n", msg->valuestring);
+}
+
+void rtc_websocket_parse_text(text_info_t *info, cJSON *root) {
+    cJSON *text = cJSON_GetObjectItem(root, "text");
+
+    if (text == NULL) {
+        LOGE("Error: Missing required fields in request/reply text.\n");
+        return;
+    }
+
+    LOGD("Parsing text: %s\n", text->valuestring);
+    info->text_data = text->valuestring;
 }
 
 rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb)
