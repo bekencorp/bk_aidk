@@ -18,6 +18,7 @@ bool agoora_tx_mic_data_flag = false;
 bool agoora_rx_spk_data_flag = false;
 #elif CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
+extern void aud_set_production_mode(int val);
 #else
 #endif
 
@@ -102,6 +103,16 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         aec_all_data_flag = false;
         dump_flag = 0;
         os_printf("dump stop\n!");
+    }
+    else if (os_strcmp(argv[1], "sweep_test_enable") == 0)
+    {
+        aud_set_production_mode(1);
+        os_printf("sweep_test_enable\n!");
+    }
+    else if (os_strcmp(argv[1], "sweep_test_disable") == 0)
+    {
+        aud_set_production_mode(0);
+        os_printf("sweep_test_disable\n!");
     }
     else
     {
