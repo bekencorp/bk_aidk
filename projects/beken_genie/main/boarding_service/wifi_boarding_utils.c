@@ -10,6 +10,7 @@
 #include <os/str.h>
 #include <os/os.h>
 
+#include "components/bluetooth/bk_dm_bluetooth.h"
 #include "components/bluetooth/bk_dm_bluetooth_types.h"
 #include "components/bluetooth/bk_dm_gap_ble_types.h"
 #include "components/bluetooth/bk_dm_gap_ble.h"
@@ -1019,6 +1020,12 @@ error:
 int wifi_boarding_adv_stop(void)
 {
     int32_t ret = 0;
+
+    if(bk_bluetooth_get_status() != BK_BLUETOOTH_STATUS_ENABLED)
+    {
+        wboard_loge("bluetooth not init !!!");
+        return BK_FAIL;
+    }
 
     const uint8_t ext_adv_inst[] = {0};
     ret = bk_ble_gap_adv_stop(sizeof(ext_adv_inst) / sizeof(ext_adv_inst[0]), ext_adv_inst);
