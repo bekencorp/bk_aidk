@@ -1180,3 +1180,131 @@ __exit:
 
 }
 
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+#include "base_64.h"
+#define CONFIG_DATASTREAM_TASK_PRIORITY 4
+static beken_thread_t datastream_thread_handle = NULL;
+beken_queue_t datastream_queue = NULL;
+#define MAX_DATASTREAM_SPLIT 4
+#define MAX_DATASTREAM_LEN 1024*4
+void parse_data_stream_main()
+{
+    char *save_ptr = NULL, *store_str = NULL,
+		*msg_payload = NULL, *decode_str = NULL;
+    const char *delim = "|";
+    char *msg_id = NULL, *last_msg_id = NULL, *cur_index_str = NULL, *total_num_str = NULL;
+    uint8_t cur_index = 0, total_num = 0, store_cur_index = 0, store_total_num = 0;
+    int  remaining_len = 0;
+    __maybe_unused int ret = 0, decode_len;
+    bk_agora_ai_data_stream_t msg;
+
+    while (1) {
+        ret = rtos_pop_from_queue(&datastream_queue, &msg, BEKEN_WAIT_FOREVER);
+        //message id
+        msg_id = strtok_r(msg.data, delim, &save_ptr);
+        cur_index_str = strtok_r(NULL, delim, &save_ptr);
+	 total_num_str = strtok_r(NULL, delim, &save_ptr);
+	 //pkt index
+	 cur_index = os_strtoul(cur_index_str, NULL, 10);
+	 //total pkt num
+	 total_num = os_strtoul(total_num_str, NULL, 10);
+	 //message content
+	 msg_payload = strtok_r(NULL, delim, &save_ptr);
+	 if (!last_msg_id) {
+		last_msg_id = os_strdup(msg_id);
+	 } else {
+		if (os_strcmp(msg_id, last_msg_id)) {
+			os_free(last_msg_id);
+			last_msg_id = os_strdup(msg_id);
+		}
+	 }
+	 if (!last_msg_id) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+        }
+        store_cur_index = cur_index;
+        store_total_num = total_num;
+        if (store_total_num > MAX_DATASTREAM_SPLIT)
+            goto new_msg_loop;
+        if (store_cur_index < 1 ||store_cur_index > store_total_num)
+            goto new_msg_loop;
+
+        //check decode string
+        if (!decode_str)
+            decode_str = psram_zalloc(1025*total_num);
+        if (store_cur_index == 1 && decode_str) {
+            os_free(decode_str);
+            decode_str = psram_zalloc(1025*total_num);
+        }
+        if (!decode_str) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+        }
+
+        //check store string and store
+        if (!store_str) {
+            store_str = psram_zalloc(MAX_DATASTREAM_LEN+1);
+            if (!store_str) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+            }
+        }
+
+        remaining_len = MAX_DATASTREAM_LEN - os_strlen(store_str);
+        os_snprintf(store_str+os_strlen(store_str), remaining_len, "%s", msg_payload);
+        //decode data stream
+        if (store_cur_index == store_total_num) {
+		BK_LOGI(TAG,"enc_data: %s\r\n", store_str);
+		base64_decode((unsigned char *)store_str, os_strlen(store_str), &decode_len, (unsigned char *)decode_str);
+		BK_LOGI(TAG,"dec_data: %s\r\n", decode_str);
+		//for customer further development
+		goto new_msg_loop;
+        }
+	 os_free(msg.data);
+	 continue;
+new_msg_loop:
+        os_free(msg.data);
+        if (last_msg_id) {
+            os_free(last_msg_id);
+            last_msg_id = NULL;
+        }
+        if (decode_str) {
+            os_free(decode_str);
+            decode_str = NULL;
+        }
+        if (store_str) {
+            os_free(store_str);
+            store_str = NULL;
+        }
+    }
+}
+
+int bk_genie_init_datastream_resource()
+{
+    int ret = 0;
+
+    ret = rtos_init_queue(&datastream_queue,
+							 "datastream_queue",
+							 sizeof(char *),
+							 4);
+
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+    ret = rtos_create_psram_thread(&datastream_thread_handle,
+                                CONFIG_DATASTREAM_TASK_PRIORITY,
+                                "parse_data_stream",
+                                (beken_thread_function_t)parse_data_stream_main,
+                                4096,
+                                (beken_thread_arg_t)0);
+#else
+    ret = rtos_create_thread(&datastream_thread_handle,
+                                CONFIG_DATASTREAM_TASK_PRIORITY,
+                                "parse_data_stream",
+                                (beken_thread_function_t)parse_data_stream_main,
+                                4096,
+                                (beken_thread_arg_t)0);
+#endif
+
+    return ret;
+}
+#endif
+

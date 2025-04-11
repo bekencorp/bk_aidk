@@ -29,6 +29,12 @@ typedef enum
 	HTTP_STATUS_AGENT_START_FAILED = 406,
 }agent_status_code;
 
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+typedef struct {
+	char *data;
+}bk_agora_ai_data_stream_t;
+#endif
+
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
 typedef struct {
 	char *url;
@@ -77,4 +83,7 @@ void bk_genie_prepare_for_smart_config(void);
 int bk_genie_wakeup_agent(void);
 int bk_genie_is_net_pan_configured(void);
 int bk_genie_post_nfc_id(uint8_t *nfc_id);
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+int bk_genie_init_datastream_resource();
+#endif
 #endif

@@ -484,6 +484,10 @@ int main(void)
         bk_genie_smart_config_init();
 #endif
 
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+        bk_genie_init_datastream_resource();
+#endif
+
         register_event_handler(handle_system_event);
         bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
 

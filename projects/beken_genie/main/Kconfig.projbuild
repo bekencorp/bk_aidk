@@ -13,6 +13,10 @@ menu "Beken_Genie Project Configuration"
 		bool "Enable auto reconnect Network"
 		default y
 
+	config ENABLE_AGORA_DATASTREAM
+		bool "Enable Agora Data Stream"
+		default n
+
 	config BK_AGORA_DEV_STARTUP_AGENT
                 bool "Enable start agent on device"
                 default n
