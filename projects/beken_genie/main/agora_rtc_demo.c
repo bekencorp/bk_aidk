@@ -150,6 +150,8 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             LOGI("User Offline.\n");
             g_agent_offline = true;
             app_event_send_msg(APP_EVT_AGENT_OFFLINE, 0);
+            if (g_connected_flag == true)
+               app_event_send_msg(APP_EVT_AGENT_DEVICE_REMOVE, 0);
             break;
         case AGORA_RTC_MSG_CONNECTION_LOST:
             LOGE("Lost connection. Please check wifi status.\n");

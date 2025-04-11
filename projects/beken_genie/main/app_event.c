@@ -46,6 +46,7 @@ typedef struct
 
 extern void lvgl_app_init(void);
 extern void lvgl_app_deinit(void);
+extern bk_err_t agora_stop(void);
 
 
 static app_evt_info_t app_evt_info;
@@ -428,6 +429,11 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_AGENT_START_FAIL:
                     LOGI("APP_EVT_AGENT_START_FAIL\n");
+                    break;
+
+                case APP_EVT_AGENT_DEVICE_REMOVE:
+                    LOGI("APP_EVT_AGENT_DEVICE_REMOVE\n");
+                    agora_stop();
                     break;
 
 //-------------------network event end ------------------------------------------------------------------////
