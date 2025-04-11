@@ -266,6 +266,8 @@ static void __on_rejoin_channel_success(connection_id_t conn_id, uint32_t uid, i
     LOGI("The uid(%d) rejoins to the channel: %s \n", uid, rtc->agora_rtc_option.p_channel_name);
 
     rtc->b_channel_joined = true;
+    agora_rtc_msg_t msg = { .code = AGORA_RTC_MSG_REJOIN_CHANNEL_SUCCESS };
+    __send_message_2_user(rtc, &msg);
 }
 
 #if CONFIG_ENABLE_AGORA_DATASTREAM
