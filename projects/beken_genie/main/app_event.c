@@ -125,6 +125,38 @@ static uint8_t battery_event_callback(evt_battery event_param)
     return 0;
 }
 
+#if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+extern bk_err_t audio_turn_on(void);
+bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
+{
+	int ret = BK_FAIL;
+	LOGI("%s ota_state :%d\n", __func__,ota_state);
+	if(audio_turn_on() != BK_OK)
+	{
+		LOGE("%s audion turn off :%d\n", __func__);
+		return ret;
+	}
+
+	switch (ota_state)
+	{
+		case APP_EVT_OTA_SUCCESS : //success
+			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_SUCCESS);
+			#endif
+		break;
+		case APP_EVT_OTA_FAIL : //fail
+			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_FAIL);
+			#endif
+		break;
+		default:
+			break;
+	}
+	LOGI("%s complete %x\n", __func__, ret);
+	return ret;
+}
+#endif
+
 //red:if high priority conflicts with low-priority, should stay at high priority states
 enum {
 	WARNING_PROVIOSION_FAIL,	//LED_FAST_BLINK_RED
@@ -505,11 +537,17 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_OTA_SUCCESS:
                     LOGI("APP_EVT_OTA_SUCCESS\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    #if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+                    bk_ota_reponse_state_to_audio(msg.event);
+                    #endif
                     break;
                 
                 case APP_EVT_OTA_FAIL:
                     LOGI("APP_EVT_OTA_FAIL\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    #if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+                    bk_ota_reponse_state_to_audio(msg.event);
+                    #endif
                     break;
 
                 default:
