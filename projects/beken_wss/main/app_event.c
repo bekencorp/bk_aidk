@@ -108,6 +108,21 @@ static uint8_t ota_event_callback(evt_ota event_param)
     return 0;
 }
 
+static uint8_t battery_event_callback(evt_battery event_param)
+{
+    switch(event_param)
+    {
+        case EVT_BATTERY_CHARGING:
+            app_event_send_msg(APP_EVT_CHARGING, 0);
+            break;
+        case EVT_BATTERY_LOW_VOLTAGE:
+            app_event_send_msg(APP_EVT_LOW_VOLTAGE, 0);
+            break;  
+        default :
+            break;
+    }
+    return 0;
+}
 
 //red:if high priority conflicts with low-priority, should stay at high priority states
 enum {
@@ -133,30 +148,30 @@ enum {
 
 
 #define COUNTDOWN_INFINITE 0xFFFFFFFF
-/* ÐÂÔöµ¹¼ÆÊ±Æ±Ô´ÀàÐÍ,°´ÕÕÓÅÏÈ¼¶ÅÅÐò*/
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Æ±Ô´ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½*/
 typedef enum {
-    COUNTDOWN_TICKET_PROVISIONING,   // ÅäÍøµ¹¼ÆÊ±(5·ÖÖÓ), ×î¸ßÓÅÏÈ¼¶
-    COUNTDOWN_TICKET_NETWORK_ERROR,  //ÍøÂç´íÎóµ¹¼ÆÊ±(5·ÖÖÓ) £¬ÖÐÓÅÏÈ¼¶
-    COUNTDOWN_TICKET_STANDBY,        // ´ý»úµ¹¼ÆÊ±(3·ÖÖÓ)£¬µÍÓÅÏÈ¼¶
-    COUNTDOWN_TICKET_OTA,      // OTA ÊÂ¼þ£¬ÌØÊâÂß¼­£¬²»²ÎÓë±È½Ï
+    COUNTDOWN_TICKET_PROVISIONING,   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±(5ï¿½ï¿½ï¿½ï¿½), ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½
+    COUNTDOWN_TICKET_NETWORK_ERROR,  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½óµ¹¼ï¿½Ê±(5ï¿½ï¿½ï¿½ï¿½) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½
+    COUNTDOWN_TICKET_STANDBY,        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±(3ï¿½ï¿½ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½
+    COUNTDOWN_TICKET_OTA,      // OTA ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È½ï¿½
     COUNTDOWN_TICKET_MAX
 } countdown_ticket_t;
 
-/* ¸÷Æ±Ô´¶ÔÓ¦µÄµ¹¼ÆÊ±Ê±³¤(ºÁÃë) */
+/* ï¿½ï¿½Æ±Ô´ï¿½ï¿½Ó¦ï¿½Äµï¿½ï¿½ï¿½Ê±Ê±ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½) */
 static const uint32_t s_ticket_durations[COUNTDOWN_TICKET_MAX] = {
-    [COUNTDOWN_TICKET_PROVISIONING] = 5 * 60 * 1000,  // 5·ÖÖÓ
-    [COUNTDOWN_TICKET_NETWORK_ERROR] = 5 * 60 * 1000,  // 5·ÖÖÓ
-    [COUNTDOWN_TICKET_STANDBY]      = 3 * 60 * 1000,  // 3·ÖÖÓ
-    [COUNTDOWN_TICKET_OTA]    = COUNTDOWN_INFINITE,              // ÔÝÍ£µ¹¼ÆÊ±
+    [COUNTDOWN_TICKET_PROVISIONING] = 5 * 60 * 1000,  // 5ï¿½ï¿½ï¿½ï¿½
+    [COUNTDOWN_TICKET_NETWORK_ERROR] = 5 * 60 * 1000,  // 5ï¿½ï¿½ï¿½ï¿½
+    [COUNTDOWN_TICKET_STANDBY]      = 3 * 60 * 1000,  // 3ï¿½ï¿½ï¿½ï¿½
+    [COUNTDOWN_TICKET_OTA]    = COUNTDOWN_INFINITE,              // ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½Ê±
 };
 
-static uint32_t s_active_tickets = 0;  // Ê¹ÓÃÎ»ÑÚÂë¼ÇÂ¼»îÔ¾Æ±Ô´
+static uint32_t s_active_tickets = 0;  // Ê¹ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ô¾Æ±Ô´
 
-/* ¸üÐÂµ¹¼ÆÊ±×´Ì¬ */
+/* ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½Ê±×´Ì¬ */
 static void update_countdown()
 {
 
-    // ¼ì²éOTAÔÝÍ£Æ±£¨×î¸ßÓÅÏÈ¼¶£©
+    // ï¿½ï¿½ï¿½OTAï¿½ï¿½Í£Æ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½
     if(s_active_tickets & (1 << COUNTDOWN_TICKET_OTA)) {
         LOGI("ota event start, stop countdown\r\n");
         stop_countdown();
@@ -178,7 +193,7 @@ static void update_countdown()
         }
     }
 
-    // Ó¦ÓÃµ¹¼ÆÊ±²Ã¾ö½á¹û
+    // Ó¦ï¿½Ãµï¿½ï¿½ï¿½Ê±ï¿½Ã¾ï¿½ï¿½ï¿½ï¿½
     if(selected_ticket != COUNTDOWN_TICKET_MAX) {
         const uint32_t max_duration = s_ticket_durations[selected_ticket];
 
@@ -266,6 +281,7 @@ static void app_event_thread(beken_thread_arg_t data)
     ota_event_callback_register(ota_event_callback);
     update_countdown();
 
+    battery_event_callback_register(battery_event_callback);
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -316,7 +332,7 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_NETWORK_PROVISIONING:
                     LOGI("APP_EVT_NETWORK_PROVISIONING\n");
                     is_network_provisioning = 1;
-                    //ÓÅÏÈ¼¶×î¸ß
+                    //ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_PROVISIONING);
                     indicates_state |= (1<<INDICATES_PROVISIONING);
@@ -448,7 +464,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_bluetooth_deinit();
                     break;
 
-                // OTAÏà¹ØÊÂ¼þ
+                // OTAï¿½ï¿½ï¿½ï¿½Â¼ï¿½
                 case APP_EVT_OTA_START:
                     LOGI("APP_EVT_OTA_START\n");
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_OTA);

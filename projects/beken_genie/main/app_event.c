@@ -109,6 +109,21 @@ static uint8_t ota_event_callback(evt_ota event_param)
     return 0;
 }
 
+static uint8_t battery_event_callback(evt_battery event_param)
+{
+    switch(event_param)
+    {
+        case EVT_BATTERY_CHARGING:
+            app_event_send_msg(APP_EVT_CHARGING, 0);
+            break;
+        case EVT_BATTERY_LOW_VOLTAGE:
+            app_event_send_msg(APP_EVT_LOW_VOLTAGE, 0);
+            break;  
+        default :
+            break;
+    }
+    return 0;
+}
 
 //red:if high priority conflicts with low-priority, should stay at high priority states
 enum {
@@ -266,7 +281,8 @@ static void app_event_thread(beken_thread_arg_t data)
     s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
     ota_event_callback_register(ota_event_callback);
     update_countdown();
-
+    
+    battery_event_callback_register(battery_event_callback);
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
