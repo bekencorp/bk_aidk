@@ -374,11 +374,16 @@ bk_err_t audio_turn_on(void)
     {
         LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
     }
-
+    
 #if CONFIG_USE_G722_CODEC
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
 #elif CONFIG_USE_OPUS_CODEC
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS_60MS_FRAME_AND_AUD_DAC_24k_SAMPLE_RATE
+    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 16000;//24000;
+    #endif
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
