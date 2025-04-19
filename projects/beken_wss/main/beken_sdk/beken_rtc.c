@@ -60,42 +60,43 @@ static const uint8 crc8_table[256] =
 	0xF4, 0x03, 0x4D, 0xBA, 0xD1, 0x26, 0x68, 0x9F
 };
 
-#define RING_BUFFER_DELAY 20
 #if CONFIG_AUD_INTF_SUPPORT_OPUS
 #define AUDIO_GENERAL_PACKET_SIZE 320
+#define AUDIO_MAX_PACKET_SIZE (320+16)
+#define AUDIO_MAX_PACKET_COUNT  3000
+#define BUFFER_SIZE (AUDIO_MAX_PACKET_SIZE * AUDIO_MAX_PACKET_COUNT)
+#define RING_BUFFER_INTERVAL 20
 #else
 #define AUDIO_GENERAL_PACKET_SIZE 160
+#define AUDIO_MAX_PACKET_SIZE (160+16)
+#define AUDIO_MAX_PACKET_COUNT  3000
+#define BUFFER_SIZE (AUDIO_MAX_PACKET_SIZE * AUDIO_MAX_PACKET_COUNT)
+#define RING_BUFFER_INTERVAL 20
 #endif
-#define AUDIO_PACKET_SIZE 160+16
-#define BUFFER_SIZE 528000//(PACKET_SIZE * 3000)
 
-data_buffer_t *data_buffer_init(void) {
-	data_buffer_t *ab = (data_buffer_t *)psram_malloc(sizeof(data_buffer_t));
+data_buffer_fixed_t *fixed_data_buffer_init(size_t buffer_size) {
+	data_buffer_fixed_t *ab = (data_buffer_fixed_t *)psram_malloc(sizeof(data_buffer_fixed_t));
 	if (ab == NULL)
 	{
 		BK_LOGE(TAG, "malloc ab fail\n");
 		return NULL;
 	}
-	memset(ab, 0, sizeof(data_buffer_t));
+	memset(ab, 0, sizeof(data_buffer_fixed_t));
 
-	ab->buffer = psram_malloc(BUFFER_SIZE);
+	ab->buffer = psram_malloc(buffer_size);
 	if (ab->buffer == NULL)
 	{
 		BK_LOGE(TAG, "malloc data buffer fail\n");
 		return NULL;
 	}
-	memset(ab->buffer, 0, BUFFER_SIZE);
+	memset(ab->buffer, 0, buffer_size);
 	ab->head = 0;
 	ab->tail = 0;
-	int ret = rtos_init_semaphore(&ab->mutex, 1);
-	if (ret != BK_OK) {
-		BK_LOGE(TAG, "Failed to create sema!\n");
-	}
-	rtos_set_semaphore(&ab->mutex);
+
 	return ab;
 }
 
-void data_buffer_deinit(data_buffer_t *ab) {
+void fixed_data_buffer_deinit(data_buffer_fixed_t *ab) {
 	if (ab == NULL)
 	{
 		BK_LOGE(TAG, "buffer deinit already\n");
@@ -108,26 +109,21 @@ void data_buffer_deinit(data_buffer_t *ab) {
 	}
 	ab->head = 0;
 	ab->tail = 0;
-	int ret = rtos_deinit_semaphore(&ab->mutex);
-	if (ret != BK_OK) {
-		BK_LOGE(TAG, "Failed to deinit sema!\n");
-	}
-	memset(ab, 0, sizeof(data_buffer_t));
+
+	memset(ab, 0, sizeof(data_buffer_fixed_t));
 	if(ab) {
 		psram_free(ab);
 	}
 }
 
-bool data_buffer_write(data_buffer_t *ab, const uint8_t *data, size_t len) {
+bool fixed_data_buffer_write(data_buffer_fixed_t *ab, const uint8_t *data, size_t len) {
 	if (len > BUFFER_SIZE) {
 		return false;
 	}
 
-	rtos_get_semaphore(&ab->mutex, portMAX_DELAY);
 
 	size_t free_space = (ab->tail > ab->head) ? (ab->tail - ab->head) : (BUFFER_SIZE - ab->head + ab->tail);
 	if (free_space < len) {
-		rtos_set_semaphore(&ab->mutex);
 		return false;
 	}
 
@@ -141,20 +137,17 @@ bool data_buffer_write(data_buffer_t *ab, const uint8_t *data, size_t len) {
 
 	ab->head = (ab->head + len) % BUFFER_SIZE;
 
-	rtos_set_semaphore(&ab->mutex);
 	return true;
 }
 
-bool data_buffer_read(data_buffer_t *ab, uint8_t *data, size_t len) {
+bool fixed_data_buffer_read(data_buffer_fixed_t *ab, uint8_t *data, size_t len) {
 	if (len > BUFFER_SIZE) {
 		return false;
 	}
 
-	rtos_get_semaphore(&ab->mutex, portMAX_DELAY);
 
 	size_t available_data = (ab->head >= ab->tail) ? (ab->head - ab->tail) : (BUFFER_SIZE - ab->tail + ab->head);
 	if (available_data < len) {
-		rtos_set_semaphore(&ab->mutex);
 		return false;
 	}
 
@@ -167,9 +160,136 @@ bool data_buffer_read(data_buffer_t *ab, uint8_t *data, size_t len) {
 	}
 
 	ab->tail = (ab->tail + len) % BUFFER_SIZE;
-
-	rtos_set_semaphore(&ab->mutex);
 	return true;
+}
+
+void fixed_data_check(void *param)
+{
+	rtc_session *session = (rtc_session *) param;
+	if(session == NULL) {
+		BK_LOGE(TAG, "session null...\n");
+		return;
+	}
+	uint8_t *packet = NULL;
+	packet = os_zalloc(AUDIO_MAX_PACKET_SIZE);
+	if (packet != NULL)
+	{
+		rtos_lock_mutex(&session->rtc_mutex);
+		if (session->ab_buffer && fixed_data_buffer_read(session->ab_buffer, packet, AUDIO_MAX_PACKET_SIZE) && session) {
+			_rtc_websocket_audio_receive_data(session, packet, AUDIO_MAX_PACKET_SIZE, session->rtc_channel_t->cb);
+			BK_LOGD(TAG, "data coming...\n");
+		} else {
+			BK_LOGD(TAG, "Buffer empty, waiting for data...\n");
+		}
+		rtos_unlock_mutex(&session->rtc_mutex);
+	}
+	os_free(packet);
+}
+
+data_buffer_t *data_buffer_init (size_t buffer_size, size_t length_buffer_size) {
+	data_buffer_t *rb = (data_buffer_t *)psram_malloc(sizeof(data_buffer_t));
+	if (rb == NULL)
+	{
+		BK_LOGE(TAG, "malloc rb fail\n");
+		return NULL;
+	}
+	memset(rb, 0, sizeof(data_buffer_t));
+
+	rb->buffer = (uint8_t*) psram_malloc (buffer_size);
+	if (rb->buffer == NULL)
+	{
+		BK_LOGE(TAG, "malloc buffer_size fail\n");
+		psram_free(rb);
+		return NULL;
+	}
+
+	memset(rb->buffer, 0, buffer_size);
+	rb->size = buffer_size;
+	rb->read_index = 0;
+	rb->write_index = 0;
+	rb->length_buffer = (size_t*) psram_malloc (length_buffer_size * sizeof (size_t));
+	if (rb->length_buffer == NULL)
+	{
+		BK_LOGE(TAG, "malloc length_buffer fail\n");
+		psram_free(rb);
+		psram_free(rb->buffer);
+		return NULL;
+	}
+	memset((size_t*)rb->length_buffer, 0, length_buffer_size * sizeof (size_t));
+	rb->length_read_index = 0;
+	rb->length_write_index = 0;
+	return rb;
+}
+
+void data_buffer_deinit(data_buffer_t *rb) {
+
+	if (rb == NULL)
+	{
+		BK_LOGE(TAG, "buffer deinit already\n");
+		return;
+	}
+
+	if (rb->buffer)
+	{
+		psram_free(rb->buffer);
+	}
+
+	if (rb->length_buffer)
+	{
+		psram_free (rb->length_buffer);
+	}
+
+	memset(rb, 0, sizeof(data_buffer_t));
+	if (rb)
+	{
+		psram_free(rb);
+	}
+}
+
+void data_buffer_write (data_buffer_t* rb, const uint8_t *data, size_t data_len) {
+
+	size_t remaining = rb->size - rb->write_index;
+	if (data_len <= remaining) {
+		memcpy (&rb->buffer [rb->write_index], data, data_len);
+		rb->write_index += data_len;
+	} else {
+		size_t first_part = remaining;
+		memcpy (&rb->buffer [rb->write_index], data, first_part);
+		size_t second_part = data_len - first_part;
+		memcpy (rb->buffer, &data [first_part], second_part);
+		rb->write_index = second_part;
+	}
+	rb->length_buffer [rb->length_write_index] = data_len;
+	rb->length_write_index = (rb->length_write_index + 1) % AUDIO_MAX_PACKET_COUNT;
+}
+
+size_t data_buffer_read(data_buffer_t *rb, uint8_t *output) {
+
+	if (rb->length_read_index == rb->length_write_index) {
+		return 0;
+	}
+	size_t data_len = rb->length_buffer [rb->length_read_index];
+	size_t available = (rb->write_index >= rb->read_index)? (rb->write_index - rb->read_index) : (rb->size - rb->read_index + rb->write_index);
+	if (available < data_len) {
+		return 0;
+	}
+	if (rb->write_index >= rb->read_index) {
+		memcpy (output, &rb->buffer [rb->read_index], data_len);
+		rb->read_index += data_len;
+	} else {
+		size_t first_part = rb->size - rb->read_index;
+		if (first_part >= data_len) {
+			memcpy (output, &rb->buffer [rb->read_index], data_len);
+			rb->read_index += data_len;
+		} else {
+			memcpy (output, &rb->buffer [rb->read_index], first_part);
+			size_t second_part = data_len - first_part;
+			memcpy (&output [first_part], rb->buffer, second_part);
+			rb->read_index = second_part;
+		}
+	}
+	rb->length_read_index = (rb->length_read_index + 1) % AUDIO_MAX_PACKET_COUNT;
+	return data_len;
 }
 
 void data_check(void *param)
@@ -180,15 +300,18 @@ void data_check(void *param)
 		return;
 	}
 	uint8_t *packet = NULL;
-	packet = os_zalloc(AUDIO_PACKET_SIZE);
+	packet = os_zalloc(AUDIO_MAX_PACKET_SIZE);
+	int size = 0;
 	if (packet != NULL)
 	{
-		if (session->ab_buffer && data_buffer_read(session->ab_buffer, packet, AUDIO_PACKET_SIZE) && session) {
-			_rtc_websocket_audio_receive_data(session, packet, AUDIO_PACKET_SIZE, session->rtc_channel_t->cb);
+		rtos_lock_mutex(&session->rtc_mutex);
+		if (session->opus_buffer && (size = data_buffer_read(session->opus_buffer, packet)) && session) {
+			_rtc_websocket_audio_receive_data(session, packet, size, session->rtc_channel_t->cb);
 			BK_LOGD(TAG, "data coming...\n");
 		} else {
 			BK_LOGD(TAG, "Buffer empty, waiting for data...\n");
 		}
+		rtos_unlock_mutex(&session->rtc_mutex);
 	}
 	os_free(packet);
 }
@@ -202,7 +325,11 @@ void data_start_timeout_check(uint32_t timeout, void *param)
 		return;
 	}
 	BK_LOGI(TAG,"ring_data status timer start!!!\n");
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
 	err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)data_check, param);
+#else
+	err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)fixed_data_check, param);
+#endif
 	BK_ASSERT(kNoErr == err);
 	err = rtos_start_timer(&session->data_read_tmr);
 	BK_ASSERT(kNoErr == err);
@@ -617,22 +744,21 @@ void rtc_client_transmission_unpack(db_channel_t *channel, uint8_t *data, uint32
 
 void _rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len, rtc_user_audio_rx_data_handle_cb cb)
 {
-	rtos_lock_mutex(&rtc_session->rtc_mutex);
 	rtc_client_transmission_unpack(rtc_session->rtc_channel_t, data, len, cb);
-	rtos_unlock_mutex(&rtc_session->rtc_mutex);
 }
 
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
-	if (rtc_session->ab_buffer && (!data_buffer_write(rtc_session->ab_buffer, data, len))) {
+	if (rtc_session->ab_buffer && (!fixed_data_buffer_write(rtc_session->ab_buffer, data, len))) {
 		BK_LOGE(TAG, "Buffer full, dropping packet!\n");
 	}
 }
 
 void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
-	if (rtc_session->rtc_channel_t->cb)
-		rtc_client_transmission_unpack(rtc_session->rtc_channel_t, data, len, rtc_session->rtc_channel_t->cb);
+	if (rtc_session->opus_buffer) {
+		data_buffer_write(rtc_session->opus_buffer, data, len);
+	}
 }
 
 int rtc_websocket_audio_send_data(rtc_session *rtc_session, uint8_t *data_ptr, size_t data_len)
@@ -642,9 +768,9 @@ int rtc_websocket_audio_send_data(rtc_session *rtc_session, uint8_t *data_ptr, s
 	db_channel_t *rtc_channel_t = rtc_session->rtc_channel_t;
 
 	rtc_client_transmission_pack(rtc_channel_t, data_ptr, data_len);
-	websocket_client_send_binary(bk_rtc_ws, (const char *)rtc_channel_t->tbuf, (data_len + HEAD_SIZE_TOTAL), 10*1000);
+	int ret = websocket_client_send_binary(bk_rtc_ws, (const char *)rtc_channel_t->tbuf, (data_len + HEAD_SIZE_TOTAL), 10*1000);
 	rtos_unlock_mutex(&rtc_session->rtc_mutex);
-	return BK_OK;
+	return ret;
 }
 
 int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtype) {
@@ -663,8 +789,6 @@ int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtyp
     switch (msgtype) {
         case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
-			//			"{\"type\":\"hello\",\"version\": 1,\"transport\":\"websocket\",\"audio_params\":{\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}",
-			//			100);
 						"{\"type\":\"hello\",\"version\": 1,\"config\":{\"audio\":{\"format\":\"%s\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}}",
 						str, 20);
             BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
@@ -724,14 +848,22 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
 	}
 	rtc_sess->rtc_channel_t->cb = cb;
 	rtos_init_mutex(&rtc_sess->rtc_mutex);
-
-	rtc_sess->ab_buffer = data_buffer_init();
-	if (rtc_sess->ab_buffer == NULL)
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+	rtc_sess->opus_buffer = data_buffer_init(BUFFER_SIZE, AUDIO_MAX_PACKET_COUNT);
+	if (rtc_sess->opus_buffer == NULL)
 	{
 		BK_LOGE(TAG, "%s, %d, data_buffer_init fail\n", __func__, __LINE__);
 		goto fail;
 	}
-	data_start_timeout_check(RING_BUFFER_DELAY, (void *)rtc_sess);
+#else
+	rtc_sess->ab_buffer = fixed_data_buffer_init(BUFFER_SIZE);
+	if (rtc_sess->ab_buffer == NULL)
+	{
+		BK_LOGE(TAG, "%s, %d, fixed_data_buffer_init fail\n", __func__, __LINE__);
+		goto fail;
+	}
+#endif
+	data_start_timeout_check(RING_BUFFER_INTERVAL, (void *)rtc_sess);
     return rtc_sess;
 
 fail:
@@ -754,8 +886,14 @@ bk_err_t rtc_websocket_stop(rtc_session *rtc_session)
 	}
 
 	data_stop_timeout_check(&rtc_session->data_read_tmr);
-	data_buffer_deinit(rtc_session->ab_buffer);
+
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+	data_buffer_deinit(rtc_session->opus_buffer);
+	rtc_session->opus_buffer = NULL;
+#else
+	fixed_data_buffer_deinit(rtc_session->ab_buffer);
 	rtc_session->ab_buffer = NULL;
+#endif
 
 	if(rtc_session->bk_rtc_client) {
 		LOGE("%s stop websocket client\r\n", __func__);

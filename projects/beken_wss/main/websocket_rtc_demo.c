@@ -458,7 +458,7 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
         text_info_t info = {};
         info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
         rtc_websocket_parse_text(&info, root);
-        LOGE("text: type:%d data:%s\n", info.text_type, info.text_data);
+        LOGE("text: type:%s data:%s\n", info.text_type ? "reply":"request", info.text_data);
     } else {
         LOGE("Error: Unknown type: %s\n", type->valuestring);
     }

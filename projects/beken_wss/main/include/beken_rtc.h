@@ -62,13 +62,25 @@ typedef struct
 } db_channel_t;
 
 /**
- * @brief rx ring buffer
+ * @brief rx ring buffer, fixed length
  */
 typedef struct {
     uint8_t *buffer;
     size_t head;
     size_t tail;
-    beken_semaphore_t mutex;
+} data_buffer_fixed_t;
+
+/**
+ * @brief rx ring buffer
+ */
+typedef struct {
+	uint8_t *buffer;
+	size_t size;
+	size_t read_index;
+	size_t write_index;
+	size_t *length_buffer;
+	size_t length_read_index;
+	size_t length_write_index;
 } data_buffer_t;
 
 /**
@@ -83,7 +95,8 @@ typedef struct {
 	transport bk_rtc_client;
 	db_channel_t *rtc_channel_t;
 	beken_mutex_t rtc_mutex;
-	data_buffer_t *ab_buffer;
+	data_buffer_t *opus_buffer;
+	data_buffer_fixed_t *ab_buffer;
 	beken_timer_t data_read_tmr;
 }rtc_session;
 
