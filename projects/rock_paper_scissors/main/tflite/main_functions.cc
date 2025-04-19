@@ -144,6 +144,13 @@ uint8_t post_process(int8_t *out_data, uint8_t *result)
     int boxes_num = 0;
     Box *boxes = NULL;
 
+    if(!result)
+    {
+        MicroPrintf("result is NULL !!!\n");
+    }
+
+    *result = GESTURE_MAX;
+
     boxes = (Box *)malloc(max_boxes_num * sizeof(Box));
     if(boxes == NULL){
         return 0;
@@ -206,7 +213,7 @@ uint8_t post_process(int8_t *out_data, uint8_t *result)
             }
             else
             {
-                *result = GESTURE_NONE;
+                *result = GESTURE_MAX;
             }
 
             break;

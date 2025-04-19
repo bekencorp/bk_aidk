@@ -27,7 +27,7 @@ typedef enum {
     GESTURE_ROCK,
     GESTURE_PAPER,
     GESTURE_SCISSORS,
-    GESTURE_NONE,
+    GESTURE_MAX,
 } gesture_result_t;
 
 // Initializes all data needed for the example. The name is important, and needs

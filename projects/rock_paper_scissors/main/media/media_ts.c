@@ -7,10 +7,13 @@
 #include "driver/jpeg_dec_types.h"
 #include <os/os.h>
 #include <os/mem.h>
+
 #if CONFIG_LVGL
-#include "lvgl.h"
+    #include "lvgl.h"
 #endif
 #include "main_functions.h"
+#include "media_audio.h"
+#include <stdlib.h>
 
 enum
 {
@@ -35,6 +38,9 @@ typedef struct
 } jdec_data_to_app_data_msg_t;
 
 #define DEC_SEQ_LINE_COUNT 16
+#define TS_PIXEL 192
+#define AUDIO_PROMPT 1
+
 static void media_ts_notify(void *arg);
 
 static beken_queue_t s_media_ts_queue;
@@ -45,8 +51,8 @@ static uint8_t s_ts_process_status = TS_PROCESS_IDLE;
 static uint8_t *display_frame = NULL;
 
 #if CONFIG_LVGL
-extern lv_img_dsc_t gesture_img_dsc;
-extern lv_obj_t *camera_img;
+    extern lv_img_dsc_t gesture_img_dsc;
+    extern lv_obj_t *camera_img;
 #endif
 
 __attribute__((section(".itcm_sec_code"))) static int rgb565_to_rgb888_convert_ext(uint16_t *src_buffer, uint8_t *dst_buffer, int img_width, int img_height, uint8_t sign)
@@ -187,7 +193,7 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
 {
     int32_t ret = 0;
     uint8_t *tmp_buff1 = NULL, *tmp_buff2 = NULL;
-    uint32_t final_pixel = 192;
+    uint32_t final_pixel = TS_PIXEL;
 
     do
     {
@@ -232,6 +238,7 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
         psram_free(tmp_buff2);
 
         tmp_buff2 = psram_malloc(final_pixel *final_pixel * 3);
+
         if (!tmp_buff2)
         {
             appm_loge("alloc fail 4");
@@ -267,6 +274,19 @@ static int32_t yuyv_big_endian_to_rgb888(uint8_t *input, uint8_t **output, uint3
     return ret;
 }
 
+static int8_t hand_compare(gesture_result_t local_hande, gesture_result_t peer_hand)
+{
+    const int8_t compare_map[GESTURE_MAX][GESTURE_MAX] =
+    {
+        [GESTURE_ROCK] = {0, -1, 1},
+        [GESTURE_PAPER] = {1, 0, -1},
+        [GESTURE_SCISSORS] = {-1, 1, 0},
+    };
+
+    return compare_map[local_hande][peer_hand];
+}
+
+
 static void media_ts_thread_task(beken_thread_arg_t data)
 {
     extern void tflite_task_init_c(void *arg);
@@ -280,9 +300,11 @@ static void media_ts_thread_task(beken_thread_arg_t data)
     uint8_t *tmp_buff1 = NULL, *tmp_buff2 = NULL;
     complex_buffer_t *request_buff = NULL;
     frame_buffer_t *frame = NULL;
-    uint8_t detect_result = GESTURE_NONE;
+    uint8_t detect_result = GESTURE_MAX;
 
     appm_logi("");
+
+    audio_init();
 
     if (CAMERA_TYPE == UVC_CAMERA)
     {
@@ -418,7 +440,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                 }
 
                 appm_logi("try ts");
-                tflite_process(tmp_buff2, 192 * 192 * 3, &detect_result);
+                tflite_process(tmp_buff2, TS_PIXEL *TS_PIXEL * 3, &detect_result);
                 appm_logi("ts done");
                 s_ts_process_status = TS_PROCESS_IDLE;
             }
@@ -430,22 +452,54 @@ static void media_ts_thread_task(beken_thread_arg_t data)
         }
         else if (CAMERA_TYPE == DVP_CAMERA)
         {
+#if AUDIO_PROMPT
+            appm_logi("ready ?");
+            audio_play(TONE_ENUM_GET_READY, 0);
+
+            void *wait_cb(void)
+            {
+                frame = frame_buffer_fb_display_pop_wait();
+                return frame;
+            }
+
+            void wait_free_cb(void *arg)
+            {
+#if ENABLE_LCD_SHOW_CAMERA
+                frame_buffer_fb_free(arg, MODULE_USER);
+#else
+                frame_buffer_fb_direct_free(arg);
+#endif
+            }
+
+            appm_logi("wait ready end");
+            audio_wait_play_end(wait_cb, wait_free_cb, 0);
+            appm_logi("ready end");
+#else
+
 #if ENABLE_LCD_SHOW_CAMERA
             frame = frame_buffer_fb_read(MODULE_USER);
 #else
             frame = frame_buffer_fb_display_pop_wait();
 #endif
+#endif
 
             if (!frame)
             {
+                appm_loge("frame NULL");
                 goto END;
             }
+
+#if AUDIO_PROMPT
+            audio_play(TONE_ENUM_PLS_STOP_HAND, 1);
+            audio_play(TONE_ENUM_DETECTING, 1);
+#else
 
             if (s_ts_process_status != TS_PROCESS_ING)
             {
                 goto END;
             }
 
+#endif
             appm_logd("dvp frame %dx%d_fmt %d len %d", frame->width, frame->height, frame->fmt, frame->length);
 
             uint32_t start_time = rtos_get_time();
@@ -499,18 +553,82 @@ static void media_ts_thread_task(beken_thread_arg_t data)
 
             uint32_t end_time = rtos_get_time();
             appm_logi("try ts, covert time %d ms", end_time - start_time);//124ms(soft jpeg dec) + 78ms(covert) with soft covert
-            tflite_process(tmp_buff2, 192 * 192 * 3, &detect_result);
+            tflite_process(tmp_buff2, TS_PIXEL *TS_PIXEL * 3, &detect_result);
             appm_logi("ts done");
-            if (detect_result != GESTURE_NONE)
+
+            if (detect_result != GESTURE_MAX)
             {
-                appm_logi("+++++++++detect_result = %d\r\n", detect_result);
+                appm_logi("+++++++++detect_result = %d", detect_result);
 
                 uint16_t *buf16 = (uint16_t *)display_frame;
-                for (int k = 0; k < 192 * 192; k++)
+
+                for (int k = 0; k < TS_PIXEL *TS_PIXEL; k++)
                 {
                     buf16[k] = ((buf16[k] & 0xff00) >> 8) | ((buf16[k] & 0x00ff) << 8);
                 }
+
                 lv_img_set_src(camera_img, &gesture_img_dsc);
+#if AUDIO_PROMPT
+                uint8_t my_hand = random() % 3;
+                appm_logi("localhand %d peerhand %d", my_hand, detect_result);
+                int8_t compare_res = hand_compare(my_hand, detect_result);
+
+                audio_play(TONE_ENUM_YOUR_SHOW, 1);
+
+                switch (detect_result)
+                {
+                case GESTURE_ROCK:
+                    audio_play(TONE_ENUM_ROCK, 1);
+                    break;
+
+                case GESTURE_PAPER:
+                    audio_play(TONE_ENUM_PAPER, 1);
+                    break;
+
+                case GESTURE_SCISSORS:
+                    audio_play(TONE_ENUM_SCISSORS, 1);
+                    break;
+                }
+
+                audio_play(TONE_ENUM_MY_SHOW, 1);
+
+                switch (my_hand)
+                {
+                case GESTURE_ROCK:
+                    audio_play(TONE_ENUM_ROCK, 1);
+                    break;
+
+                case GESTURE_PAPER:
+                    audio_play(TONE_ENUM_PAPER, 1);
+                    break;
+
+                case GESTURE_SCISSORS:
+                    audio_play(TONE_ENUM_SCISSORS, 1);
+                    break;
+                }
+
+                if (compare_res > 0)
+                {
+                    audio_play(TONE_ENUM_YOU_LOSS, 1);
+                }
+                else if (compare_res < 0)
+                {
+                    audio_play(TONE_ENUM_YOU_WIN, 1);
+                }
+                else
+                {
+                    audio_play(TONE_ENUM_DRAW, 1);
+                }
+
+#endif
+            }
+            else
+            {
+#if AUDIO_PROMPT
+                appm_logi("tone start");
+                audio_play(TONE_ENUM_CANT_DET, 1);
+                appm_logi("tone done");
+#endif
             }
         }
 
@@ -545,6 +663,9 @@ END:;
         }
 
         s_ts_process_status = TS_PROCESS_IDLE;
+#if AUDIO_PROMPT
+        rtos_delay_milliseconds(5000);
+#endif
     }
 }
 
@@ -584,12 +705,14 @@ int32_t media_ts_main(void)
 
     appm_logi("");
 
-    display_frame = psram_malloc(192 * 192 * 2);
+    display_frame = psram_malloc(TS_PIXEL *TS_PIXEL * 2);
+
     if (display_frame == NULL)
     {
         appm_loge("%s display_frame malloc failed", __func__);
         return -1;
     }
+
     gesture_img_dsc.data = display_frame;
 
     ret = rtos_init_queue(&s_media_ts_queue,

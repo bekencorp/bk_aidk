@@ -12,6 +12,7 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../components/codec/legacy/media
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
     $ENV{ARMINO_PATH}/../components/bk_thirdparty
+	$ENV{ARMINO_PATH}/../components/audio_play
     $ENV{ARMINO_PATH}/../properties/modules
     $ENV{ARMINO_PATH}/../properties/modules/video_codec
     $ENV{ARMINO_PATH}/../properties/modules/audio_codec
@@ -30,5 +31,6 @@ armino_build_set_property(COMPILE_OPTIONS "-Wno-permissive" APPEND)
 armino_build_set_property(CXX_COMPILE_OPTIONS "-fpermissive" APPEND)
 armino_build_set_property(CXX_COMPILE_OPTIONS "-Wno-permissive" APPEND)
 armino_build_set_property(COMPILE_OPTIONS "-Wno-switch" APPEND)
+armino_build_set_property(COMPILE_OPTIONS "-Wno-unused-label" APPEND)
 
 #armino_build_set_property(COMPILE_DEFINITIONS "-DUART_BAUD_RATE=2000000" APPEND)
