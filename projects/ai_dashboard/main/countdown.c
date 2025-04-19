@@ -26,8 +26,6 @@ void start_countdown(uint32_t time_ms)
 {
     bk_err_t result;
 
-	bk_config_sync_flash();
-
 	if (g_countdown_timer.handle == NULL)
 	{
 		result = rtos_init_oneshot_timer(&g_countdown_timer, time_ms, CountdownCallback, NULL, NULL);
