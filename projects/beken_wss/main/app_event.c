@@ -18,6 +18,7 @@
 #include "countdown.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "boarding_service.h"
+#include "bk_factory_config.h"
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 #include "aud_intf.h"
 #include "aud_intf_types.h"
@@ -463,7 +464,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_SHUTDOWN_LOW_BATTERY:
                     LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
-                    //todo
+                    bk_config_sync_flash();
                     break;
 
                 case APP_EVT_CLOSE_BLUETOOTH:
