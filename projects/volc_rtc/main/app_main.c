@@ -9,7 +9,9 @@
 #include "sys_driver.h"
 #include "sys_hal.h"
 #include <string.h>
-
+#if (CONFIG_SYS_CPU0)
+#include "VolcEngineRTCLite.h"
+#endif
 
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
@@ -85,6 +87,7 @@ void user_app_main(void)
     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_240M);
 
     // beken_rtc_cli_init();
+    os_printf("VolcEngineRTCLite lib version:%s\r\n", byte_rtc_get_version());
 #endif
 
 }

@@ -31,4 +31,4 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
 endif()
 
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init avdk_utils )
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init avdk_utils VolcEngineRTCLite)
