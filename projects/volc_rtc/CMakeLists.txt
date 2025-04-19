@@ -9,8 +9,8 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_AVDK_DIR}/components/codec/legacy 
     $ENV{ARMINO_AVDK_DIR}/components/codec/legacy/media/audio
     $ENV{ARMINO_AVDK_DIR}/components/codec/legacy/media
-    $ENV{ARMINO_AVDK_DIR}/components/bk_thirdparty/agora-iot-sdk
     $ENV{ARMINO_AVDK_DIR}/components/bk_thirdparty
+    $ENV{ARMINO_AVDK_DIR}/components/bk_thirdparty/zlib
     $ENV{ARMINO_AVDK_DIR}/components/multimedia
 	$ENV{ARMINO_AVDK_DIR}/components/avdk_utils
     $ENV{ARMINO_AVDK_DIR}/properties/modules 
