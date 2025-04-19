@@ -535,7 +535,14 @@ bk_err_t bk_agora_rtc_start(agora_rtc_option_t *option)
     //channel_options.audio_codec_opt.audio_codec_type = AUDIO_CODEC_DISABLED;
     channel_options.audio_codec_opt.pcm_sample_rate = option->audio_config.pcm_sample_rate;
     channel_options.audio_codec_opt.pcm_channel_num = option->audio_config.pcm_channel_num;
-    channel_options.audio_codec_opt.pcm_duration = 20;
+    channel_options.audio_codec_opt.pcm_duration = CONFIG_AUDIO_FRAME_DURATION_MS;
+
+    // open jitter buffer
+    if (channel_options.audio_codec_opt.audio_codec_type != AUDIO_CODEC_DISABLED)
+    {
+        channel_options.enable_audio_jitter_buffer = true;
+        channel_options.jitter_buffer_per_pcm_frame_ms = CONFIG_AUDIO_FRAME_DURATION_MS;
+    }
 
     LOGI("auto_subscribe_audio: %d, auto_subscribe_video: %d \n",
          channel_options.auto_subscribe_audio ? 1 : 0, channel_options.auto_subscribe_video ? 1 : 0);

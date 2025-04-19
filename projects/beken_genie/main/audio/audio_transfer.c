@@ -59,14 +59,17 @@ static uint8_t *mic_data_buffer = NULL;
 #if defined(CONFIG_USE_G722_CODEC)
 #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
 #define MIC_FRAME_SIZE   (160)
+#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
 #endif
 #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
 #define MIC_FRAME_SIZE   (640)
+#define AGORA_SEND_FRAME_SIZE   (MIC_FRAME_SIZE * (CONFIG_AUDIO_FRAME_DURATION_MS / 20))
 #endif
 //#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
 //#define MIC_FRAME_SIZE     160
 #else
 #define MIC_FRAME_SIZE   160
+#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
 #endif
 #define MIC_FRAME_NUM 4
 
@@ -184,6 +187,13 @@ static void agora_aud_tras_main(void)
 
     rtos_set_semaphore(&agora_aud_sem);
 
+    mic_temp_buff = psram_malloc(AGORA_SEND_FRAME_SIZE);
+    if (NULL == mic_temp_buff)
+    {
+        LOGE("mic_temp_buff malloc fail\n");
+        goto aud_tras_exit;
+    }
+
     while (1)
     {
         aud_tras_msg_t msg;
@@ -195,23 +205,19 @@ static void agora_aud_tras_main(void)
             {
                 case AUD_TRAS_TX_DATA:
                     size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >= MIC_FRAME_SIZE)
+                    if (size >= AGORA_SEND_FRAME_SIZE)
                     {
-                        mic_temp_buff = psram_malloc(MIC_FRAME_SIZE);
-                        if (mic_temp_buff != NULL)
+                        GLOBAL_INT_DISABLE();
+                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, AGORA_SEND_FRAME_SIZE);
+                        GLOBAL_INT_RESTORE();
+
+                        if (count == AGORA_SEND_FRAME_SIZE)
                         {
-                            GLOBAL_INT_DISABLE();
-                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, MIC_FRAME_SIZE);
-                            GLOBAL_INT_RESTORE();
-                            if (count == MIC_FRAME_SIZE)
-                            {
-                                send_agora_audio_frame(mic_temp_buff, count);
-                            }
-                            else
-                            {
-                                LOGD("ring_buffer_read count(%d) != MIC_FRAME_SIZE(160)\n", count);
-                            }
-                            psram_free(mic_temp_buff);
+                            send_agora_audio_frame(mic_temp_buff, count);
+                        }
+                        else
+                        {
+                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, AGORA_SEND_FRAME_SIZE);
                         }
 
                         rtos_delay_milliseconds(5);
@@ -231,6 +237,11 @@ static void agora_aud_tras_main(void)
     }
 
 aud_tras_exit:
+
+    if (mic_temp_buff)
+    {
+        psram_free(mic_temp_buff);
+    }
 
     #if 0
     if (agoora_tx_mic_data_flag)

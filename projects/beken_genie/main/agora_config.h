@@ -74,7 +74,13 @@
 #define CONFIG_PCM_CHANNEL_NUM          1
 // #define CONFIG_SEND_PCM_DATA
 #endif
+
+#if CONFIG_G722_CODEC_RUN_ON_CPU0
+#define CONFIG_AUDIO_FRAME_DURATION_MS     60  // except OPUS
+#else
 #define CONFIG_AUDIO_FRAME_DURATION_MS     20  // except OPUS
+#endif
+
 // (CONFIG_PCM_FRAME_LEN * 1000 / CONFIG_PCM_SAMPLE_RATE / CONFIG_PCM_CHANNEL_NUM /sizeof(int16_t))
 
 #define DEFAULT_SDK_LOG_PATH "io.agora.rtc_sdk"
