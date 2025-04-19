@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "bluetooth_storage.h"
+#include "bk_factory_config.h"
 
 #if CONFIG_EASY_FLASH
 #include "easyflash.h"
@@ -368,7 +369,7 @@ int32_t bluetooth_storage_sync_to_flash(void)
         return -1;
     }
 
-#if CONFIG_EASY_FLASH_V4
+#if 0//CONFIG_EASY_FLASH_V4
 
     ret = ef_set_env_blob(BT_STORAGE_KEY, s_bt_user_storage, sizeof(*s_bt_user_storage));
 
@@ -385,6 +386,7 @@ int32_t bluetooth_storage_sync_to_flash(void)
     }
 
 #endif
+    bk_config_write(BT_STORAGE_KEY, s_bt_user_storage, sizeof(bt_user_storage_t));
     return ret;
 }
 

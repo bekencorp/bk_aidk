@@ -39,6 +39,9 @@
 #include <led_blink.h>
 #include <common/bk_include.h>
 #include "components/bluetooth/bk_dm_bluetooth.h"
+
+#include "storage/bluetooth_storage.h"
+
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 extern int bk_cli_init(void);
@@ -84,9 +87,11 @@ static const struct cli_command s_agora_rtc_commands[] =
 
 #if (CONFIG_SYS_CPU0)
 static const uint32_t s_user_value2 = 10;
+static const bt_user_storage_t s_bt_factory_storage ={0};
 const struct factory_config_t s_user_config[] = {
     {"user_key1", (void *)"user_value1", 11, BK_FALSE, 0},
     {"user_key2", (void *)&s_user_value2, 4, BK_TRUE, 4},
+    {BT_STORAGE_KEY, (void *)&s_bt_factory_storage, sizeof(s_bt_factory_storage), BK_TRUE, sizeof(s_bt_factory_storage)},
 };
 #endif
 
