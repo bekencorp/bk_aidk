@@ -32,6 +32,7 @@ list(APPEND srcs
     ../../beken_genie/main/bt_pan/pan_demo_cli.c
     ../../beken_genie/main/bt_pan/storage/bluetooth_storage.c
     ../../beken_genie/main/bt_pan/bt_comm_list.c
+    ../../beken_genie/main/bt_pan/hidd_service.c
 )
 endif()
 endif()
