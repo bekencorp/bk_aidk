@@ -95,6 +95,7 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
 bk_err_t rtc_websocket_stop(rtc_session *rtc_session);
 int rtc_websocket_audio_send_data(rtc_session *rtc_session, uint8_t *data_ptr, size_t data_len);
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len);
+void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len);
 int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtype);
 void rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);

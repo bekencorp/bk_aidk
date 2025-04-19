@@ -57,7 +57,7 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AGORA_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif
 
-#ifdef CONFIG_USE_G722_CODEC
+#if CONFIG_USE_G722_CODEC || CONFIG_USE_OPUS_CODEC
 #define AUDIO_SAMP_RATE         (16000)
 #else
 #define AUDIO_SAMP_RATE         (8000)
@@ -375,8 +375,10 @@ bk_err_t audio_turn_on(void)
         LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
     }
 
-#ifdef CONFIG_USE_G722_CODEC
+#if CONFIG_USE_G722_CODEC
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+#elif CONFIG_USE_OPUS_CODEC
+    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
@@ -474,7 +476,12 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
 			smart_config_running = false;
 			LOGE("Connected to WebSocket server\r\n");
+			#if CONFIG_USE_G722_CODEC
 			rtc_websocket_send_text(client, "g722", BEKEN_RTC_SEND_HELLO);
+			#elif CONFIG_USE_OPUS_CODEC
+			rtc_websocket_send_text(client, "opus", BEKEN_RTC_SEND_HELLO);
+			#else
+			#endif
 			break;
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
@@ -484,7 +491,12 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
 			if (data->op_code == WS_TRANSPORT_OPCODES_BINARY) {
+				#if CONFIG_USE_G722_CODEC
 				rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
+				#elif CONFIG_USE_OPUS_CODEC
+				rtc_websocket_audio_receive_data_opus(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
+				#else
+				#endif
 			}
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);

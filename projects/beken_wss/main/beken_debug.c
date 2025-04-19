@@ -18,6 +18,9 @@ bool agoora_tx_mic_data_flag = false;
 bool agoora_rx_spk_data_flag = false;
 #elif CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+bool agoora_tx_mic_data_flag = false;
+#endif
 #else
 #endif
 
@@ -97,6 +100,22 @@ void cli_beken_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
             aec_all_data_flag = false;
         }
     }
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+    else if (os_strcmp(argv[1], "dump_mic_data") == 0)
+    {
+        if (os_strtoul(argv[2], NULL, 10))
+        {
+            dump_flag |= (1<<DUMP_TYPE_AGORA_TX_MIC);
+            agoora_tx_mic_data_flag = true;
+            os_printf("dump beken tx mic data\n!");
+        }
+        else
+        {
+            dump_flag &= (~(1<<DUMP_TYPE_AGORA_TX_MIC));
+            agoora_tx_mic_data_flag = false;
+        }
+    }
+    #endif
     else if (os_strcmp(argv[1], "dump_stop") == 0)
     {
         aec_all_data_flag = false;

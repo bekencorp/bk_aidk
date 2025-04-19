@@ -49,6 +49,7 @@ typedef enum
 typedef struct
 {
     aud_tras_op_t op;
+    uint16_t len;
 } aud_tras_msg_t;
 
 static beken_thread_t  aud_thread_hdl = NULL;
@@ -60,6 +61,8 @@ static uint8_t *mic_data_buffer = NULL;
 #define MIC_FRAME_SIZE   (160)
 //#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
 //#define MIC_FRAME_SIZE     160
+#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
+#define MIC_FRAME_SIZE   320
 #else
 #define MIC_FRAME_SIZE   160
 #endif
@@ -78,8 +81,10 @@ static int send_audio_frame(uint8_t *data, unsigned int len)
         return 0;
     }
 
-#ifdef CONFIG_USE_G722_CODEC
+#if CONFIG_USE_G722_CODEC
     info.data_type = AUDIO_DATA_TYPE_G722;
+#elif CONFIG_USE_OPUS_CODEC
+    info.data_type = AUDIO_DATA_TYPE_OPUS;
 #else
     info.data_type = AUDIO_DATA_TYPE_PCMA;
 #endif
@@ -108,12 +113,39 @@ static int send_audio_frame(uint8_t *data, unsigned int len)
     }
     else
     {
-        LOGD("record ret: %d type:%d\n", rval, info.data_type);
+        LOGD("record ret: %d type:%d,addr:0x%x,len:%d\n", rval, info.data_type,data,len);
     }
 
     return len;
 }
 
+#if CONFIG_USE_OPUS_CODEC
+static bk_err_t send_audio_msg(uint16_t len)
+{
+    bk_err_t ret;
+    aud_tras_msg_t msg;
+
+    msg.op = AUD_TRAS_TX_DATA;
+    msg.len = len;
+
+    if (aud_msg_que)
+    {
+        ret = rtos_push_to_queue(&aud_msg_que, &msg, BEKEN_NO_WAIT);
+        if (kNoErr != ret)
+        {
+            LOGE("audio send msg: AUD_TRAS_TX_DATA fail\n");
+            return kOverrunErr;
+        }
+
+        return ret;
+    }
+    else
+    {
+        LOGE("send_audio_msg:aud_msg_que is NULL\n");
+    }
+    return kNoResourcesErr;
+}
+#else
 static bk_err_t send_audio_msg(void)
 {
     bk_err_t ret;
@@ -134,10 +166,31 @@ static bk_err_t send_audio_msg(void)
     }
     return kNoResourcesErr;
 }
+#endif
 
 
 int send_audio_data_to_trans(uint8_t *data, unsigned int len)
 {
+    #if CONFIG_USE_OPUS_CODEC
+    if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+    {
+        ring_buffer_write(&mic_data_rb, data, len);
+        send_audio_msg(len);
+
+        uint32_t fill_size = ring_buffer_get_fill_size(&mic_data_rb);
+        LOGD("len:%d,mic_data_rb:fill size:%d\n",len,fill_size);
+
+        //BK_ASSERT(len == fill_size);
+    }
+    else
+    {
+        LOGE("len:%d,mic_data_rb fill size:%d,free size:%d,not enough\n",
+            len,
+            ring_buffer_get_fill_size(&mic_data_rb),
+            ring_buffer_get_free_size(&mic_data_rb));
+        return 0;
+    }
+    #else
     if (ring_buffer_get_free_size(&mic_data_rb) >= len)
     {
         ring_buffer_write(&mic_data_rb, data, len);
@@ -151,6 +204,7 @@ int send_audio_data_to_trans(uint8_t *data, unsigned int len)
     {
         send_audio_msg();
     }
+    #endif
 
     return len;
 }
@@ -183,6 +237,36 @@ static void audio_tras_main(void)
             switch (msg.op)
             {
                 case AUD_TRAS_TX_DATA:
+                {
+                    #if CONFIG_USE_OPUS_CODEC
+                    size = ring_buffer_get_fill_size(&mic_data_rb);
+                    //LOGI("atm:msg len:%d,md_rb fill size:%d\n",msg.len,size);
+                    if (size >= msg.len)
+                    {
+                        mic_temp_buff = psram_malloc(MIC_FRAME_SIZE);
+                        if (mic_temp_buff != NULL)
+                        {
+                            GLOBAL_INT_DISABLE();
+                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
+                            GLOBAL_INT_RESTORE();
+                            if (count == msg.len)
+                            {
+                                //LOGE("saf in!\n");   
+                                send_audio_frame(mic_temp_buff, count);
+                                //LOGE("saf out\n", count,msg.len);
+                            }
+                            else
+                            {
+                                LOGE("mic_data_rb count(%d) != frm size:%d\n", count,msg.len);
+                            }
+                            psram_free(mic_temp_buff);
+                        }
+                        else
+                        {
+                            LOGE("mic_temp_buff alloc fail!\n");
+                        }
+                    }
+                    #else
                     size = ring_buffer_get_fill_size(&mic_data_rb);
                     if (size >= MIC_FRAME_SIZE)
                     {
@@ -206,14 +290,16 @@ static void audio_tras_main(void)
                         rtos_delay_milliseconds(2);
                         send_audio_msg();
                     }
+                    #endif
                     break;
-
+                }
                 case AUD_TRAS_EXIT:
                     LOGD("goto: AUD_TRAS_EXIT\n");
                     goto aud_tras_exit;
                     break;
 
                 default:
+                    LOGE("audio_tras_main unknow message!\n");
                     break;
             }
         }

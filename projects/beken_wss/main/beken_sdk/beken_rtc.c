@@ -61,7 +61,11 @@ static const uint8 crc8_table[256] =
 };
 
 #define RING_BUFFER_DELAY 20
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+#define AUDIO_GENERAL_PACKET_SIZE 320
+#else
 #define AUDIO_GENERAL_PACKET_SIZE 160
+#endif
 #define AUDIO_PACKET_SIZE 160+16
 #define BUFFER_SIZE 528000//(PACKET_SIZE * 3000)
 
@@ -625,6 +629,12 @@ void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uin
 	}
 }
 
+void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len)
+{
+	if (rtc_session->rtc_channel_t->cb)
+		rtc_client_transmission_unpack(rtc_session->rtc_channel_t, data, len, rtc_session->rtc_channel_t->cb);
+}
+
 int rtc_websocket_audio_send_data(rtc_session *rtc_session, uint8_t *data_ptr, size_t data_len)
 {
 	rtos_lock_mutex(&rtc_session->rtc_mutex);
@@ -653,8 +663,10 @@ int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtyp
     switch (msgtype) {
         case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
-						"{\"type\":\"hello\",\"version\": 1,\"transport\":\"websocket\",\"audio_params\":{\"format\":\"%s\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}",
-						str, 100);
+			//			"{\"type\":\"hello\",\"version\": 1,\"transport\":\"websocket\",\"audio_params\":{\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}",
+			//			100);
+						"{\"type\":\"hello\",\"version\": 1,\"config\":{\"audio\":{\"format\":\"%s\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":%d}}}",
+						str, 20);
             BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
