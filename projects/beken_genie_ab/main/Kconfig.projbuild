@@ -16,6 +16,10 @@ menu "Beken_Genie Project Configuration"
 	config BK_AGORA_DEV_STARTUP_AGENT
                 bool "Enable start agent on device"
                 default n
+    config HARDWARE_SPEAKER_VER
+        int "select HARDWARE_SPEAKER_VER"
+        range 0 8
+        default 0
 
 	choice G722_CODEC_RUN_CPU
 		prompt "Select G722 Codec run cpu"

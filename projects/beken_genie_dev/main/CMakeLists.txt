@@ -18,6 +18,7 @@ list(APPEND srcs
     ../../beken_genie/main/led_blink.c
     ../../beken_genie/main/countdown.c
     ../../beken_genie/main/motor.c
+   ../../beken_genie/main/audio_para.c
 )
 
 if (CONFIG_NETWORK_AUTO_RECONNECT)

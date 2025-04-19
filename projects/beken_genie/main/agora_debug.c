@@ -9,6 +9,8 @@
 #include <components/event.h>
 #include <components/netif_types.h>
 #include "bk_rtos_debug.h"
+#include "aud_intf.h"
+#include "aud_intf_types.h"
 
 #if CONFIG_DEBUG_DUMP
 #include "debug_dump.h"
@@ -78,6 +80,20 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         dump_flag = 0;
         os_printf("dump stop\n!");
     }
+    else if (os_strcmp(argv[1], "set_vad_para") == 0)
+    {
+        int16_t vad_start_thr = (os_strtoul(argv[2], NULL, 10));
+        int16_t vad_stop_thr = (os_strtoul(argv[3], NULL, 10));
+        int16_t vad_silence_thr = (os_strtoul(argv[4], NULL, 10));
+
+        bk_aud_intf_set_vad_para(AUD_INTF_VOC_VAD_START_THRESHOLD,vad_start_thr);
+        bk_aud_intf_set_vad_para(AUD_INTF_VOC_VAD_STOP_THRESHOLD,vad_stop_thr);
+        bk_aud_intf_set_vad_para(AUD_INTF_VOC_VAD_SILENCE_THRESHOLD,vad_silence_thr);
+                
+
+        os_printf("set_vad_para %d %d %d \r\n",vad_start_thr,vad_stop_thr,vad_silence_thr);
+    }
+    
     else
     {
         goto cmd_fail;

@@ -25,6 +25,7 @@
 #include "bk_genie_smart_config.h"
 #endif
 #include "app_event.h"
+#include "audio_process.h"
 
 
 #define TAG "agora_main"
@@ -104,6 +105,7 @@ static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
 extern bool smart_config_running;
 extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
+extern app_aud_para_t app_aud_cust_para;
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -504,6 +506,7 @@ bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
 
+    bk_aud_intf_audio_para_set((app_aud_para_t *)&app_aud_cust_para);
     ret = bk_aud_intf_voc_init(aud_intf_voc_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
     {
