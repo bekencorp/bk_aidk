@@ -68,6 +68,7 @@ typedef struct {
     uint8_t *buffer;
     size_t head;
     size_t tail;
+    size_t size;
 } data_buffer_fixed_t;
 
 /**
@@ -92,26 +93,37 @@ typedef struct {
 } text_info_t;
 
 typedef struct {
+	char encoding_type[20];
+	uint32_t adc_samp_rate;
+	uint32_t dac_samp_rate;
+	uint32_t enc_samp_interval;
+	uint32_t dec_samp_interval;
+	uint32_t node_size;
+} audio_info_t;
+
+typedef struct {
 	transport bk_rtc_client;
 	db_channel_t *rtc_channel_t;
 	beken_mutex_t rtc_mutex;
 	data_buffer_t *opus_buffer;
 	data_buffer_fixed_t *ab_buffer;
 	beken_timer_t data_read_tmr;
+	audio_info_t audio_info;
 }rtc_session;
 
 #define HEAD_SIZE_TOTAL             (sizeof(db_trans_head_t))
 #define HEAD_MAGIC_CODE             (0xF0D5)
 #define HEAD_FLAGS_CRC              (1 << 0)
 #define CRC8_INIT_VALUE 0xFF
-rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb);
+rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb, audio_info_t *info);
 bk_err_t rtc_websocket_stop(rtc_session *rtc_session);
 int rtc_websocket_audio_send_data(rtc_session *rtc_session, uint8_t *data_ptr, size_t data_len);
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len);
 void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len);
-int rtc_websocket_send_text(transport web_socket, char *str, enum MsgType msgtype);
-void rtc_websocket_parse_hello(cJSON *root);
+int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype);
+int rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
+void rtc_fill_audio_info(audio_info_t *info, char *type, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t size);
 int bk_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const video_frame_info_t *info_ptr);
 bk_err_t bk_rtc_register_video_rx_handle(rtc_video_rx_data_handle video_rx_handle);
 #ifdef __cplusplus

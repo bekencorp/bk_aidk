@@ -21,6 +21,7 @@
 #include "media_app.h"
 #include "lcd_act.h"
 #include "components/bk_uid.h"
+#include "aud_tras.h"
 
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
@@ -93,6 +94,7 @@ static media_camera_device_t camera_device =
 static beken_thread_t  rtc_thread_hdl = NULL;
 static beken_semaphore_t rtc_sem = NULL;
 bool rtc_runing = false;
+audio_info_t audio_info = {};
 rtc_session *beken_rtc = NULL;
 rtc_session *__get_beken_rtc(void)
 {
@@ -379,11 +381,9 @@ bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
 #elif CONFIG_USE_OPUS_CODEC
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
-    #if CONFIG_AUD_INTF_SUPPORT_OPUS_60MS_FRAME_AND_AUD_DAC_24k_SAMPLE_RATE
     aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
     aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
-    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 16000;//24000;
-    #endif
+    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 24000;
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
@@ -404,6 +404,15 @@ bk_err_t audio_turn_on(void)
     {
         LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
+
+#if CONFIG_USE_G722_CODEC
+	rtc_fill_audio_info(&audio_info, "g722", 16000, 16000, 20, 20, 160);
+#elif CONFIG_USE_OPUS_CODEC
+    rtc_fill_audio_info(&audio_info, "opus", aud_intf_voc_setup.aud_codec_setup_input.adc_samp_rate,
+		aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate,
+		aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms, aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms,
+		bk_aud_get_dec_input_size_in_byte());
+#endif
 
     ret = bk_aud_intf_voc_start();
     if (ret != BK_ERR_AUD_INTF_OK)
@@ -458,7 +467,16 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
     }
 
     if (strcmp(type->valuestring, "hello_response") == 0) {
-        rtc_websocket_parse_hello(root);
+        int ret = rtc_websocket_parse_hello(root);
+		if (ret == 200) {
+			g_connected_flag = true;
+			network_reconnect_stop_timeout_check();
+			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
+			smart_config_running = false;
+		}
+		else {
+			LOGE("join WebSocket server fail\r\n");
+		}
     } else if ((strcmp(type->valuestring, "reply_text") == 0) || (strcmp(type->valuestring, "request_text") == 0)) {
         text_info_t info = {};
         info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
@@ -476,17 +494,8 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 	transport client = (transport)event_handler_arg;
 	switch (event_id) {
 		case WEBSOCKET_EVENT_CONNECTED:
-			g_connected_flag = true;
-			network_reconnect_stop_timeout_check();
-			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
-			smart_config_running = false;
 			LOGE("Connected to WebSocket server\r\n");
-			#if CONFIG_USE_G722_CODEC
-			rtc_websocket_send_text(client, "g722", BEKEN_RTC_SEND_HELLO);
-			#elif CONFIG_USE_OPUS_CODEC
-			rtc_websocket_send_text(client, "opus", BEKEN_RTC_SEND_HELLO);
-			#else
-			#endif
+			rtc_websocket_send_text(client, (void *)(&audio_info), BEKEN_RTC_SEND_HELLO);
 			break;
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
@@ -520,7 +529,7 @@ void beken_rtc_main(void)
 	websocket_client_input_t websocket_cfg = {0};
 	websocket_cfg.uri = "wss://ai.aclsemi.com:9015/xiaozhi/v1/";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
-    rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle);
+	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);
     if (rtc_session == NULL)
     {
         LOGE("rtc_websocket_create fail\r\n");
