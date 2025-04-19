@@ -328,8 +328,6 @@ static void bk_key_register_wakeup_source(void)
 
 static bk_err_t app_force_analog_ldo_gpio_close(void)
 {
-    uint32_t value = 0;
-
     /*audio*/
     sys_hal_set_ana_reg18_value(0);
     sys_hal_set_ana_reg19_value(0);
@@ -340,11 +338,7 @@ static bk_err_t app_force_analog_ldo_gpio_close(void)
     sys_drv_aud_audbias_en(0);
     sys_drv_apll_en(0);
 
-    /*usb*/
-    value = sys_hal_analog_get(ANALOG_REG13);
-    value &= ~(1 << 31);
-    sys_hal_analog_set(ANALOG_REG13,value);
-
+   	/*usb/psram ldo ctrl at deepsleep last location*/
     /*ldo*/
     gpio_dev_unmap(GPIO_50);
     gpio_dev_unmap(GPIO_52);
