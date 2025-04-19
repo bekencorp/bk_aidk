@@ -487,6 +487,11 @@ static void app_event_thread(beken_thread_arg_t data)
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
+                case APP_EVT_SHUTDOWN_LOW_BATTERY:
+                    LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
+                    //todo
+                    break;
+
                 case APP_EVT_CLOSE_BLUETOOTH:
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
                     bk_genie_boarding_deinit();

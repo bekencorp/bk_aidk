@@ -23,7 +23,7 @@
 #include "aud_intf_types.h"
 #endif
 #include "bat_monitor.h"
-#include "bk_ota_private.h" 
+#include "bk_ota_private.h"
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -99,7 +99,7 @@ static uint8_t ota_event_callback(evt_ota event_param)
             break;
         case EVT_OTA_FAIL:
             app_event_send_msg(APP_EVT_OTA_FAIL, 0);
-            break;  
+            break;
         case EVT_OTA_SUCCESS:
             app_event_send_msg(APP_EVT_OTA_SUCCESS, 0);
             break;
@@ -118,7 +118,10 @@ static uint8_t battery_event_callback(evt_battery event_param)
             break;
         case EVT_BATTERY_LOW_VOLTAGE:
             app_event_send_msg(APP_EVT_LOW_VOLTAGE, 0);
-            break;  
+            break;
+        case EVT_SHUTDOWN_LOW_BATTERY:
+            app_event_send_msg(APP_EVT_SHUTDOWN_LOW_BATTERY, 0);
+            break;
         default :
             break;
     }
@@ -220,7 +223,7 @@ static void update_countdown()
     for(int i = 0; i < COUNTDOWN_TICKET_MAX; i++) {
         if (i == COUNTDOWN_TICKET_OTA)
             continue;
-        
+
         if(s_active_tickets & (1 << i))
         {
             selected_ticket = i;
@@ -258,7 +261,7 @@ static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
 
     //indicates
     if(indicates_state & (1<<INDICATES_PROVISIONING))
-    { 
+    {
         led_app_set(LED_REG_GREEN_ALTERNATE, LED_LAST_FOREVER);
     }else if (HIGH_PRIORITY_WARNING_MASK & (*warning_state))
     {
@@ -275,7 +278,7 @@ static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
         led_app_set(LED_OFF_GREEN, 0);
         }
     }
-    
+
     //warning
     if (indicates_state & (1<<INDICATES_PROVISIONING))
     {
@@ -319,7 +322,7 @@ static void app_event_thread(beken_thread_arg_t data)
     s_active_tickets = (1 << COUNTDOWN_TICKET_STANDBY);
     ota_event_callback_register(ota_event_callback);
     update_countdown();
-    
+
     battery_event_callback_register(battery_event_callback);
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
@@ -427,11 +430,11 @@ static void app_event_thread(beken_thread_arg_t data)
                         {
                             indicates_state |= (1<<INDICATES_STANDBY);
                         }
-                        
+
                     }else{
                         indicates_state |= (1<<INDICATES_AGENT_CONNECT);
                     }
-                    
+
 					warning_state &= ~(1<<WARNING_WIFI_FAIL);
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
 
@@ -460,7 +463,7 @@ static void app_event_thread(beken_thread_arg_t data)
 #endif
                     break;
 
-                                
+
                 case APP_EVT_RTC_REJOIN_SUCCESS:
                     LOGI("APP_EVT_RTC_REJOIN_SUCCESS\n");
                     warning_state &= ~(1<<WARNING_RTC_CONNECT_LOST);
@@ -530,6 +533,12 @@ static void app_event_thread(beken_thread_arg_t data)
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
+                case APP_EVT_SHUTDOWN_LOW_BATTERY:
+                    LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
+                    skip_countdown_update = true;
+                    //todo
+                    break;
+
                 case APP_EVT_CLOSE_BLUETOOTH:
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
                     bk_genie_boarding_deinit();
@@ -549,7 +558,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_ota_reponse_state_to_audio(msg.event);
                     #endif
                     break;
-                
+
                 case APP_EVT_OTA_FAIL:
                     LOGI("APP_EVT_OTA_FAIL\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
@@ -565,7 +574,7 @@ static void app_event_thread(beken_thread_arg_t data)
             {
                 update_countdown();
             }
-            
+
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }
