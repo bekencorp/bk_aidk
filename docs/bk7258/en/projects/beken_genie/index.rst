@@ -338,14 +338,10 @@ and special reminders are signaled by alternating red and green light blinking. 
     +----------------------------------------+----------------+---------------+----------------+
 
 
-2.5 Critical Code Explanation
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2.5 Netowkr Provisioning and Agent Policy Customization Guide
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-2.5.1 About Network Provisioning
-+++++++++++++++++++++++++++++++++
-
- The Wi-Fi provisioning-related code is mainly located in bk_genie_smart_config.c and boarding_core.c. Customers can
- choose to replace the following functions with their own implementation, while the rest can follow beken solution.
+ The Wi-Fi provisioning-related code is mainly located in bk_genie_smart_config.c and boarding_core.c, customers can customize their own solutions by referring to the following guide.
 
 1. bk_genie_smart_config_init: for the initialization of Network Provisioning and auto reconnect.
 
@@ -356,36 +352,61 @@ and special reminders are signaled by alternating red and green light blinking. 
         int flag;
 
         event_handler_init();
-        flag = demo_network_auto_reconnect();   //judge whether to reconnect
+        flag = demo_network_auto_reconnect(false);   //judge whether to reconnect
+
         if (flag != 0x71l && flag != 0x73l
-    #if CONFIG_NET_PAN
+    #if CONFIG_NET_PAN                               //CONFIG_NET_PAN for PAN
             && flag != 0x74l
     #endif
         ) {
-            bk_genie_prepare_for_smart_config();    //no need to reconnect, begin for Network Provisioning
+            bk_genie_prepare_for_smart_config();     //begin to do Network Provisioning
         }
+        else
+        {
+    #if CONFIG_NET_PAN
+            if (flag != 0x74l)
+    #endif
+            {
+                bk_bluetooth_deinit();
+            }
+        }
+
         return 0;
     }
 
 
-2. bk_genie_prepare_for_smart_config: begin for Network Provisioning, customers may need to adapter their own solution
+2. bk_genie_prepare_for_smart_config: begin to do Network Provisioning
 
 .. code::
 
     void bk_genie_prepare_for_smart_config(void)
     {
         smart_config_running = true;
+    #if CONFIG_STA_AUTO_RECONNECT
+        first_time_for_network_provisioning = true;
+    #endif
         app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
-        network_provisioning_stop_timeout_check();
+        network_reconnect_stop_timeout_check();
         agora_stop();
-        demo_erase_network_auto_reconnect_info();       //erase AP info
-        bk_genie_erase_agent_info();                    //erase agent info
-        wifi_boarding_adv_start();
-        network_provisioning_start_timeout_check(300); //5min
+        bk_wifi_sta_stop();
+    #if !CONFIG_STA_AUTO_RECONNECT                              //CONFIG_STA_AUTO_RECONNECT default disable, use beken policy
+        demo_erase_network_auto_reconnect_info();
+        bk_genie_erase_agent_info();
+    #endif
+        bk_bt_enter_pairing_mode(0);                            //BT reset to initial state
+
+        extern bool ate_is_enabled(void);
+
+        if (!ate_is_enabled())
+        {
+            bk_genie_boarding_init();                           //BLE Network Provisioning init
+            wifi_boarding_adv_start();                          //BLE Advertising
+        }
+        ......
     }
 
 
-3. bk_genie_message_handle: switch agent info with Smart phone, customers may need to adapter their own solution
+3. bk_genie_message_handle:switch agent info with Smart phone, customers may need to adapter their own solution
 
 .. code::
 
@@ -409,9 +430,75 @@ and special reminders are signaled by alternating red and green light blinking. 
             ……
     }
 
-4. bk_genie_sconf_netif_event_cb: wakeup agent after wifi connected, save network and agent info
+4. bk_genie_wakeup_agent: Responsible for Agent startup. Beken supports two solutions: starting the agent on the server (customers need to build their own server) and starting the agent on the development board. The default method is to start the agent on the server.
 
-5. bk_genie_erase_agent_info, bk_genie_save_agent_info, bk_genie_get_agent_info, bk_genie_wakeup_agent: all for beken agent solution,
+.. code::
+
+    int bk_genie_wakeup_agent(void)
+    {
+    //Enable this macro to start the agent on the development board
+    #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+        agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
+        __maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
+        unsigned char uid[32] = {0};
+        char uid_str[65] = {0}, chan_name[65] = {0};
+        int chan_len;
+
+        //The agent channel name of the beken solution is generated based on the name of the AI model and the device uid. Customers can choose to replace it to their own solution
+        bk_uid_get_data(uid);
+        for (int i = 0; i < 24; i++)
+        {
+            sprintf(uid_str + i * 2, "%02x", uid[i]);
+        }
+        if (agent_type == OPEN_AI_AGENT)
+            chan_len = os_snprintf(chan_name, 65, "Openai_%s", uid_str);
+        else
+            chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
+        agent_conf.channel = os_zalloc(chan_len+1);
+        os_strcpy(agent_conf.channel, chan_name);
+
+        //Customers need to fill in their own token in CUSTOM_LLM_DEFAULT_OPENAI_TOKEN/CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN
+        agent_conf.custom_llm = custom_llm_default_conf(agent_type);
+        //Customers need to fill in their own Agora APPID in AGORA_DEBUG_APPID, fill in their own Agora restful key in AGORA_DEBUG_AUTH, and fill in Agora token as needed
+        //Fill in their own tts key in tts_str_openai/tts_str_doubao
+        bk_agora_ai_agent_start(&agent_conf, agent_type);
+        ......
+    #else     //startup agent on the server
+        struct webclient_session *session = NULL;
+        char *buffer = NULL, *post_data = NULL;
+        char generate_url[256] = {0};
+        int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+
+        /* create webclient session and set header response size */
+        session = webclient_session_create(SEND_HEADER_SIZE);
+        if (session == NULL)
+        {
+            ret = -1;
+            goto __exit;
+        }
+
+        //if customers use their own server, they need to replace bk_get_bk_server_url() with their own server URL
+        //for example: #define BK_CUSTOMER_SERVER_URL "xxx"
+        //for example: url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BK_CUSTOMER_SERVER_URL);
+        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+        if ((url_len < 0) || (url_len >= MAX_URL_LEN))
+        {
+            BK_LOGE(TAG, "URL len overflow\r\n");
+            ret = -1;
+            return ret;
+        }
+        ......
+        //Generate a post request, customers can define their own json message format
+        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+        ......
+        //If the customer uses his own server, they need to implement this function himself or comment it out.
+        ret = bk_genie_rsp_parse_update(buffer);
+        ......
+    }
+
+5. bk_genie_sconf_netif_event_cb: wakeup agent after wifi connected, save network and agent info
+
+6. bk_genie_erase_agent_info, bk_genie_save_agent_info, bk_genie_get_agent_info: all for beken agent solution,
 customers may need to adapter their own solution
 
 

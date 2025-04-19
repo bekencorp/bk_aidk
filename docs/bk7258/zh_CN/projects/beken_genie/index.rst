@@ -315,13 +315,10 @@ Beken Genie AI
     +----------------------------------------+----------------+---------------+----------------+
 
 
-2.5 关键代码说明
+2.5 配网及agent定制指南
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-2.5.1 配网相关代码
-+++++++++++++++++++++++++++++++++
-
- 配网相关代码主要分布在bk_genie_smart_config.c及boarding_core.c，如下函数客户可选择替换成自己方案，其余均可follow beken方案
+ 配网及agent相关代码主要分布在bk_genie_smart_config.c及boarding_core.c，客户可以参考如下说明定制自己的方案
 
 1、bk_genie_smart_config_init负责配网相关初始化及开机自动重连判定
 
@@ -332,36 +329,61 @@ Beken Genie AI
         int flag;
 
         event_handler_init();
-        flag = demo_network_auto_reconnect();   //判断是否保存过配网信息及发起重连
+        flag = demo_network_auto_reconnect(false);   //判断是否保存过配网信息及发起重连
+
         if (flag != 0x71l && flag != 0x73l
-    #if CONFIG_NET_PAN
+    #if CONFIG_NET_PAN                               //CONFIG_NET_PAN配置PAN相关代码
             && flag != 0x74l
     #endif
         ) {
-            bk_genie_prepare_for_smart_config();    //未保存过配网信息，自动进入配网模式
+            bk_genie_prepare_for_smart_config();     //未保存过配网信息，自动进入配网模式
         }
+        else
+        {
+    #if CONFIG_NET_PAN
+            if (flag != 0x74l)
+    #endif
+            {
+                bk_bluetooth_deinit();
+            }
+        }
+
         return 0;
     }
 
 
-2、bk_genie_prepare_for_smart_config进入配网模式，客户可根据需求更改
+2、bk_genie_prepare_for_smart_config 进入配网模式
 
 .. code::
 
     void bk_genie_prepare_for_smart_config(void)
     {
         smart_config_running = true;
+    #if CONFIG_STA_AUTO_RECONNECT
+        first_time_for_network_provisioning = true;
+    #endif
         app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);    //进入配网模式红绿交替闪灯提示
-        network_provisioning_stop_timeout_check();              //关闭配网超时检测
-        agora_stop();                                           //关闭声网设备端服务
-        demo_erase_network_auto_reconnect_info();               //擦除AP信息
-        bk_genie_erase_agent_info();                            //擦除agent相关信息，若客户使用自己的服务，可以删除这段代码，自己控制
-        wifi_boarding_adv_start();                              //BLE广播，进入配网模式
-        network_provisioning_start_timeout_check(300); //5min   //开启配网超时检测
+        network_reconnect_stop_timeout_check();                 //关闭重连超时检测
+        agora_stop();
+        bk_wifi_sta_stop();
+    #if !CONFIG_STA_AUTO_RECONNECT                              //CONFIG_STA_AUTO_RECONNECT默认关闭，使用beken重连策略
+        demo_erase_network_auto_reconnect_info();               //默认版本进入配网模式不会擦除配网信息
+        bk_genie_erase_agent_info();                            //默认版本进入配网模式不会擦除agent信息
+    #endif
+        bk_bt_enter_pairing_mode(0);                            //BT恢复到初始状态
+
+        extern bool ate_is_enabled(void);
+
+        if (!ate_is_enabled())
+        {
+            bk_genie_boarding_init();                           //BLE配网初始化
+            wifi_boarding_adv_start();                          //BLE开启广播，进入配网模式
+        }
+        ......
     }
 
 
-3、bk_genie_message_handle负责和手机app通过BLE交互配网信息，如下代码客户可disable，使用自己的agent方案
+3、bk_genie_message_handle负责和手机app通过BLE交互配网信息，如下代码客户可disable，使用自己的方案
 
 .. code::
 
@@ -385,12 +407,76 @@ Beken Genie AI
             ……
     }
 
-4、bk_genie_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户需替换成自己方案
+4、bk_genie_wakeup_agent负责Agent启动，beken支持服务器端起agent（客户定制需要自己搭建服务器）以及在开发板起agent两种方案，默认使用在服务器起
 
-5、bk_genie_erase_agent_info、bk_genie_save_agent_info、bk_genie_get_agent_info、bk_genie_wakeup_agent均是beken agent后台维护方案，客户需替换成自己方案
+.. code::
 
-3. 演示说明
----------------------------------
+    int bk_genie_wakeup_agent(void)
+    {
+    //使能这个宏在开发板起agent
+    #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+        agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
+        __maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
+        unsigned char uid[32] = {0};
+        char uid_str[65] = {0}, chan_name[65] = {0};
+        int chan_len;
+
+        //beken方案agent channel name是根据大模型名称及设备uid生成，客户可选择改成自己方案
+        bk_uid_get_data(uid);
+        for (int i = 0; i < 24; i++)
+        {
+            sprintf(uid_str + i * 2, "%02x", uid[i]);
+        }
+        if (agent_type == OPEN_AI_AGENT)
+            chan_len = os_snprintf(chan_name, 65, "Openai_%s", uid_str);
+        else
+            chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
+        agent_conf.channel = os_zalloc(chan_len+1);
+        os_strcpy(agent_conf.channel, chan_name);
+
+        //客户需要在CUSTOM_LLM_DEFAULT_OPENAI_TOKEN/CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN填写自己的token
+        agent_conf.custom_llm = custom_llm_default_conf(agent_type);
+        //客户需要在AGORA_DEBUG_APPID填写自己的声网APPID，在AGORA_DEBUG_AUTH填写自己的声网restful key，声网token按需填写
+        //在tts_str_openai/tts_str_doubao填写自己的tts key
+        bk_agora_ai_agent_start(&agent_conf, agent_type);
+        ......
+    #else     //在服务器端agent
+        struct webclient_session *session = NULL;
+        char *buffer = NULL, *post_data = NULL;
+        char generate_url[256] = {0};
+        int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+
+        /* create webclient session and set header response size */
+        session = webclient_session_create(SEND_HEADER_SIZE);
+        if (session == NULL)
+        {
+            ret = -1;
+            goto __exit;
+        }
+
+        //客户若使用自己的服务器，需要将bk_get_bk_server_url()替换成自己的服务器URL字符串
+        //定义#define BK_CUSTOMER_SERVER_URL "xxx"
+        //例如url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BK_CUSTOMER_SERVER_URL);
+        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+        if ((url_len < 0) || (url_len >= MAX_URL_LEN))
+        {
+            BK_LOGE(TAG, "URL len overflow\r\n");
+            ret = -1;
+            return ret;
+        }
+        ......
+        //生成post请求，客户可以定义自己的json消息格式
+        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+        ......
+        //客户若使用自己的服务器，需要自行实现这个函数或者注释掉
+        ret = bk_genie_rsp_parse_update(buffer);
+        ......
+    }
+
+5、bk_genie_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户可替换成自己方案
+
+6、bk_genie_erase_agent_info、bk_genie_save_agent_info、bk_genie_get_agent_info均是beken agent后台维护方案，客户可替换成自己方案
+
 
 3.1 代码下载及编译
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
