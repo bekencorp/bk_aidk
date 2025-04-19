@@ -10,6 +10,7 @@
 #include <os/str.h>
 #include <os/os.h>
 
+#include "components/bluetooth/bk_dm_bluetooth.h"
 #include "components/bluetooth/bk_dm_bluetooth_types.h"
 #include "components/bluetooth/bk_dm_gap_ble_types.h"
 #include "components/bluetooth/bk_dm_gap_ble.h"
@@ -94,7 +95,6 @@ static bk_gatt_if_t s_gatts_if = 0;
 
 #define INVALID_ATTR_HANDLE 0
 
-
 static uint16_t s_prop_cli_config;
 static uint8_t s_ssid[64];
 static uint8_t s_password[64];
@@ -157,7 +157,7 @@ static uint16_t s_char_ssid_char_handle = INVALID_ATTR_HANDLE;
 static uint16_t s_char_password_char_handle = INVALID_ATTR_HANDLE;
 
 
-static uint16_t *s_boarding_attr_handle_list[sizeof(s_gatts_attr_db_service_boarding) / sizeof(s_gatts_attr_db_service_boarding[0])] =
+static uint16_t *const s_boarding_attr_handle_list[sizeof(s_gatts_attr_db_service_boarding) / sizeof(s_gatts_attr_db_service_boarding[0])] =
 {
     &s_service_attr_handle,
     &s_char_attr_handle,
@@ -197,355 +197,355 @@ static int32_t wifi_boarding_gatts_cb(bk_gatts_cb_event_t event, bk_gatt_if_t ga
 
     switch (event)
     {
-        case BK_GATTS_REG_EVT:
+    case BK_GATTS_REG_EVT:
+    {
+        struct gatts_reg_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_REG_EVT %d %d", param->status, param->gatt_if);
+        s_gatts_if = param->gatt_if;
+
+        if (s_ble_sema != NULL)
         {
-            struct gatts_reg_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_REG_EVT %d %d", param->status, param->gatt_if);
-            s_gatts_if = param->gatt_if;
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            rtos_set_semaphore(&s_ble_sema);
         }
-        break;
+    }
+    break;
 
-        case BK_GATTS_START_EVT:
+    case BK_GATTS_START_EVT:
+    {
+        struct gatts_start_evt_param *param = (typeof(param))comm_param;
+        wboard_logi("BK_GATTS_START_EVT compl %d %d", param->status, param->service_handle);
+
+        if (s_ble_sema != NULL)
         {
-            struct gatts_start_evt_param *param = (typeof(param))comm_param;
-            wboard_logi("BK_GATTS_START_EVT compl %d %d", param->status, param->service_handle);
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            rtos_set_semaphore(&s_ble_sema);
         }
-        break;
+    }
+    break;
 
-        case BK_GATTS_STOP_EVT:
+    case BK_GATTS_STOP_EVT:
+    {
+        struct gatts_stop_evt_param *param = (typeof(param))comm_param;
+        wboard_logi("BK_GATTS_STOP_EVT compl %d %d", param->status, param->service_handle);
+
+        if (s_ble_sema != NULL)
         {
-            struct gatts_stop_evt_param *param = (typeof(param))comm_param;
-            wboard_logi("BK_GATTS_STOP_EVT compl %d %d", param->status, param->service_handle);
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            rtos_set_semaphore(&s_ble_sema);
         }
-        break;
+    }
+    break;
 
-        case BK_GATTS_CREAT_ATTR_TAB_EVT:
+    case BK_GATTS_CREAT_ATTR_TAB_EVT:
+    {
+        struct gatts_add_attr_tab_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_CREAT_ATTR_TAB_EVT %d %d", param->status, param->num_handle);
+
+        for (int i = 0; i < param->num_handle; ++i)
         {
-            struct gatts_add_attr_tab_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_CREAT_ATTR_TAB_EVT %d %d", param->status, param->num_handle);
-
-            for (int i = 0; i < param->num_handle; ++i)
-            {
-                *s_boarding_attr_handle_list[i] = param->handles[i];
-            }
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            *s_boarding_attr_handle_list[i] = param->handles[i];
         }
-        break;
 
-        case BK_GATTS_READ_EVT:
+        if (s_ble_sema != NULL)
         {
-            struct gatts_read_evt_param *param = (typeof(param))comm_param;
-            bk_gatt_rsp_t rsp;
-            uint16_t final_len = 0;
+            rtos_set_semaphore(&s_ble_sema);
+        }
+    }
+    break;
 
-            memset(&rsp, 0, sizeof(rsp));
-            wboard_logi("read attr handle %d need rsp %d", param->handle, param->need_rsp);
+    case BK_GATTS_READ_EVT:
+    {
+        struct gatts_read_evt_param *param = (typeof(param))comm_param;
+        bk_gatt_rsp_t rsp;
+        uint16_t final_len = 0;
 
-            uint8_t *tmp_buff = NULL;
-            uint16_t buff_size = 0;
-            uint8_t valid = 1;
+        memset(&rsp, 0, sizeof(rsp));
+        wboard_logi("read attr handle %d need rsp %d", param->handle, param->need_rsp);
 
-            if (s_char_desc_attr_handle == param->handle)
+        uint8_t *tmp_buff = NULL;
+        uint16_t buff_size = 0;
+        uint8_t valid = 1;
+
+        if (s_char_desc_attr_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+        }
+        else if (s_char_ssid_char_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+        }
+        else if (s_char_password_char_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+        }
+        else
+        {
+            wboard_loge("invalid read handle %d", param->handle);
+            valid = 0;
+        }
+
+        if (param->need_rsp)
+        {
+            final_len = buff_size - param->offset;
+
+            rsp.attr_value.auth_req = BK_GATT_AUTH_REQ_NONE;
+            rsp.attr_value.handle = param->handle;
+            rsp.attr_value.offset = param->offset;
+
+            if (tmp_buff && valid)
             {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
-            }
-            else if (s_char_ssid_char_handle == param->handle)
-            {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
-            }
-            else if (s_char_password_char_handle == param->handle)
-            {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+                rsp.attr_value.len = final_len;
+                rsp.attr_value.value = tmp_buff + param->offset;
             }
             else
             {
-                wboard_loge("invalid read handle %d", param->handle);
-                valid = 0;
+                rsp.attr_value.len = 0;
+                rsp.attr_value.value = NULL;
             }
 
-            if (param->need_rsp)
-            {
-                final_len = buff_size - param->offset;
-
-                rsp.attr_value.auth_req = BK_GATT_AUTH_REQ_NONE;
-                rsp.attr_value.handle = param->handle;
-                rsp.attr_value.offset = param->offset;
-
-                if (tmp_buff && valid)
-                {
-                    rsp.attr_value.len = final_len;
-                    rsp.attr_value.value = tmp_buff + param->offset;
-                }
-                else
-                {
-                    rsp.attr_value.len = 0;
-                    rsp.attr_value.value = NULL;
-                }
-
-                ret = bk_ble_gatts_send_response(gatts_if, param->conn_id, param->trans_id,
-                                                 (tmp_buff && valid ? BK_GATT_OK : BK_GATT_INSUF_RESOURCE), &rsp);
-            }
+            ret = bk_ble_gatts_send_response(gatts_if, param->conn_id, param->trans_id,
+                                             (tmp_buff && valid ? BK_GATT_OK : BK_GATT_INSUF_RESOURCE), &rsp);
         }
-        break;
+    }
+    break;
 
-        case BK_GATTS_WRITE_EVT:
+    case BK_GATTS_WRITE_EVT:
+    {
+        struct gatts_write_evt_param *param = (typeof(param))comm_param;
+        bk_gatt_rsp_t rsp;
+        uint16_t final_len = 0;
+
+        memset(&rsp, 0, sizeof(rsp));
+
+        wboard_logi("write attr handle %d len %d offset %d need rsp %d", param->handle, param->len, param->offset, param->need_rsp);
+
+        uint8_t *tmp_buff = NULL;
+        uint16_t buff_size = 0;
+        uint8_t valid = 1;
+
+        if (s_char_desc_attr_handle == param->handle)
         {
-            struct gatts_write_evt_param *param = (typeof(param))comm_param;
-            bk_gatt_rsp_t rsp;
-            uint16_t final_len = 0;
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+        }
+        else if (s_char_operation_char_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+            wboard_logi("write boarding op char");
+        }
+        else if (s_char_ssid_char_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
 
-            memset(&rsp, 0, sizeof(rsp));
-
-            wboard_logi("write attr handle %d len %d offset %d need rsp %d", param->handle, param->len, param->offset, param->need_rsp);
-
-            uint8_t *tmp_buff = NULL;
-            uint16_t buff_size = 0;
-            uint8_t valid = 1;
-
-            if (s_char_desc_attr_handle == param->handle)
+            if (s_ble_boarding_info->ssid_value)
             {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+                os_free(s_ble_boarding_info->ssid_value);
+                s_ble_boarding_info->ssid_value = NULL;
+                s_ble_boarding_info->ssid_length = 0;
             }
-            else if (s_char_operation_char_handle == param->handle)
+
+            s_ble_boarding_info->ssid_length = param->len;
+            s_ble_boarding_info->ssid_value = os_malloc(param->len + 1);
+
+            if (!s_ble_boarding_info->ssid_value)
             {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
-                wboard_logi("write boarding op char");
-            }
-            else if (s_char_ssid_char_handle == param->handle)
-            {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
-
-                if (s_ble_boarding_info->ssid_value)
-                {
-                    os_free(s_ble_boarding_info->ssid_value);
-                    s_ble_boarding_info->ssid_value = NULL;
-                    s_ble_boarding_info->ssid_length = 0;
-                }
-
-                s_ble_boarding_info->ssid_length = param->len;
-                s_ble_boarding_info->ssid_value = os_malloc(param->len + 1);
-
-                if (!s_ble_boarding_info->ssid_value)
-                {
-                    wboard_loge("alloc ssid err");
-                    valid = 0;
-                }
-                else
-                {
-                    os_memset(s_ble_boarding_info->ssid_value, 0, param->len + 1);
-                    os_memcpy((uint8_t *)s_ble_boarding_info->ssid_value, param->value, param->len);
-
-                    wboard_logi("ssid: %s", s_ble_boarding_info->ssid_value);
-                }
-            }
-            else if (s_char_password_char_handle == param->handle)
-            {
-                bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
-
-                if (s_ble_boarding_info->password_value)
-                {
-                    os_free(s_ble_boarding_info->password_value);
-                    s_ble_boarding_info->password_value = NULL;
-                    s_ble_boarding_info->password_length = 0;
-                }
-
-                s_ble_boarding_info->password_length = param->len;
-                s_ble_boarding_info->password_value = os_malloc(param->len + 1);
-
-                if (!s_ble_boarding_info->password_value)
-                {
-                    wboard_loge("alloc password err");
-                    valid = 0;
-                }
-                else
-                {
-                    os_memset(s_ble_boarding_info->password_value, 0, param->len + 1);
-                    os_memcpy((uint8_t *)s_ble_boarding_info->password_value, param->value, param->len);
-                    wboard_logi("password: %s", s_ble_boarding_info->password_value);
-                }
+                wboard_loge("alloc ssid err");
+                valid = 0;
             }
             else
             {
-                wboard_loge("invalid write handle %d", param->handle);
+                os_memset(s_ble_boarding_info->ssid_value, 0, param->len + 1);
+                os_memcpy((uint8_t *)s_ble_boarding_info->ssid_value, param->value, param->len);
+
+                wboard_logi("ssid: %s", s_ble_boarding_info->ssid_value);
+            }
+        }
+        else if (s_char_password_char_handle == param->handle)
+        {
+            bk_ble_gatts_get_attr_value(param->handle, &buff_size, &tmp_buff);
+
+            if (s_ble_boarding_info->password_value)
+            {
+                os_free(s_ble_boarding_info->password_value);
+                s_ble_boarding_info->password_value = NULL;
+                s_ble_boarding_info->password_length = 0;
+            }
+
+            s_ble_boarding_info->password_length = param->len;
+            s_ble_boarding_info->password_value = os_malloc(param->len + 1);
+
+            if (!s_ble_boarding_info->password_value)
+            {
+                wboard_loge("alloc password err");
                 valid = 0;
             }
-
-            if (param->need_rsp)
+            else
             {
-                final_len = (param->len < buff_size - param->offset ? param->len :  buff_size - param->offset);
+                os_memset(s_ble_boarding_info->password_value, 0, param->len + 1);
+                os_memcpy((uint8_t *)s_ble_boarding_info->password_value, param->value, param->len);
+                wboard_logi("password: %s", s_ble_boarding_info->password_value);
+            }
+        }
+        else
+        {
+            wboard_loge("invalid write handle %d", param->handle);
+            valid = 0;
+        }
 
-                if (tmp_buff)
-                {
-                    os_memcpy(tmp_buff + param->offset, param->value, final_len);
-                }
+        if (param->need_rsp)
+        {
+            final_len = (param->len < buff_size - param->offset ? param->len :  buff_size - param->offset);
 
-                rsp.attr_value.auth_req = BK_GATT_AUTH_REQ_NONE;
-                rsp.attr_value.handle = param->handle;
-                rsp.attr_value.offset = param->offset;
-
-                if (tmp_buff && valid)
-                {
-                    rsp.attr_value.len = final_len;
-                    rsp.attr_value.value = tmp_buff + param->offset;
-                }
-
-                ret = bk_ble_gatts_send_response(gatts_if, param->conn_id, param->trans_id, valid ? BK_GATT_OK : BK_GATT_INSUF_RESOURCE, &rsp);
+            if (tmp_buff)
+            {
+                os_memcpy(tmp_buff + param->offset, param->value, final_len);
             }
 
-            if (s_char_operation_char_handle == param->handle)
+            rsp.attr_value.auth_req = BK_GATT_AUTH_REQ_NONE;
+            rsp.attr_value.handle = param->handle;
+            rsp.attr_value.offset = param->offset;
+
+            if (tmp_buff && valid)
             {
-                uint16_t opcode = 0;
-                uint16_t length = 0;
-                uint8_t *data = NULL;
+                rsp.attr_value.len = final_len;
+                rsp.attr_value.value = tmp_buff + param->offset;
+            }
 
-                if (param->len < 2)
-                {
-                    wboard_loge("len invalid %d", param->len);
-                    break;
-                }
+            ret = bk_ble_gatts_send_response(gatts_if, param->conn_id, param->trans_id, valid ? BK_GATT_OK : BK_GATT_INSUF_RESOURCE, &rsp);
+        }
 
-                opcode = param->value[0] | param->value[1] << 8;
+        if (s_char_operation_char_handle == param->handle)
+        {
+            uint16_t opcode = 0;
+            uint16_t length = 0;
+            uint8_t *data = NULL;
 
-                if (param->len >= 4)
-                {
-                    length = param->value[2] | param->value[3] << 8;
-                }
+            if (param->len < 2)
+            {
+                wboard_loge("len invalid %d", param->len);
+                break;
+            }
 
-                if (param->len > 4)
-                {
-                    data = &param->value[4];
-                }
+            opcode = param->value[0] | param->value[1] << 8;
 
-                if (s_ble_boarding_info && s_ble_boarding_info->cb)
-                {
-                    s_ble_boarding_info->cb(opcode, length, data);
-                }
-                else
-                {
-                    wboard_loge("invalid s_ble_boarding_info");
-                    break;
-                }
+            if (param->len >= 4)
+            {
+                length = param->value[2] | param->value[3] << 8;
+            }
+
+            if (param->len > 4)
+            {
+                data = &param->value[4];
+            }
+
+            if (s_ble_boarding_info && s_ble_boarding_info->cb)
+            {
+                s_ble_boarding_info->cb(opcode, length, data);
+            }
+            else
+            {
+                wboard_loge("invalid s_ble_boarding_info");
+                break;
+            }
 
 #if 0
-                uint8_t test_data[20] = {0};
-                uint16_t test_data_len = sizeof(test_data) - 2 - 1 - 2;
-                os_memcpy(test_data, &opcode, sizeof(opcode));
-                test_data[2] = 0;
-                os_memcpy(test_data + 3, &test_data_len, sizeof(test_data_len));
+            uint8_t test_data[20] = {0};
+            uint16_t test_data_len = sizeof(test_data) - 2 - 1 - 2;
+            os_memcpy(test_data, &opcode, sizeof(opcode));
+            test_data[2] = 0;
+            os_memcpy(test_data + 3, &test_data_len, sizeof(test_data_len));
 
-                wifi_boarding_notify(test_data, sizeof(test_data));
+            wifi_boarding_notify(test_data, sizeof(test_data));
 #endif
-            }
-
-
         }
+
+
+    }
+    break;
+
+    case BK_GATTS_EXEC_WRITE_EVT:
+    {
+        struct gatts_exec_write_evt_param *param = (typeof(param))comm_param;
+        wboard_logi("exec write");
+    }
+    break;
+
+    case BK_GATTS_CONF_EVT:
+    {
+        struct gatts_conf_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_CONF_EVT %d %d %d", param->status, param->conn_id, param->handle);
+    }
+    break;
+
+    case BK_GATTS_RESPONSE_EVT:
+    {
+        struct gatts_rsp_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_RESPONSE_EVT %d %d", param->status, param->handle);
+    }
+    break;
+
+    case BK_GATTS_SEND_SERVICE_CHANGE_EVT:
+    {
+        struct gatts_send_service_change_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_SEND_SERVICE_CHANGE_EVT %02x:%02x:%02x:%02x:%02x:%02x %d %d",
+                    param->remote_bda[5],
+                    param->remote_bda[4],
+                    param->remote_bda[3],
+                    param->remote_bda[2],
+                    param->remote_bda[1],
+                    param->remote_bda[0],
+                    param->status, param->conn_id);
+    }
+    break;
+
+    case BK_GATTS_CONNECT_EVT:
+    {
+        struct gatts_connect_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_CONNECT_EVT role %d %02X:%02X:%02X:%02X:%02X:%02X conn_id %d ",
+                    param->link_role,
+                    param->remote_bda[5],
+                    param->remote_bda[4],
+                    param->remote_bda[3],
+                    param->remote_bda[2],
+                    param->remote_bda[1],
+                    param->remote_bda[0],
+                    param->conn_id);
+
+        s_conn_ind = param->conn_id;
+    }
+    break;
+
+    case BK_GATTS_DISCONNECT_EVT:
+    {
+        struct gatts_disconnect_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_DISCONNECT_EVT %02X:%02X:%02X:%02X:%02X:%02X conn_id %d",
+                    param->remote_bda[5],
+                    param->remote_bda[4],
+                    param->remote_bda[3],
+                    param->remote_bda[2],
+                    param->remote_bda[1],
+                    param->remote_bda[0],
+                    param->conn_id
+                   );
+
+        s_conn_ind = ~0;
+    }
+    break;
+
+    case BK_GATTS_MTU_EVT:
+    {
+        struct gatts_mtu_evt_param *param = (typeof(param))comm_param;
+
+        wboard_logi("BK_GATTS_MTU_EVT %d %d", param->conn_id, param->mtu);
+    }
+    break;
+
+    default:
         break;
-
-        case BK_GATTS_EXEC_WRITE_EVT:
-        {
-            struct gatts_exec_write_evt_param *param = (typeof(param))comm_param;
-            wboard_logi("exec write");
-        }
-        break;
-
-        case BK_GATTS_CONF_EVT:
-        {
-            struct gatts_conf_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_CONF_EVT %d %d %d", param->status, param->conn_id, param->handle);
-        }
-        break;
-
-        case BK_GATTS_RESPONSE_EVT:
-        {
-            struct gatts_rsp_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_RESPONSE_EVT %d %d", param->status, param->handle);
-        }
-        break;
-
-        case BK_GATTS_SEND_SERVICE_CHANGE_EVT:
-        {
-            struct gatts_send_service_change_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_SEND_SERVICE_CHANGE_EVT %02x:%02x:%02x:%02x:%02x:%02x %d %d",
-                        param->remote_bda[5],
-                        param->remote_bda[4],
-                        param->remote_bda[3],
-                        param->remote_bda[2],
-                        param->remote_bda[1],
-                        param->remote_bda[0],
-                        param->status, param->conn_id);
-        }
-        break;
-
-        case BK_GATTS_CONNECT_EVT:
-        {
-            struct gatts_connect_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_CONNECT_EVT role %d %02X:%02X:%02X:%02X:%02X:%02X conn_id %d ",
-                        param->link_role,
-                        param->remote_bda[5],
-                        param->remote_bda[4],
-                        param->remote_bda[3],
-                        param->remote_bda[2],
-                        param->remote_bda[1],
-                        param->remote_bda[0],
-                        param->conn_id);
-
-            s_conn_ind = param->conn_id;
-        }
-        break;
-
-        case BK_GATTS_DISCONNECT_EVT:
-        {
-            struct gatts_disconnect_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_DISCONNECT_EVT %02X:%02X:%02X:%02X:%02X:%02X conn_id %d",
-                        param->remote_bda[5],
-                        param->remote_bda[4],
-                        param->remote_bda[3],
-                        param->remote_bda[2],
-                        param->remote_bda[1],
-                        param->remote_bda[0],
-                        param->conn_id
-                       );
-
-            s_conn_ind = ~0;
-        }
-        break;
-
-        case BK_GATTS_MTU_EVT:
-        {
-            struct gatts_mtu_evt_param *param = (typeof(param))comm_param;
-
-            wboard_logi("BK_GATTS_MTU_EVT %d %d", param->conn_id, param->mtu);
-        }
-        break;
-
-        default:
-            break;
     }
 
     return ret;
@@ -558,112 +558,144 @@ static void dm_ble_gap_common_cb(bk_ble_gap_cb_event_t event, bk_ble_gap_cb_para
 
     switch (event)
     {
-        case BK_BLE_GAP_CONNECT_COMPLETE_EVT:
+    case BK_BLE_GAP_CONNECT_COMPLETE_EVT:
+    {
+        struct ble_connect_complete_param *evt = (typeof(evt))param;
+
+        wboard_logi("BK_BLE_GAP_CONNECT_COMPLETE_EVT %02x:%02x:%02x:%02x:%02x:%02x status 0x%x role %d hci_handle 0x%x",
+                    evt->remote_bda[5],
+                    evt->remote_bda[4],
+                    evt->remote_bda[3],
+                    evt->remote_bda[2],
+                    evt->remote_bda[1],
+                    evt->remote_bda[0],
+                    evt->status,
+                    evt->link_role,
+                    evt->hci_handle
+                   );
+    }
+    break;
+
+    case BK_BLE_GAP_DISCONNECT_COMPLETE_EVT:
+    {
+        struct ble_disconnect_complete_param *evt = (typeof(evt))param;
+
+        wboard_logi("BK_BLE_GAP_DISCONNECT_COMPLETE_EVT %02x:%02x:%02x:%02x:%02x:%02x %d status 0x%x reason 0x%x hci_handle 0x%x",
+                    evt->remote_bda[5],
+                    evt->remote_bda[4],
+                    evt->remote_bda[3],
+                    evt->remote_bda[2],
+                    evt->remote_bda[1],
+                    evt->remote_bda[0],
+                    evt->remote_bda_type,
+                    evt->status,
+                    evt->reason,
+                    evt->hci_handle
+                   );
+
+    }
+    break;
+
+    case BK_BLE_GAP_EXT_ADV_SET_RAND_ADDR_COMPLETE_EVT:
+    {
+        struct ble_adv_set_rand_addr_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
         {
-            struct ble_connect_complete_param *evt = (typeof(evt))param;
-
-            wboard_logi("BK_BLE_GAP_CONNECT_COMPLETE_EVT %02x:%02x:%02x:%02x:%02x:%02x status 0x%x role %d hci_handle 0x%x",
-                        evt->remote_bda[5],
-                        evt->remote_bda[4],
-                        evt->remote_bda[3],
-                        evt->remote_bda[2],
-                        evt->remote_bda[1],
-                        evt->remote_bda[0],
-                        evt->status,
-                        evt->link_role,
-                        evt->hci_handle
-                       );
+            wboard_loge("set adv rand addr err %d", pm->status);
         }
-        break;
 
-        case BK_BLE_GAP_DISCONNECT_COMPLETE_EVT:
+        if (s_ble_sema != NULL)
         {
-            struct ble_disconnect_complete_param *evt = (typeof(evt))param;
-
-            wboard_logi("BK_BLE_GAP_DISCONNECT_COMPLETE_EVT %02x:%02x:%02x:%02x:%02x:%02x %d status 0x%x reason 0x%x hci_handle 0x%x",
-                        evt->remote_bda[5],
-                        evt->remote_bda[4],
-                        evt->remote_bda[3],
-                        evt->remote_bda[2],
-                        evt->remote_bda[1],
-                        evt->remote_bda[0],
-                        evt->remote_bda_type,
-                        evt->status,
-                        evt->reason,
-                        evt->hci_handle
-                       );
-
+            rtos_set_semaphore( &s_ble_sema );
         }
-        break;
+    }
+    break;
 
-        case BK_BLE_GAP_EXT_ADV_PARAMS_SET_COMPLETE_EVT:
+    case BK_BLE_GAP_EXT_ADV_PARAMS_SET_COMPLETE_EVT:
+    {
+        struct ble_adv_params_set_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
         {
-            struct ble_adv_params_set_cmpl_evt_param *pm = (typeof(pm))param;
-
-            if (pm->status)
-            {
-                wboard_loge("set adv param err 0x%x", pm->status);
-            }
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            wboard_loge("set adv param err 0x%x", pm->status);
         }
-        break;
 
-        case BK_BLE_GAP_EXT_ADV_DATA_SET_COMPLETE_EVT:
+        if (s_ble_sema != NULL)
         {
-            struct ble_adv_data_set_cmpl_evt_param *pm = (typeof(pm))param;
-
-            if (pm->status)
-            {
-                wboard_loge("set adv data err %d", pm->status);
-            }
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            rtos_set_semaphore(&s_ble_sema);
         }
-        break;
+    }
+    break;
 
-        case BK_BLE_GAP_EXT_ADV_DATA_RAW_SET_COMPLETE_EVT:
+    case BK_BLE_GAP_EXT_ADV_DATA_SET_COMPLETE_EVT:
+    {
+        struct ble_adv_data_set_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
         {
-            struct ble_adv_data_raw_set_cmpl_evt_param *pm = (typeof(pm))param;
-
-            if (pm->status)
-            {
-                wboard_loge("set raw adv data err %d", pm->status);
-            }
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            wboard_loge("set adv data err %d", pm->status);
         }
-        break;
 
-        case BK_BLE_GAP_EXT_ADV_START_COMPLETE_EVT:
+        if (s_ble_sema != NULL)
         {
-            struct ble_adv_start_cmpl_evt_param *pm = (typeof(pm))param;
-
-            if (pm->status)
-            {
-                wboard_loge("set adv enable err %d", pm->status);
-            }
-
-            wboard_logi("pls disable adv before remove pair !!!");
-
-            if (s_ble_sema != NULL)
-            {
-                rtos_set_semaphore(&s_ble_sema);
-            }
+            rtos_set_semaphore(&s_ble_sema);
         }
-        break;
+    }
+    break;
 
-        default:
-            break;
+    case BK_BLE_GAP_EXT_ADV_DATA_RAW_SET_COMPLETE_EVT:
+    {
+        struct ble_adv_data_raw_set_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
+        {
+            wboard_loge("set raw adv data err %d", pm->status);
+        }
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore(&s_ble_sema);
+        }
+    }
+    break;
+
+    case BK_BLE_GAP_EXT_ADV_START_COMPLETE_EVT:
+    {
+        struct ble_adv_start_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
+        {
+            wboard_loge("set adv enable err %d", pm->status);
+        }
+
+        wboard_logi("pls disable adv before remove pair !!!");
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore(&s_ble_sema);
+        }
+    }
+    break;
+
+    case BK_BLE_GAP_EXT_ADV_STOP_COMPLETE_EVT:
+    {
+        struct ble_adv_stop_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
+        {
+            wboard_loge("set adv disable err %d", pm->status);
+        }
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore(&s_ble_sema);
+        }
+    }
+    break;
+
+    default:
+        break;
     }
 
 }
@@ -674,12 +706,15 @@ int wifi_boarding_init(ble_boarding_info_t *info)
 
     s_ble_boarding_info = info;
 
-    ret = rtos_init_semaphore(&s_ble_sema, 1);
-
-    if (ret != 0)
+    if(!s_ble_sema)
     {
-        wboard_loge("rtos_init_semaphore err %d", ret);
-        return -1;
+        ret = rtos_init_semaphore(&s_ble_sema, 1);
+
+        if (ret != 0)
+        {
+            wboard_loge("rtos_init_semaphore err %d", ret);
+            return -1;
+        }
     }
 
     bk_ble_gap_register_callback(dm_ble_gap_common_cb);
@@ -731,6 +766,52 @@ int wifi_boarding_init(ble_boarding_info_t *info)
     return BK_OK;
 }
 
+int wifi_boarding_deinit()
+{
+    int32_t ret = 0;
+
+    wboard_logw("");
+
+    if (s_ble_boarding_info->ssid_value)
+    {
+        os_free(s_ble_boarding_info->ssid_value);
+    }
+
+    if (s_ble_boarding_info->password_value)
+    {
+        os_free(s_ble_boarding_info->password_value);
+    }
+
+    os_memset(s_ble_boarding_info, 0, sizeof(*s_ble_boarding_info));
+
+    if (s_ble_sema)
+    {
+        ret = rtos_deinit_semaphore(&s_ble_sema);
+
+        if (ret != 0)
+        {
+            wboard_loge("rtos_deinit_semaphore err %d", ret);
+            return -1;
+        }
+
+        s_ble_sema = NULL;
+    }
+
+    s_gatts_if = 0;
+    s_prop_cli_config = 0;
+    os_memset(s_ssid, 0, sizeof(s_ssid));
+    os_memset(s_password, 0, sizeof(s_password));
+    s_conn_ind = ~0;
+    s_service_attr_handle = INVALID_ATTR_HANDLE;
+    s_char_attr_handle = INVALID_ATTR_HANDLE;
+    s_char_desc_attr_handle = INVALID_ATTR_HANDLE;
+    s_char_operation_char_handle = INVALID_ATTR_HANDLE;
+    s_char_ssid_char_handle = INVALID_ATTR_HANDLE;
+    s_char_password_char_handle = INVALID_ATTR_HANDLE;
+
+    return BK_OK;
+}
+
 void dm_ble_gap_get_identity_addr(uint8_t *addr)
 {
     uint8_t *identity_addr = addr;
@@ -755,7 +836,10 @@ int wifi_boarding_adv_start(void)
 
     os_memcpy(current_addr, identity_addr, sizeof(identity_addr));
 
-    snprintf((char *)(adv_name), sizeof(adv_name) - 1, "bk_genie-%02X%02X%02X", identity_addr[2], identity_addr[1], identity_addr[0]);
+    current_addr[5] |= 0xc0;
+    current_addr[0]++;
+
+    snprintf((char *)(adv_name), sizeof(adv_name) - 1, "bk_genie-%02X%02X%02X", current_addr[2], current_addr[1], current_addr[0]);
 
     wboard_logi("adv name %s", adv_name);
 
@@ -778,7 +862,7 @@ int wifi_boarding_adv_start(void)
         .secondary_phy = BK_BLE_GAP_PHY_1M,
         .sid = 0,
         .scan_req_notif = 0,
-        .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+        .own_addr_type = BLE_ADDR_TYPE_RANDOM,//BLE_ADDR_TYPE_PUBLIC,
     };
 
     ret =  bk_ble_gap_set_adv_params(ADV_HANDLE, &adv_param);
@@ -794,6 +878,22 @@ int wifi_boarding_adv_start(void)
     if (ret != kNoErr)
     {
         wboard_loge("wait set adv param err %d", ret);
+        goto error;
+    }
+
+    ret = bk_ble_gap_set_adv_rand_addr(ADV_HANDLE, current_addr);
+
+    if (ret)
+    {
+        wboard_loge("bk_ble_gap_set_adv_rand_addr err %d", ret);
+        goto error;
+    }
+
+    ret = rtos_get_semaphore(&s_ble_sema, SYNC_CMD_TIMEOUT_MS);
+
+    if (ret != kNoErr)
+    {
+        wboard_loge("wait set adv rand addr err %d", ret);
         goto error;
     }
 
@@ -850,7 +950,7 @@ int wifi_boarding_adv_start(void)
     adv_data[adv_index++] = 0x00;
     adv_data[adv_index++] = BK_BLE_AD_TYPE_NAME_CMPL;
 
-    ret = sprintf((char *)&adv_data[adv_index], "%s_%02X%02X%02X", "doorbell", identity_addr[0], identity_addr[1], identity_addr[2]);
+    ret = sprintf((char *)&adv_data[adv_index], "%s", adv_name);
 
     adv_index += ret;
     adv_data[len_index] = ret + 1;
@@ -915,6 +1015,36 @@ int wifi_boarding_adv_start(void)
 error:
     return 0;
 
+}
+
+int wifi_boarding_adv_stop(void)
+{
+    int32_t ret = 0;
+
+    if(bk_bluetooth_get_status() != BK_BLUETOOTH_STATUS_ENABLED)
+    {
+        wboard_loge("bluetooth not init !!!");
+        return BK_FAIL;
+    }
+
+    const uint8_t ext_adv_inst[] = {0};
+    ret = bk_ble_gap_adv_stop(sizeof(ext_adv_inst) / sizeof(ext_adv_inst[0]), ext_adv_inst);
+
+    if (ret)
+    {
+        wboard_loge("bk_ble_gap_adv_stop err %d", ret);
+        return -1;
+    }
+
+    ret = rtos_get_semaphore(&s_ble_sema, SYNC_CMD_TIMEOUT_MS);
+
+    if (ret != kNoErr)
+    {
+        wboard_loge("wait stop adv err %d", ret);
+        return -1;
+    }
+
+    return BK_OK;
 }
 
 int wifi_boarding_notify(uint8_t *data, uint16_t length)

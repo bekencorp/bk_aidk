@@ -6,6 +6,7 @@
 #include "cli.h"
 #include "bk_genie_comm.h"
 #include "boarding_service.h"
+#include "pan_service.h"
 
 //#include "bk_genie_cs2_service.h"
 //#include "wifi_boarding_utils.h"
@@ -107,6 +108,28 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
             bk_genie_send_msg(&msg);
         }
         break;
+
+        case BOARDING_OP_AGORA_AGENT_RSP:
+        {
+            bk_genie_msg_t msg;
+            char *payload = os_zalloc(length + 1);
+
+            os_memcpy(payload, data, length);
+            msg.event = DBEVT_START_AGORA_AGENT_RSP;
+            msg.param = (uint32_t)payload;
+            bk_genie_send_msg(&msg);
+        }
+        break;
+
+#if CONFIG_STA_AUTO_RECONNECT
+        case BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME:
+        {
+extern uint8_t first_time_for_network_provisioning;
+            LOGI("BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME\r\n");
+            if (*data)
+                first_time_for_network_provisioning = false;
+        }
+#endif
 
         case BOARDING_OP_SERVICE_UDP_START:
         {
@@ -318,9 +341,17 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
 
         }
         break;
+
+        case BOARDING_OP_NET_PAN_START:
+        {
+            bk_genie_msg_t msg;
+
+            msg.event = DBEVT_NET_PAN_REQUEST;
+            bk_genie_send_msg(&msg);
+        }
+        break;
     }
 }
-
 
 int bk_genie_boarding_init(void)
 {
@@ -343,10 +374,30 @@ int bk_genie_boarding_init(void)
     bk_genie_boarding_info->boarding_info.cb = bk_genie_boarding_operation_handle;
 
     wifi_boarding_init(&bk_genie_boarding_info->boarding_info);
-    wifi_boarding_adv_start();
 
+#if CONFIG_NET_PAN
+    pan_service_init();
+#endif
     return BK_OK;
 error:
     return BK_FAIL;
 }
 
+int bk_genie_boarding_deinit(void)
+{
+    LOGI("%s\n", __func__);
+
+    wifi_boarding_adv_stop();
+    wifi_boarding_deinit();
+
+    if(bk_genie_boarding_info)
+    {
+        os_free(bk_genie_boarding_info);
+        bk_genie_boarding_info = NULL;
+    }
+
+#if CONFIG_NET_PAN
+    pan_service_deinit();
+#endif
+    return 0;
+}

@@ -5,8 +5,8 @@ bootloader,,68k,code,TRUE,FALSE
 app,,2856k,code,TRUE,FALSE
 app1,,1496k,code,TRUE,FALSE
 app2,,476k,code,TRUE,FALSE
-download,,476K,data,TRUE,
-usr_config,,1024K,data,TRUE,
+download,,3196K,data,TRUE,
+usr_config,,84K,data,TRUE,
 easyflash,0x7fc000,8K,data,TRUE,
 rf_firmware,0x7fe000,4k,data,TRUE,
 net_param,0x7ff000,4k,data,TRUE,

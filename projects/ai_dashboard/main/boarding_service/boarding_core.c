@@ -6,13 +6,18 @@
 #include <modules/wifi.h>
 #include <components/event.h>
 #include <components/netif.h>
-
+#include "cJSON.h"
+#include "components/bk_uid.h"
 
 #include "wifi_boarding_utils.h"
 #include "bk_genie_comm.h"
 #include "boarding_service.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "cli.h"
+#include "bk_genie_smart_config.h"
+#include "led_blink.h"
+#include "pan_service.h"
+#include "app_event.h"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -56,56 +61,12 @@ bk_err_t bk_genie_send_msg(bk_genie_msg_t *msg)
     return ret;
 }
 
-static void bk_genie_wifi_event_cb(void *new_evt)
-{
-    wifi_linkstate_reason_t info = *((wifi_linkstate_reason_t *)new_evt);
-    bk_genie_msg_t msg;
-    msg.param = info.state;
-
-    switch (info.state)
-    {
-        case WIFI_LINKSTATE_STA_GOT_IP:
-        {
-            LOGI("WIFI_LINKSTATE_STA_GOT_IP\r\n");
-
-            msg.event = DBEVT_WIFI_STATION_CONNECTED;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
-        case WIFI_LINKSTATE_STA_DISCONNECTED:
-        {
-            LOGI("WIFI_LINKSTATE_STA_DISCONNECTED\r\n");
-
-            msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
-        case WIFI_LINKSTATE_AP_CONNECTED:
-        {
-            LOGI("WIFI_LINKSTATE_AP_CONNECTED\r\n");
-        }
-        break;
-
-        case WIFI_LINKSTATE_AP_DISCONNECTED:
-        {
-            LOGI("WIFI_LINKSTATE_AP_DISCONNECTED\r\n");
-        }
-        break;
-
-        default:
-            LOGI("WIFI_LINKSTATE %d\r\n", info.state);
-            break;
-
-    }
-}
-
+extern char *app_id_record;
+extern char *channel_name_record;
+extern uint8_t network_disc_evt_posted;
 static int bk_genie_wifi_sta_connect(char *ssid, char *key)
 {
     int len;
-
-    bk_wlan_status_register_cb(bk_genie_wifi_event_cb);
 
     wifi_sta_config_t sta_config = {0};
 
@@ -128,7 +89,7 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
     }
 
     os_strcpy(sta_config.password, key);
-
+    network_disc_evt_posted = 0;
     LOGE("ssid:%s key:%s\r\n", sta_config.ssid, sta_config.password);
     BK_LOG_ON_ERR(bk_wifi_sta_set_config(&sta_config));
     BK_LOG_ON_ERR(bk_wifi_sta_start());
@@ -136,10 +97,42 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
     return BK_OK;
 }
 
+
+#include "components/bk_nfc.h"
+typedef struct
+{
+	uint32_t event;
+	uint8_t *param;
+} nfc_msg_t;
+
+#define NFC_GOT_ID  1
+
+uint8_t nfc_callback(uint8_t event_param, void*card_id)
+{
+    nfc_msg_t msg;
+
+    switch(event_param)
+    {
+        case NFC_GOT_ID:
+        {
+            msg.event = DBECT_NFC_GOT_ID;
+            msg.param = (uint8_t*)(card_id);
+            bk_genie_send_msg((bk_genie_msg_t *)&msg);
+        }
+        break;
+        
+        default :
+        break;
+    }
+    return 0;
+}
+
+extern void agora_auto_run(void);
 static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
     bk_genie_msg_t msg;
+    nfc_event_callback_register(nfc_callback);
 
     while (1)
     {
@@ -180,6 +173,91 @@ static void bk_genie_message_handle(void)
                     LOGI("ip: %s\n", ip4_config.ip);
 
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_STATION_START, BK_OK, ip4_config.ip, strlen(ip4_config.ip));
+                }
+                break;
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+                case DBEVT_START_AGORA_AGENT_ON_DEV:
+                {
+                    LOGI("DBEVT_START_AGORA_AGENT_ON_DEV\n");
+                    unsigned char payload = 'a';
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_AGENT_FROM_DEV, 0, (char *)(&payload), 1);
+                }
+                break;
+#endif
+                case DBEVT_START_AGORA_AGENT_START:
+                {
+                    LOGI("DBEVT_START_AGORA_AGENT_START\n");
+                    unsigned char uid[32] = {0};
+                    char uid_str[65] = {0};
+                    char payload[128] = {0};
+                    uint16 len = 0;
+
+                    bk_uid_get_data(uid);
+                    for (int i = 0; i < 24; i++)
+                    {
+                        sprintf(uid_str + i * 2, "%02x", uid[i]);
+                    }
+                    len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
+                    LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
+                }
+                break;
+
+                case DBEVT_START_AGORA_AGENT_RSP:
+                {
+                    LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
+                    cJSON *json = NULL;
+
+                    json = cJSON_Parse((char *)(msg.param));
+                    if (!json)
+                    {
+                        LOGE("Error before: [%s]\n", cJSON_GetErrorPtr());
+                        goto fail;
+                    }
+                    if (app_id_record)
+                    {
+                        os_free(app_id_record);
+                    }
+                    if (channel_name_record)
+                    {
+                        os_free(channel_name_record);
+                    }
+                    cJSON *app_id = cJSON_GetObjectItem(json, "app_id");
+                    if (app_id && ((app_id->type & 0xFF) == cJSON_String))
+                    {
+                        app_id_record = os_strdup(app_id->valuestring);
+                    }
+                    else
+                    {
+                        LOGE("[Error] not find msg\n");
+                    }
+
+                    cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
+                    if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
+                    {
+                        channel_name_record = os_strdup(channel_name->valuestring);
+                        LOGI("real channel name:%s\r\n", channel_name_record);
+                    }
+                    else
+                    {
+                        LOGE("[Error] not find msg\n");
+                    }
+                    cJSON_Delete(json);
+                    if (app_id_record && channel_name_record)
+                    {
+                        bk_genie_save_agent_info(app_id_record, channel_name_record);
+                        LOGI("begin agora_auto_run\n");
+                        agora_auto_run();
+
+                        if (!bk_genie_is_net_pan_configured())
+                        {
+                            app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+                        }
+                    }
+fail:
+                    if (msg.param)
+                        os_free((void *)(msg.param));
+                    break;
                 }
                 break;
 
@@ -309,6 +387,7 @@ static void bk_genie_message_handle(void)
                 {
                     LOGI("close bluetooth ing\n");
 #if CONFIG_BLUETOOTH
+                    bk_genie_boarding_deinit();
                     bk_bluetooth_deinit();
                     LOGI("close bluetooth finish!\r\n");
 #endif
@@ -364,6 +443,33 @@ static void bk_genie_message_handle(void)
 
                 case DBEVT_EXIT:
                     goto exit;
+                    break;
+
+                case DBEVT_NET_PAN_REQUEST:
+                {
+                    LOGI("DBEVT_NET_PAN_REQUEST\n");
+                    int status = 1;
+#if CONFIG_NET_PAN
+                    bk_bt_enter_pairing_mode(1);
+                    status = 0;
+#endif
+                    uint8_t bt_mac[6];
+                    bk_get_mac(bt_mac, MAC_TYPE_BLUETOOTH);
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_NET_PAN_START, status, (char *)bt_mac, 6);
+                }
+                break;
+
+                case DBECT_NFC_GOT_ID:
+                {
+                    uint8_t nfc_id[7];
+                    nfc_msg_t nfc_info;
+                    nfc_info.param = (uint8_t *)(msg.param);
+                    os_memcpy(nfc_id, nfc_info.param, 7);
+                    LOGI("DBECT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
+                    nfc_id[3], nfc_id[4], nfc_id[5], nfc_id[6]);
+
+                    bk_genie_post_nfc_id(nfc_id);
+                }
                     break;
 
                 default:
@@ -453,18 +559,6 @@ void bk_genie_core_init(void)
         LOGE("create media major thread fail\n");
         goto error;
     }
-
-    extern bool ate_is_enabled(void);
-
-    if (!ate_is_enabled())
-    {
-        bk_genie_boarding_init();
-    }
-    else
-    {
-        LOGI("ATE is enable, ble adv disable!!!!!! \r\n");
-    }
-
 
     db_info->enabled = BK_TRUE;
 

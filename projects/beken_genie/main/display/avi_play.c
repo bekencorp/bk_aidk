@@ -145,7 +145,7 @@ static bk_err_t bk_avi_play_open(bk_avi_play_t *avi_play, const char *filename, 
     format.format = JD_FORMAT_RGB565;
     format.scale = 0;
     format.byte_order = JD_BIG_ENDIAN;
-    jd_set_output_format(format);
+    jd_set_output_format(&format);
 #endif
     LOGI("%s complete\r\n", __func__);
 
@@ -206,7 +206,7 @@ static bk_err_t bk_avi_video_prase_to_rgb565(bk_avi_play_t *avi_play)
     }
 
     uint16_t *buf16 = (uint16_t *)avi_play->framebuffer;
-    for (int k = 0; k < 320 * 160; k++)
+    for (int k = 0; k < avi_play->avi->width * avi_play->avi->height; k++)
     {
         buf16[k] = ((buf16[k] & 0xff00) >> 8) | ((buf16[k] & 0x00ff) << 8);
     }
@@ -324,10 +324,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     drv_tp_open(ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi), TP_MIRROR_NONE);
 #endif
 
-    img_dsc.header.w = lv_vnd_config.lcd_hor_res;
-    img_dsc.header.h = lv_vnd_config.lcd_ver_res;
-    img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
-
     ret = bk_avi_play_open(&bk_avi_play, "/genie_eye.avi", 1);
     if (ret != BK_OK)
     {
@@ -335,6 +331,16 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         lcd_display_close();
         return ret;
     }
+
+#if (CONFIG_LCD_SPI_DEVICE_NUM > 1)
+    img_dsc.header.w = lv_vnd_config.lcd_hor_res;
+    img_dsc.header.h = lv_vnd_config.lcd_ver_res;
+    img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
+#else
+    img_dsc.header.w = bk_avi_play.avi->width;
+    img_dsc.header.h = bk_avi_play.avi->height;
+    img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
+#endif
 
     if (bk_avi_play.video_segment_flag == 1)
     {

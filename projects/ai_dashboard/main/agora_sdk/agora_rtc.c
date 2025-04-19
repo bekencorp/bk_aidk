@@ -266,8 +266,24 @@ static void __on_rejoin_channel_success(connection_id_t conn_id, uint32_t uid, i
     LOGI("The uid(%d) rejoins to the channel: %s \n", uid, rtc->agora_rtc_option.p_channel_name);
 
     rtc->b_channel_joined = true;
+    agora_rtc_msg_t msg = { .code = AGORA_RTC_MSG_REJOIN_CHANNEL_SUCCESS };
+    __send_message_2_user(rtc, &msg);
 }
 
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+#include "bk_genie_smart_config.h"
+static void __on_stream_message(connection_id_t conn_id, uint32_t uid, int stream_id, const char* data, size_t length, uint64_t sentTs)
+{
+    __maybe_unused int ret = 0;
+    bk_agora_ai_data_stream_t msg;
+    msg.data = psram_zalloc(length+1);
+
+    os_memcpy(msg.data, data, length);
+extern beken_queue_t datastream_queue;
+    ret = rtos_push_to_queue(&datastream_queue, &msg, BEKEN_NO_WAIT);
+
+}
+#endif
 static void __register_agora_rtc_event_handler(agora_rtc_t *rtc)
 {
     rtc->agora_rtc_event_handler.on_join_channel_success = __on_join_channel_success;
@@ -282,6 +298,9 @@ static void __register_agora_rtc_event_handler(agora_rtc_t *rtc)
     rtc->agora_rtc_event_handler.on_rejoin_channel_success = __on_rejoin_channel_success;
     rtc->agora_rtc_event_handler.on_user_mute_audio = __on_user_mute_audio;
     rtc->agora_rtc_event_handler.on_user_mute_video = __on_user_mute_video;
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+    rtc->agora_rtc_event_handler.on_stream_message = __on_stream_message;
+#endif
 }
 
 static void __deep_copy_items_destroy(agora_rtc_t *rtc)
