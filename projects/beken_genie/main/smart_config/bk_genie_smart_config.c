@@ -571,6 +571,19 @@ int demo_network_auto_reconnect(bool val)	//val true means from disconnect to re
 		return 0x74l;
 	}
 #endif
+#if CONFIG_BK_MODEM
+	if ((info.flag & 0x78l) == 0x78l) {
+		if (val == false) {
+			network_reconnect_stop_timeout_check();
+			network_reconnect_start_timeout_check(50);    //50s
+			app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+			network_disc_evt_posted = 0;
+		}
+extern bk_err_t bk_modem_init(void);
+		bk_modem_init();
+		return 0x78l;
+	}
+#endif
 	return 0;
 }
 
@@ -602,6 +615,10 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 #if CONFIG_NET_PAN
 	} else if (type == NETIF_IF_PAN) {
 		info_tmp.flag |= 0x74l;
+#endif
+#if CONFIG_BK_MODEM
+	} else if (type == NETIF_IF_PPP) {
+		info_tmp.flag |= 0x78l;
 #endif
 	} else
 		return -1;
@@ -641,13 +658,15 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
         case EVENT_NETIF_GOT_IP4:
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
-            BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
+            BK_LOGI(TAG, "netif_idex %d got ip %s.\n", got_ip->netif_if, got_ip->ip);
             if (smart_config_running)
             {
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
                 bk_wifi_sta_get_config(&sta_config);
                 demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
-                msg.event = DBEVT_WIFI_STATION_CONNECTED;
+                //inform beken apk netif got ip
+                msg.event = DBEVT_NETWORK_CONNECTED;
+                msg.param = got_ip->netif_if;
                 bk_genie_send_msg(&msg);
 #if CONFIG_STA_AUTO_RECONNECT
                 if (!first_time_for_network_provisioning) {
@@ -775,6 +794,10 @@ void bk_genie_prepare_for_smart_config(void)
     network_reconnect_stop_timeout_check();
     agora_stop();
     bk_wifi_sta_stop();
+#if CONFIG_BK_MODEM
+extern bk_err_t bk_modem_deinit(void);
+    bk_modem_deinit();
+#endif
 #if !CONFIG_STA_AUTO_RECONNECT
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
@@ -803,9 +826,12 @@ int bk_genie_smart_config_init(void)
     event_handler_init();
     flag = demo_network_auto_reconnect(false);
 
-    if (flag != 0x71l && flag != 0x73l
+    if (flag != 0x71l
 #if CONFIG_NET_PAN
         && flag != 0x74l
+#endif
+#if CONFIG_BK_MODEM
+	 && flag != 0x78l
 #endif
     ) {
         bk_genie_prepare_for_smart_config();

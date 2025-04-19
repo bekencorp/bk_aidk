@@ -115,7 +115,7 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
     {
         case NFC_GOT_ID:
         {
-            msg.event = DBECT_NFC_GOT_ID;
+            msg.event = DBEVT_NFC_GOT_ID;
             msg.param = (uint8_t*)(card_id);
             bk_genie_send_msg((bk_genie_msg_t *)&msg);
         }
@@ -153,23 +153,15 @@ static void bk_genie_message_handle(void)
                 }
                 break;
 
-                case DBEVT_WIFI_STATION_CONNECTED:
+                case DBEVT_NETWORK_CONNECTED:
                 {
-                    LOGI("DBEVT_WIFI_STATION_CONNECTED\n");
+                    LOGI("DBEVT_NETWORK_CONNECTED\n");
                     netif_ip4_config_t ip4_config;
-                    extern uint32_t uap_ip_is_start(void);
+			netif_if_t netif_idx;
 
+			netif_idx = msg.param;
                     os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
-                    bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-
-                    if (uap_ip_is_start())
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-                    }
-                    else
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_STA, &ip4_config);
-                    }
+                    bk_netif_get_ip4_config(netif_idx, &ip4_config);
 
                     LOGI("ip: %s\n", ip4_config.ip);
 
@@ -465,19 +457,30 @@ fail:
                 }
                 break;
 
-                case DBECT_NFC_GOT_ID:
+                case DBEVT_NFC_GOT_ID:
                 {
                     uint8_t nfc_id[7];
                     nfc_msg_t nfc_info;
                     nfc_info.param = (uint8_t *)(msg.param);
                     os_memcpy(nfc_id, nfc_info.param, 7);
-                    LOGI("DBECT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
+                    LOGI("DBEVT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
                     nfc_id[3], nfc_id[4], nfc_id[5], nfc_id[6]);
 
                     bk_genie_post_nfc_id(nfc_id);
                 }
                     break;
 
+#if CONFIG_BK_MODEM
+                case DBEVT_START_BK_MODEM:
+                {
+extern bk_err_t bk_modem_init(void);
+                    ret = bk_modem_init();
+			if (ret) {
+                        bk_modem_init();
+			}
+                }
+                    break;
+#endif
                 default:
                     break;
             }
