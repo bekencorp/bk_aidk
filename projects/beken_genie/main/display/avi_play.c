@@ -171,20 +171,39 @@ static void bk_avi_play_close(bk_avi_play_t *avi_play)
     LOGI("%s complete\r\n", __func__);
 }
 
-static void bk_avi_video_prase_to_rgb565(bk_avi_play_t *avi_play)
+static bk_err_t bk_avi_video_prase_to_rgb565(bk_avi_play_t *avi_play)
 {
-    AVI_set_video_position(avi_play->avi, avi_play->pos, (long *)&avi_play->video_len);
+    bk_err_t ret = BK_OK;
+
+    ret = AVI_set_video_position(avi_play->avi, avi_play->pos, (long *)&avi_play->video_len);
+    if (ret != BK_OK)
+    {
+        LOGE("%s %d AVI_set_video_position failed\r\n", __func__, __LINE__);
+        return ret;
+    }
+
     AVI_read_frame(avi_play->avi, (char *)avi_play->video_frame, avi_play->video_len);
 
     if (avi_play->video_len == 0)
     {
         avi_play->pos = avi_play->pos + 1;
-        AVI_set_video_position(avi_play->avi, avi_play->pos, (long *)&avi_play->video_len);
+        ret = AVI_set_video_position(avi_play->avi, avi_play->pos, (long *)&avi_play->video_len);
+        if (ret != BK_OK)
+        {
+            LOGE("%s %d AVI_set_video_position failed\r\n", __func__, __LINE__);
+            return ret;
+        }
+
         AVI_read_frame(avi_play->avi, (char *)avi_play->video_frame, avi_play->video_len);
     }
 
 #if AVI_VIDEO_USE_HW_DECODE
-    bk_jpeg_hw_decode_to_mem((uint8_t *)avi_play->video_frame, (uint8_t *)avi_play->framebuffer, avi_play->video_len, avi_play->avi->width, avi_play->avi->height);
+    ret = bk_jpeg_hw_decode_to_mem((uint8_t *)avi_play->video_frame, (uint8_t *)avi_play->framebuffer, avi_play->video_len, avi_play->avi->width, avi_play->avi->height);
+    if (ret != BK_OK)
+    {
+        LOGE("%s %d bk_jpeg_hw_decode_to_mem failed\r\n", __func__, __LINE__);
+        return ret;
+    }
 
     uint16_t *buf16 = (uint16_t *)avi_play->framebuffer;
     for (int k = 0; k < 320 * 160; k++)
@@ -204,17 +223,26 @@ static void bk_avi_video_prase_to_rgb565(bk_avi_play_t *avi_play)
             os_memcpy(avi_play->segmentbuffer + (avi_play->avi->width >> 1) * avi_play->avi->height + i * (avi_play->avi->width >> 1), avi_play->framebuffer + i * avi_play->avi->width + (avi_play->avi->width >> 1), avi_play->avi->width);
         }
     }
+
+    return ret;
 }
 
 static void lv_timer_cb(lv_timer_t *timer)
 {
+    bk_err_t ret = BK_OK;
+
     bk_avi_play.pos++;
     if (bk_avi_play.pos >= bk_avi_play.video_num)
     {
         bk_avi_play.pos = 0;
     }
 
-    bk_avi_video_prase_to_rgb565(&bk_avi_play);
+    ret = bk_avi_video_prase_to_rgb565(&bk_avi_play);
+    if (ret != BK_OK)
+    {
+        LOGE("%s %d bk_avi_video_prase_to_rgb565 failed\r\n", __func__, __LINE__);
+        return;
+    }
 
     lv_img_set_src(img, &img_dsc);
 }
@@ -317,7 +345,12 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         img_dsc.data = (const uint8_t *)bk_avi_play.framebuffer;
     }
 
-    bk_avi_video_prase_to_rgb565(&bk_avi_play);
+    ret = bk_avi_video_prase_to_rgb565(&bk_avi_play);
+    if (ret != BK_OK)
+    {
+        LOGE("%s %d bk_avi_video_prase_to_rgb565 failed\r\n", __func__, __LINE__);
+        return ret;
+    }
 
     bk_avi_play_start();
 
