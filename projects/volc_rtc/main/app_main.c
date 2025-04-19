@@ -20,7 +20,9 @@ extern int bk_cli_init(void);
 extern int bk_genie_main(void);
 extern void bk_enter_deepsleep();
 #endif
-
+#if (CONFIG_VOLC_RTC_DEMO_ENABLE)
+int volc_rtc_demo_main(void);
+#endif
 #define TAG "APP_MAIN"
 
 
@@ -88,6 +90,9 @@ void user_app_main(void)
 
     // beken_rtc_cli_init();
     os_printf("VolcEngineRTCLite lib version:%s\r\n", byte_rtc_get_version());
+    #if CONFIG_VOLC_RTC_DEMO_ENABLE
+    volc_rtc_demo_main();
+    #endif
 #endif
 
 }

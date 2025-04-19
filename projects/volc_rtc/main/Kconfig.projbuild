@@ -1,1 +1,5 @@
-
+menu "volc_rtc Project Configuration"
+    config VOLC_RTC_DEMO_ENABLE
+        bool "Enable volc_rtc demo"
+        default n
+endmenu
