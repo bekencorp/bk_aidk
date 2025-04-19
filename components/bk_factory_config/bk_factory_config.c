@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <os/os.h>
-
+#include <os/mem.h>
 #if (CONFIG_EASY_FLASH)
 #include "bk_ef.h"
 #include "bk_cli.h"
@@ -38,6 +38,7 @@ const struct factory_config_t s_platform_config[] = {
 
 static const struct factory_config_t *s_user_reg_config = NULL;
 static uint32_t s_user_config_len = 0;
+static uint16_t s_value_max_len = 0;
 
 static inline int bk_factory_read_flash(const char *key, void *value, int value_len)
 {
@@ -77,18 +78,27 @@ static uint8_t *s_factory_data = NULL;
 static struct factory_config_map_t *s_factory_cache_map = NULL;
 static uint32_t s_factory_cache_num = 0;
 
+static inline void compute_max_len(uint16_t len)
+{
+    if (len > s_value_max_len) {
+        s_value_max_len = len;
+    }
+}
+
 static void get_config_cache_len(struct cache_config_info_t *info)
 {
     for (size_t i = 0; i < sizeof(s_platform_config)/sizeof(s_platform_config[0]); i++) {
         if (s_platform_config[i].need_sram_cache) {
             info->config_cache_len += s_platform_config[i].value_max_size;
             info->config_cache_num++;
+            compute_max_len(s_platform_config[i].value_max_size);
         }
     }
     for (size_t i = 0; i < s_user_config_len; i++) {
         if (s_user_reg_config[i].need_sram_cache) {
             info->config_cache_len += s_user_reg_config[i].value_max_size;
             info->config_cache_num++;
+            compute_max_len(s_user_reg_config[i].value_max_size);
         }
     }
     s_factory_cache_num = info->config_cache_num;
@@ -145,9 +155,17 @@ static void bk_factory_cache_init(void)
     get_config_cache_len(&cache_info);
     
     if (cache_info.config_cache_len > 0) {
-        s_factory_data = (uint8_t *)malloc(cache_info.config_cache_len);
+        s_factory_data = (uint8_t *)os_malloc(cache_info.config_cache_len);
+        if (s_factory_data == NULL) {
+            LOGE("malloc s_factory_data fail\r\n");
+            return;
+        }
         uint32_t map_table_size = sizeof(struct factory_config_map_t) * cache_info.config_cache_num;
-        s_factory_cache_map = (struct factory_config_map_t *)malloc(map_table_size);
+        s_factory_cache_map = (struct factory_config_map_t *)os_malloc(map_table_size);
+        if (s_factory_cache_map == NULL) {
+            os_free(s_factory_data);
+            LOGE("malloc s_factory_cache_map fail\r\n");
+        }
     }
 
     set_cache_map_table(&cache_info);
@@ -267,6 +285,9 @@ static int find_cache_index(const char *key)
 int bk_config_read(const char *key, void *value, int value_len)
 {
     BK_ASSERT(value_len > 0);
+    if (s_factory_cache_map == NULL) {
+        return 0;
+    }
     int index = find_cache_index(key);
     if (index < 0) {
         return 0;
@@ -278,6 +299,9 @@ int bk_config_read(const char *key, void *value, int value_len)
 int bk_config_write(const char *key, const void *value, int value_len)
 {
     BK_ASSERT(value_len > 0);
+    if (s_factory_cache_map == NULL) {
+        return -1;
+    }
     int index = find_cache_index(key);
     if (index < 0) {
         return -1;
@@ -291,11 +315,44 @@ int bk_config_write(const char *key, const void *value, int value_len)
     return 0;
 }
 
+static bool is_config_update(uint8_t *buffer, char *key, void *cache_value, uint16_t cache_len)
+{
+    int read_len = 0;
+    read_len = bk_get_env_enhance(key, buffer, s_value_max_len);
+#if BK_FACTORY_TEST
+    bk_mem_dump_ex("cache value", (uint8_t *)cache_value, cache_len);
+    if (read_len > 0) {
+        bk_mem_dump_ex("flash value", (uint8_t *)buffer, read_len);
+    }
+#endif
+    if (read_len <= 0 || read_len != cache_len) {
+        return BK_TRUE;
+    }
+    return memcmp(buffer, cache_value, cache_len) != 0;
+}
+
 void bk_config_sync_flash(void)
 {
+    if (s_factory_cache_map == NULL) {
+        return;
+    }
+    bool read_compare = BK_TRUE;  // if malloc fail, write to flash without comparison
+    uint8_t *buffer = (uint8_t *)os_malloc(s_value_max_len);
+    LOGD("s_value_max_len = %u\r\n", s_value_max_len);
+    if (buffer == NULL) {
+        read_compare = BK_FALSE;
+    }
     for (size_t i = 0; i < s_factory_cache_num; i++) {
-        bk_factory_write_flash(s_factory_cache_map[i].key, (void *)s_factory_cache_map[i].ptr,
-                               s_factory_cache_map[i].size);
+        LOGD("key = %s\r\n", s_factory_cache_map[i].key);
+        if (read_compare == BK_FALSE || is_config_update(buffer, s_factory_cache_map[i].key,
+            (void *)s_factory_cache_map[i].ptr, s_factory_cache_map[i].size)) {
+            LOGD("update %s\r\n", s_factory_cache_map[i].key);
+            bk_factory_write_flash(s_factory_cache_map[i].key, (void *)s_factory_cache_map[i].ptr,
+                                   s_factory_cache_map[i].size);
+        }
+    }
+    if (buffer != NULL) {
+        os_free(buffer);
     }
 }
 
