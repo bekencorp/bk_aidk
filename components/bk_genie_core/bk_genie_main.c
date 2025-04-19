@@ -289,32 +289,33 @@ static void bk_key_register_wakeup_source()
 
 static bk_err_t app_force_analog_ldo_gpio_close()
 {
-	uint32_t value = 0;
-	/*audio*/
-	sys_hal_set_ana_reg18_value(0);
-	sys_hal_set_ana_reg19_value(0);
-	sys_hal_set_ana_reg20_value(0);
-	sys_hal_set_ana_reg21_value(0);
-	sys_hal_set_ana_reg27_value(0);
-	sys_drv_aud_aud_en(0);
-	sys_drv_aud_audbias_en(0);
-	sys_drv_apll_en(0);
-	/*usb*/
-	value = sys_hal_analog_get(ANALOG_REG13);
-	value &= ~(1 << 31);
-	sys_hal_analog_set(ANALOG_REG13,value);
-	/*ldo*/
-	gpio_dev_unmap(GPIO_50);
-	gpio_dev_unmap(GPIO_52);
-	/*UART*/
-	gpio_dev_unmap(GPIO_10);
-	gpio_dev_unmap(GPIO_11);
-	/*I2C*/
-	gpio_dev_unmap(GPIO_0);
-	gpio_dev_unmap(GPIO_1);
-	/*MOTO*/
-	gpio_dev_unmap(GPIO_9);
-	return 0;
+    /*audio*/
+    sys_hal_set_ana_reg18_value(0);
+    sys_hal_set_ana_reg19_value(0);
+    sys_hal_set_ana_reg20_value(0);
+    sys_hal_set_ana_reg21_value(0);
+    sys_hal_set_ana_reg27_value(0);
+    sys_drv_aud_aud_en(0);
+    sys_drv_aud_audbias_en(0);
+    sys_drv_apll_en(0);
+
+    /*usb/psram ldo ctrl at deepsleep last location*/
+    /*ldo*/
+    gpio_dev_unmap(GPIO_50);
+    gpio_dev_unmap(GPIO_52);
+
+    /*UART*/
+    gpio_dev_unmap(GPIO_10);
+    gpio_dev_unmap(GPIO_11);
+
+    /*I2C*/
+    gpio_dev_unmap(GPIO_0);
+    gpio_dev_unmap(GPIO_1);
+
+    /*MOTO*/
+    gpio_dev_unmap(GPIO_9);
+
+    return 0;
 }
 
 void bk_enter_deepsleep()
