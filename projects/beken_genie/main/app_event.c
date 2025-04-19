@@ -502,6 +502,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     LOGI("APP_EVT_AGENT_START_FAIL\n");
                     warning_state |= 1<<WARNING_AGENT_AGENT_START_FAIL;
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_START_FAIL);
+#endif
                     break;
 
                 case APP_EVT_AGENT_DEVICE_REMOVE:
