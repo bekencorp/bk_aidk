@@ -8,8 +8,8 @@
 #include "lv_jpeg_hw_decode.h"
 #include "modules/jpeg_decode_sw.h"
 #include "lv_vendor.h"
-#if (CONFIG_LCD_SPI_DISPLAY)
-#include <lcd_spi_display_service.h>
+#if CONFIG_LCD_SPI
+#include <driver/lcd_spi.h>
 #endif
 #include "media_evt.h"
 
