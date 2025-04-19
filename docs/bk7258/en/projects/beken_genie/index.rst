@@ -247,6 +247,13 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     The default path for the prompt tone file resources: ``<source code>/projects/beken_genie/main/resource/``
 
+1.11 countdown
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+        - 1.The network configuration countdown is 5 minutes. If the network is not configured within 5 minutes, the chip will enter deep sleep mode(Shutdown).
+        - 2.The network error countdown is 5 minutes. If a network error occurs and the network is not restored within 5 minutes, the chip will enter deep sleep mode.
+        - 3.The standby state countdown is 3 minutes. After the system powers on, it defaults to standby mode. When you say ``byebye armino``, the system will also enter standby mode. If no other events occur, the chip will enter deep sleep mode after 3 minutes.
+        - 4.You can modify the countdown time in the s_ticket_durations[COUNTDOWN_TICKET_MAX] array in app_event.c.
+
 2. Development Guide
 ---------------------------------
 
