@@ -3,38 +3,41 @@
 #include <os/str.h>
 #include <modules/audio_process.h>
 
-//hardware speaker has two version, the new black speaker box is set to 1, else set  HARDWARE_SPEAKER_VER to 0 in kconfig.projbuild
+// hardware speaker has two version, the new black speaker box is set to 1, else set  HARDWARE_SPEAKER_VER to 0 in kconfig.projbuild
 /// customer eq parameter
 #if (CONFIG_HARDWARE_SPEAKER_VER == 1)
+
 #define EQ0 1
-#define EQ0A0 -1609634
-#define EQ0A1 572293
-#define EQ0B0 807626
-#define EQ0B1 -1615252
-#define EQ0B2 807626
+#define EQ0A0 -1668050
+#define EQ0A1 734106
+#define EQ0B0 934084
+#define EQ0B1 -1715174
+#define EQ0B2 801474
 
 #define EQ1 1
-#define EQ1A0 -1125225
-#define EQ1A1 134556
-#define EQ1B0 577089
-#define EQ1B1 -1154178
-#define EQ1B2 577089
+#define EQ1A0 -1764715
+#define EQ1A1 784980
+#define EQ1B0 1034243
+#define EQ1B1 -1764715
+#define EQ1B2 799312
 
 #else
 
 #define EQ0 1
-#define EQ0A0 -1967016
-#define EQ0A1 932170
-#define EQ0B0 1048576
-#define EQ0B1 -1967016
-#define EQ0B2 932170
+#define EQ0A0 -1668050
+#define EQ0A1 734106
+#define EQ0B0 934084
+#define EQ0B1 -1715174
+#define EQ0B2 801474
 
 #define EQ1 1
-#define EQ1A0 -1727583
-#define EQ1A1 767913
-#define EQ1B0 1048576
-#define EQ1B1 -1727583
-#define EQ1B2 767913
+#define EQ1A0 -1764715
+#define EQ1A1 784980
+#define EQ1B0 1034243
+#define EQ1B1 -1764715
+#define EQ1B2 799312
+
+
 #endif
 
 #define FILTER_PREGAIN_FRA_BITS (14)
