@@ -8,3 +8,4 @@ Reference Projects
    :maxdepth: 1
 
    Beken Genie AI Project <beken_genie/index>
+   Beken Genie AI Single-screen Project <ai_dashboard/index>
