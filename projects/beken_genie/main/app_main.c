@@ -275,6 +275,7 @@ static void handle_system_event(key_event_t event)
             break;
         case FACTORY_RESET:
             BK_LOGW(TAG, "trigger factory config reset\r\n");
+            bk_bluetooth_deinit();
             bk_factory_reset();
             bk_reboot();
             break;
@@ -448,11 +449,13 @@ int main(void)
 
     //led init move before
 #if (CONFIG_SYS_CPU0)
+        
         //No operation countdown 3 minutes to shut down
         // start_countdown(countdown_ms);
         //led init move before
         led_driver_init();
         led_app_set(LED_ON_GREEN,LED_LAST_FOREVER);
+        
 #endif
 
         media_service_init();

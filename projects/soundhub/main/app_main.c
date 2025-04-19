@@ -241,6 +241,7 @@ static void handle_system_event(key_event_t event)
             break;
         case FACTORY_RESET:
             BK_LOGW(TAG, "trigger factory config reset\r\n");
+            bk_bluetooth_deinit();
             bk_factory_reset();
             bk_reboot();
             break;
