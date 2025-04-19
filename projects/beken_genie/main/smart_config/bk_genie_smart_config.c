@@ -27,14 +27,12 @@
 #include "bk_genie_comm.h"
 #include "wifi_boarding_utils.h"
 #include "bk_genie_smart_config.h"
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-#include "bk_ef.h"
-#endif
 #include "pan_service.h"
 #include "led_blink.h"
 #include "app_event.h"
 #include "boarding_service.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
+#include "bk_factory_config.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -491,9 +489,8 @@ void network_reconnect_stop_timeout_check(void)
 int is_wifi_sta_auto_restart_info_saved(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if (info.flag == 0x71l)
 		return 0;
 	else
@@ -503,10 +500,8 @@ int is_wifi_sta_auto_restart_info_saved(void)
 int bk_genie_is_wifi_sta_configured(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
 
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if ((info.flag & 0x71l) == 0x71l)
 	{
 		return 1;
@@ -520,10 +515,8 @@ int bk_genie_is_wifi_sta_configured(void)
 int bk_genie_is_net_pan_configured(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
 
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 #if CONFIG_NET_PAN
 	if ((info.flag & 0x74l) == 0x74l)
 	{
@@ -539,9 +532,8 @@ int bk_genie_is_net_pan_configured(void)
 void demo_erase_network_auto_reconnect_info(void)
 {
 	BK_FAST_CONNECT_D info_tmp = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_write("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
 }
 
 extern int demo_sta_app_init(char *oob_ssid, char *connect_key);
@@ -549,9 +541,8 @@ extern int demo_softap_app_init(char *ap_ssid, char *ap_key, char *ap_channel);
 int demo_network_auto_reconnect(bool val)	//val true means from disconnect to reconnecting
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if ((info.flag & 0x71l) == 0x71l) {
 		if (val == false) {
@@ -588,9 +579,8 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 	BK_FAST_CONNECT_D info_tmp = {0};
 	__maybe_unused wifi_ap_config_t *ap_config = NULL;
 	__maybe_unused wifi_sta_config_t *sta_config = NULL;
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
 	if ((info_tmp.flag & 0xf0l) != 0x70l) {
 		BK_LOGI(TAG, "erase network provisioning info, %x\r\n", info_tmp.flag);
 		info_tmp.flag = 0x70l;
@@ -615,9 +605,8 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 #endif
 	} else
 		return -1;
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+	bk_config_write("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
+
 	return 0;
 }
 
@@ -625,9 +614,8 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 static int bk_genie_reselect_pan(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if (info.flag & 0x74l) {
 		BK_LOGI(TAG, "%s\r\n", __func__);
 		bk_wifi_sta_stop();
@@ -845,9 +833,7 @@ void bk_genie_erase_agent_info(void)
 {
     bk_genie_agent_info_t info_tmp = {0};
 
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    bk_set_env_enhance("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
-#endif
+    bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
 }
 
 int bk_genie_save_agent_info(char *appid, char *channel_name)
@@ -857,9 +843,8 @@ int bk_genie_save_agent_info(char *appid, char *channel_name)
     info_tmp.valid = 1;
     os_strcpy(info_tmp.appid, appid);
     os_strcpy(info_tmp.channel_name, channel_name);
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    bk_set_env_enhance("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
-#endif
+    bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
+
     return 0;
 }
 
@@ -867,12 +852,10 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info)
 {
     bk_genie_agent_info_t info_tmp = {0};
 
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    if (bk_get_env_enhance("d_agent_info", (void *)&info_tmp, sizeof(bk_genie_agent_info_t)) <= 0)
+    if (bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_genie_agent_info_t)) <= 0)
     {
         return -1;
     }
-#endif
     os_memcpy(info, &info_tmp, sizeof(bk_genie_agent_info_t));
     return 0;
 }
