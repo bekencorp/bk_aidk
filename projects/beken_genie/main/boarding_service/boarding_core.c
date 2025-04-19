@@ -128,6 +128,7 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
 }
 
 extern void agora_auto_run(void);
+#include "agora_config.h"
 static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
@@ -197,7 +198,12 @@ static void bk_genie_message_handle(void)
                     {
                         sprintf(uid_str + i * 2, "%02x", uid[i]);
                     }
-                    len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
+#if CONFIG_AUDIO_FRAME_DURATION_MS
+			if (CONFIG_AUDIO_FRAME_DURATION_MS == 60)
+				len = os_snprintf(payload, 128, "{\"channel\":\"%s\",\"agent_param\": {\"audio_duration\": 60}}", uid_str);
+			else
+#endif
+				len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
                 }
