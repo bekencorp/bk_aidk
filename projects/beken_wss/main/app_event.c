@@ -152,30 +152,30 @@ enum {
 
 
 #define COUNTDOWN_INFINITE 0xFFFFFFFF
-/* ��������ʱƱԴ����,�������ȼ�����*/
+/* 新增倒计时票源类型,按照优先级排序*/
 typedef enum {
-    COUNTDOWN_TICKET_PROVISIONING,   // ��������ʱ(5����), ������ȼ�
-    COUNTDOWN_TICKET_NETWORK_ERROR,  //������󵹼�ʱ(5����) �������ȼ�
-    COUNTDOWN_TICKET_STANDBY,        // ��������ʱ(3����)�������ȼ�
-    COUNTDOWN_TICKET_OTA,      // OTA �¼��������߼���������Ƚ�
+    COUNTDOWN_TICKET_PROVISIONING,   // 配网倒计时(5分钟), 最高优先级
+    COUNTDOWN_TICKET_NETWORK_ERROR,  //网络错误倒计时(5分钟) ，中优先级
+    COUNTDOWN_TICKET_STANDBY,        // 待机倒计时(3分钟)，低优先级
+    COUNTDOWN_TICKET_OTA,      // OTA 事件，特殊逻辑，不参与比较
     COUNTDOWN_TICKET_MAX
 } countdown_ticket_t;
 
 /* ��ƱԴ��Ӧ�ĵ���ʱʱ��(����) */
 static const uint32_t s_ticket_durations[COUNTDOWN_TICKET_MAX] = {
-    [COUNTDOWN_TICKET_PROVISIONING] = 5 * 60 * 1000,  // 5����
-    [COUNTDOWN_TICKET_NETWORK_ERROR] = 5 * 60 * 1000,  // 5����
-    [COUNTDOWN_TICKET_STANDBY]      = 3 * 60 * 1000,  // 3����
-    [COUNTDOWN_TICKET_OTA]    = COUNTDOWN_INFINITE,              // ��ͣ����ʱ
+    [COUNTDOWN_TICKET_PROVISIONING] = 5 * 60 * 1000,  // 5分钟
+    [COUNTDOWN_TICKET_NETWORK_ERROR] = 5 * 60 * 1000,  // 5分钟
+    [COUNTDOWN_TICKET_STANDBY]      = 3 * 60 * 1000,  // 3分钟
+    [COUNTDOWN_TICKET_OTA]    = COUNTDOWN_INFINITE,              // 暂停倒计时
 };
 
-static uint32_t s_active_tickets = 0;  // ʹ��λ�����¼��ԾƱԴ
+static uint32_t s_active_tickets = 0;  // 使用位掩码记录活跃票源
 
-/* ���µ���ʱ״̬ */
+/* 更新倒计时状态 */
 static void update_countdown()
 {
 
-    // ���OTA��ͣƱ��������ȼ���
+    // 检查OTA暂停票（最高优先级）
     if(s_active_tickets & (1 << COUNTDOWN_TICKET_OTA)) {
         LOGI("ota event start, stop countdown\r\n");
         stop_countdown();
@@ -197,11 +197,14 @@ static void update_countdown()
         }
     }
 
-    // Ӧ�õ���ʱ�þ����
+    // 应用倒计时裁决结果
     if(selected_ticket != COUNTDOWN_TICKET_MAX) {
         const uint32_t max_duration = s_ticket_durations[selected_ticket];
 
-        if (selected_ticket != last_selected_ticket)
+        bool is_same_event = (selected_ticket == last_selected_ticket);
+        bool is_network_error = (selected_ticket == COUNTDOWN_TICKET_NETWORK_ERROR);
+
+        if (selected_ticket != last_selected_ticket || (is_same_event && !is_network_error))
         {
             const uint32_t duration = max_duration;
             start_countdown(duration);
@@ -296,6 +299,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
         if (ret == BK_OK)
         {
+            bool skip_countdown_update = false;
             switch (msg.event)
             {
                 case APP_EVT_ASR_WAKEUP:	//hi armino
@@ -451,6 +455,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_LOW_VOLTAGE:
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
+                    skip_countdown_update = true;
                     warning_state |= 1<<WARNING_LOW_BATTERY;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
@@ -459,11 +464,13 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_CHARGING:
                     LOGI("APP_EVT_CHARGING\n");
+                    skip_countdown_update = true;
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
                 case APP_EVT_SHUTDOWN_LOW_BATTERY:
                     LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
+                    skip_countdown_update = true;
                     bk_config_sync_flash();
                     break;
 
@@ -473,7 +480,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_bluetooth_deinit();
                     break;
 
-                // OTA����¼�
+                // OTA相关事件
                 case APP_EVT_OTA_START:
                     LOGI("APP_EVT_OTA_START\n");
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_OTA);
@@ -492,7 +499,11 @@ static void app_event_thread(beken_thread_arg_t data)
                 default:
                     break;
             }
-            update_countdown();
+            if(!skip_countdown_update)
+            {
+                update_countdown();
+            }
+
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }

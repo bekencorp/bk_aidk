@@ -186,7 +186,10 @@ static void update_countdown()
     if(selected_ticket != COUNTDOWN_TICKET_MAX) {
         const uint32_t max_duration = s_ticket_durations[selected_ticket];
 
-        if (selected_ticket != last_selected_ticket)
+        bool is_same_event = (selected_ticket == last_selected_ticket);
+        bool is_network_error = (selected_ticket == COUNTDOWN_TICKET_NETWORK_ERROR);
+
+        if (selected_ticket != last_selected_ticket || (is_same_event && !is_network_error))
         {
             const uint32_t duration = max_duration;
             start_countdown(duration);
@@ -301,6 +304,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
         if (ret == BK_OK)
         {
+            bool skip_countdown_update = false;
             switch (msg.event)
             {
                 case APP_EVT_ASR_WAKEUP:	//hi armino
@@ -477,6 +481,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_LOW_VOLTAGE:
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
+                    skip_countdown_update = true;
                     warning_state |= 1<<WARNING_LOW_BATTERY;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
@@ -485,11 +490,13 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_CHARGING:
                     LOGI("APP_EVT_CHARGING\n");
+                    skip_countdown_update = true;
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
                 case APP_EVT_SHUTDOWN_LOW_BATTERY:
                     LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
+                    skip_countdown_update = true;
                     bk_config_sync_flash();
                     break;
 
@@ -520,7 +527,11 @@ static void app_event_thread(beken_thread_arg_t data)
                 default:
                     break;
             }
-            //update_countdown();
+            // if(!skip_countdown_update)
+            // {
+            //     update_countdown();
+            // }
+
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }
