@@ -40,6 +40,8 @@ static const struct factory_config_t *s_user_reg_config = NULL;
 static uint32_t s_user_config_len = 0;
 static uint16_t s_value_max_len = 0;
 
+static void bk_reboot_sync_config(void);
+
 static inline int bk_factory_read_flash(const char *key, void *value, int value_len)
 {
     int ret = 0;
@@ -259,7 +261,7 @@ void bk_factory_init(void)
     }
 
     // test_factory();
-    bk_reboot_callback_register(bk_config_sync_flash);
+    bk_reboot_callback_register(bk_reboot_sync_config);
 
     cli_register_commands(s_factory_commands, FACTORY_CMD_CNT);
 }
@@ -354,6 +356,16 @@ void bk_config_sync_flash(void)
     if (buffer != NULL) {
         os_free(buffer);
     }
+}
+
+static void bk_reboot_sync_config(void)
+{
+    void bk_ef_set_check_lock(bool state);
+    uint32_t int_mask = rtos_disable_int();
+    bk_ef_set_check_lock(BK_FALSE);
+    bk_config_sync_flash();
+    bk_ef_set_check_lock(BK_TRUE);
+    rtos_enable_int(int_mask);
 }
 
 #endif
