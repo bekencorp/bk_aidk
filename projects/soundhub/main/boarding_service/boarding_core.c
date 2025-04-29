@@ -250,7 +250,8 @@ static void bk_genie_message_handle(void)
 
                         if (!bk_genie_is_net_pan_configured())
                         {
-                            app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+                            //do not close bluetooth for soundhub 
+                            //app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
                         }
                     }
 fail:
