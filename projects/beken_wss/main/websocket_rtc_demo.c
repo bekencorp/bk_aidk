@@ -500,7 +500,8 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
 			g_connected_flag = false;
-			app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
+			if (g_connected_flag == true)
+				app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
 			break;
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
