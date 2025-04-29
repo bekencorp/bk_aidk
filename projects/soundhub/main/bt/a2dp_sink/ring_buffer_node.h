@@ -29,6 +29,8 @@ typedef struct _RingBufferNodeContext
  */
 void ring_buffer_node_init(RingBufferNodeContext *rbn, uint8_t *address, uint32_t node_len, uint32_t nodes);
 void ring_buffer_node_deinit(RingBufferNodeContext *rbn);
+bool ring_buffer_node_is_init(RingBufferNodeContext *rbn);
+
 /**
  * @brief ring buffer node clear
  * @param[in] rbn ring buffer node context pointer

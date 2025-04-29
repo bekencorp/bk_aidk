@@ -39,6 +39,7 @@
 #include <led_blink.h>
 #include <common/bk_include.h>
 #include "components/bluetooth/bk_dm_bluetooth.h"
+#include "app_main.h"
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 extern int bk_cli_init(void);
@@ -195,6 +196,54 @@ void volume_decrease()
     }
 }
 
+void volume_set_abs(uint8_t level, uint8_t has_precision)
+{
+    bk_err_t ret = 0;
+
+    BK_LOGI(TAG, "%s volume abs %d %d\n", __func__, level, has_precision);
+
+    if (level > SPK_VOLUME_LEVEL - 1)
+    {
+        BK_LOGE(TAG, "%s invalid level %d >= %d\n", __func__, level, SPK_VOLUME_LEVEL);
+        level = SPK_VOLUME_LEVEL - 1;
+    }
+
+    if(level == 0 && has_precision)
+    {
+        BK_LOGW(TAG, "%s set raw gain 2 because precision\n", __func__);
+        ret = bk_aud_intf_set_spk_gain(2);
+    }
+    else
+    {
+        ret = bk_aud_intf_set_spk_gain(g_volume_gain[level]);
+    }
+
+    if (BK_OK == ret)
+    {
+        volume = level;
+
+        if (0 != bk_config_write("volume", (void *)&volume, sizeof(volume)))
+        {
+            BK_LOGE(TAG, "%s storage volume: %d fail\n", __func__, level);
+        }
+
+        BK_LOGI(TAG, "%s current volume: %d\n", __func__, level);
+    }
+    else
+    {
+        BK_LOGE(TAG, "%s set volume %d fail\n", __func__, level);
+    }
+}
+
+uint32_t volume_get_current()
+{
+    return volume;
+}
+
+uint32_t volume_get_level_count()
+{
+    return SPK_VOLUME_LEVEL;
+}
 void power_off()
 {
     BK_LOGI(TAG, " power_off\r\n");
@@ -223,13 +272,32 @@ void ai_agent_config()
 static void handle_system_event(key_event_t event)
 {
     uint32_t time;
+    extern void bk_bt_app_avrcp_ct_vol_change(uint32_t platform_vol);
     switch (event)
     {
         case VOLUME_UP:
+        {
+            uint32_t old_volume = volume;
             volume_increase();
+            if(old_volume != volume)
+            {
+#if CONFIG_A2DP_SINK_DEMO
+                bk_bt_app_avrcp_ct_vol_change(volume);
+#endif
+            }
+        }
             break;
         case VOLUME_DOWN:
+        {
+            uint32_t old_volume = volume;
             volume_decrease();
+            if(old_volume != volume)
+            {
+#if CONFIG_A2DP_SINK_DEMO
+                bk_bt_app_avrcp_ct_vol_change(volume);
+#endif
+            }
+        }
             break;
         case SHUT_DOWN:
             time = rtos_get_time(); //long press more than 6s

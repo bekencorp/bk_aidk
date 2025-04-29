@@ -50,6 +50,7 @@
 #else
     #include "driver/media_types.h"
     #include "media_evt.h"
+    #include "app_main.h"
     extern bk_err_t media_send_msg_sync(uint32_t event, uint32_t param);
 #endif
 
@@ -97,9 +98,10 @@
 #define USE_COMPLEX_VOTE_PLAY 1
 
 static int speaker_task_init();
+static void speaker_task_deinit(void);
 static void speaker_task(void *arg);
-
-
+static void bt_audio_a2dp_sink_avrcp_req(uint8_t play);
+static void bt_audio_a2dp_sink_task_stop_req(void);
 enum
 {
     BT_AUDIO_MSG_NULL = 0,
@@ -109,6 +111,7 @@ enum
     BT_AUDIO_D2DP_SEND_DATA_2_SPK_MSG = 4,
     BT_AUDIO_WIFI_STATE_UPDATE_MSG = 5,
     BT_AUDIO_D2DP_AVRCP_REQ_MSG,
+    BT_AUDIO_D2DP_TASK_STOP_REQ_MSG,
 };
 
 
@@ -147,7 +150,7 @@ static beken_thread_t bt_audio_sink_demo_thread_handle = NULL;
 
     static beken_thread_t a2dp_speaker_thread_handle = NULL;
     static beken_semaphore_t a2dp_speaker_sema = NULL;
-    //static beken_timer_t a2dp_speaker_tmr = {0};
+    static uint8_t s_sbc_decoder_init;
 
 
 #endif
@@ -177,11 +180,11 @@ static int8_t s_avrcp_play_pending_status = -1;
     static int32_t a2dp_sink_demo_vote_enable(uint8_t enable, uint32_t flag);
 #endif
 
-
-
 static bk_err_t bk_bt_dac_set_gain(uint8_t gain)
 {
 #if CONFIG_AUDIO_PLAY
+
+    gain /= 2;
 
     if (s_audio_play_obj)
     {
@@ -206,7 +209,169 @@ static bk_err_t bk_bt_dac_set_gain(uint8_t gain)
     return BK_OK;
 }
 
-void avrcp_connect_timer_hdl(void *param, unsigned int ulparam)
+#define AVRCP_LEVEL_COUNT (128)
+#define DAC_VOL_LEVEL_COUNT (45 + 1 + 18) // -45db ~ 18db
+
+static uint32_t avrcp_volume_2_audio_volume(uint32_t avrcp_vol)
+{
+    uint32_t level = 0;
+    uint32_t target_max_level =
+#if CONFIG_AUDIO_PLAY
+        DAC_VOL_LEVEL_COUNT
+#else
+        volume_get_level_count()
+#endif
+        ;
+
+    if (avrcp_vol >= AVRCP_LEVEL_COUNT)
+    {
+        avrcp_vol = AVRCP_LEVEL_COUNT - 1;
+    }
+
+    level = 1.0 * target_max_level / AVRCP_LEVEL_COUNT *avrcp_vol;
+
+    if (level >= target_max_level)
+    {
+        level = target_max_level - 1;
+    }
+
+    return level;
+}
+
+static uint32_t audio_volume_2_avrcp_volume(uint32_t audio_vol)
+{
+    uint32_t level = 0;
+    uint32_t source_max_level =
+#if CONFIG_AUDIO_PLAY
+        DAC_VOL_LEVEL_COUNT
+#else
+        volume_get_level_count()
+#endif
+        ;
+
+    if (audio_vol >= source_max_level)
+    {
+        audio_vol = source_max_level - 1;
+    }
+
+    level = 1.0 * AVRCP_LEVEL_COUNT / source_max_level *audio_vol;
+
+    if (level >= AVRCP_LEVEL_COUNT)
+    {
+        level = AVRCP_LEVEL_COUNT - 1;
+    }
+
+    return level;
+}
+
+static uint8_t avrcp_volume_init(uint8_t avrcp_storage_vol)
+{
+    uint8_t ret = 0;
+    uint32_t current_platform_vol =
+#if CONFIG_AUDIO_PLAY
+        avrcp_storage_vol
+#else
+        volume_get_current()
+#endif
+        ;
+
+    uint32_t tmp_avrcp_vol1 = audio_volume_2_avrcp_volume(current_platform_vol);
+    uint32_t tmp_avrcp_vol2 = audio_volume_2_avrcp_volume(current_platform_vol + 1);
+
+    if (tmp_avrcp_vol1 == avrcp_storage_vol || tmp_avrcp_vol2 == avrcp_storage_vol)
+    {
+        ret = avrcp_storage_vol;
+    }
+    else if (tmp_avrcp_vol1 < avrcp_storage_vol && avrcp_storage_vol < tmp_avrcp_vol2)
+    {
+        ret = avrcp_storage_vol;
+    }
+    else
+    {
+        ret = tmp_avrcp_vol1;
+    }
+
+    LOGI("%s current_platform_vol %d, vol1 %d vol2 %d, avrcp_storage_vol %d, final %d\n", __func__,
+         current_platform_vol, tmp_avrcp_vol1, tmp_avrcp_vol2,
+         avrcp_storage_vol, ret);
+
+    return ret;
+}
+
+static uint8 volume_change(uint8_t current_avrcp_vol, uint8_t action) // 0 abs 1 increase 2 decrease
+{
+    uint8_t tmp_avrcp_vol = current_avrcp_vol;
+    uint32_t final_last_covert_vol = 0;
+    float multiple = 0.0;
+    uint32_t final_change_count = 0;
+
+    uint32_t target_vol_count =
+#if CONFIG_AUDIO_PLAY
+        DAC_VOL_LEVEL_COUNT
+#else
+        volume_get_level_count()
+#endif
+        ;
+
+    final_change_count = multiple = 1.0 * AVRCP_LEVEL_COUNT / target_vol_count;
+
+    if (!final_change_count || multiple - final_change_count >= 0.5)
+    {
+        final_change_count += 1;
+    }
+
+    if (action == 0)
+    {
+        final_last_covert_vol = avrcp_volume_2_audio_volume(tmp_avrcp_vol);
+    }
+    else if (action == 1)
+    {
+        tmp_avrcp_vol += final_change_count;
+
+        if (tmp_avrcp_vol > AVRCP_LEVEL_COUNT - 1)
+        {
+            tmp_avrcp_vol = AVRCP_LEVEL_COUNT - 1;
+        }
+
+        final_last_covert_vol = avrcp_volume_2_audio_volume(tmp_avrcp_vol);
+    }
+    else if (action == 2)
+    {
+        tmp_avrcp_vol = (current_avrcp_vol >= final_change_count ? current_avrcp_vol -= final_change_count : 0);
+        final_last_covert_vol = avrcp_volume_2_audio_volume(tmp_avrcp_vol);
+    }
+
+#if CONFIG_AUDIO_PLAY
+
+    if (s_audio_play_obj)
+    {
+        LOGI("%s set gain 0x%x\n", __func__, final_last_covert_vol);
+        audio_play_set_volume(s_audio_play_obj, final_last_covert_vol);
+
+        if (final_last_covert_vol == 0 && !tmp_avrcp_vol)
+        {
+            audio_play_control(s_audio_play_obj, AUDIO_PLAY_MUTE);
+        }
+        else
+        {
+            audio_play_control(s_audio_play_obj, AUDIO_PLAY_UNMUTE);
+        }
+    }
+    else
+    {
+        LOGE("%s audio play not enable\n", __func__);
+    }
+
+#else
+    volume_set_abs(final_last_covert_vol, tmp_avrcp_vol);
+#endif
+
+    LOGI("%s avrcp vol %d -> %d\n", __func__, current_avrcp_vol, tmp_avrcp_vol);
+
+    return tmp_avrcp_vol;
+}
+
+static void avrcp_connect_timer_hdl(void *param, unsigned int ulparam)
 {
     rtos_deinit_oneshot_timer(&s_bt_env.avrcp_connect_tmr);
 
@@ -307,7 +472,7 @@ static void a2dp_sink_arbiter_entry_cb(AUDIO_SOURCE_ENTRY_CB_EVT evt, void *arg)
 
 #endif
 
-void bt_audio_sink_demo_main(void *arg)
+static void bt_audio_sink_demo_main(void *arg)
 {
     uint8_t recon_addr[6] = {0};
 
@@ -325,10 +490,12 @@ void bt_audio_sink_demo_main(void *arg)
             s_a2dp_vol = DEFAULT_A2DP_VOLUME; //default vol
         }
 
-        if (s_a2dp_vol == 0)
+        if (s_a2dp_vol == 0 || s_a2dp_vol == 0xff)
         {
             s_a2dp_vol = DEFAULT_A2DP_VOLUME;
         }
+
+        s_a2dp_vol = avrcp_volume_init(s_a2dp_vol);
 
         LOGI("initial volume %d %02x:%02x:%02x:%02x:%02x:%02x\r\n", s_a2dp_vol,
              recon_addr[5],
@@ -388,7 +555,12 @@ void bt_audio_sink_demo_main(void *arg)
                     //get_sbc_encoder_len(p_codec_info);
 
                     LOGI("cm:%d, c:%d, s:%d, b:%d, bi:%d, frame_length:%d \n", chnl_mode, chnls, subbands, blocks, bitpool, frame_length);
-                    bk_sbc_decoder_init(&bt_audio_sink_sbc_decoder);
+
+                    if (!s_sbc_decoder_init)
+                    {
+                        bk_sbc_decoder_init(&bt_audio_sink_sbc_decoder);
+                        s_sbc_decoder_init = 1;
+                    }
 
                     if (p_cache_buff)
                     {
@@ -578,46 +750,7 @@ void bt_audio_sink_demo_main(void *arg)
             case BT_AUDIO_D2DP_STOP_MSG:
             {
                 LOGI("BT_AUDIO_D2DP_STOP_MSG \r\n");
-#ifdef CONFIG_A2DP_AUDIO
-
-                if (a2dp_speaker_thread_handle)
-                {
-                    s_spk_is_started = 0;
-
-                    if (a2dp_speaker_sema)
-                    {
-                        rtos_set_semaphore(&a2dp_speaker_sema);
-                    }
-
-                    LOGI("%s wait thread end\n", __func__);
-                    rtos_thread_join(&a2dp_speaker_thread_handle);
-                    LOGI("%s thread end !!!\n", __func__);
-                    a2dp_speaker_thread_handle = NULL;
-                }
-
-#if USE_AMP_CALL
-#if USE_COMPLEX_VOTE_PLAY
-                err = a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_A2DP);
-#else
-                err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
-
-                if (err)
-                {
-                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d stop err %d !!\n", __func__, err);
-                }
-
-#endif
-
-
-                //                err = media_send_msg_sync(EVENT_BT_AUDIO_DEINIT_REQ, 0);
-                //
-                //                if (err)
-                //                {
-                //                    LOGE("%s mail box EVENT_BT_AUDIO_DEINIT_REQ err %d !!", __func__, err);
-                //                }
-#endif
-#endif
-
+                speaker_task_deinit();
             }
             break;
 
@@ -653,19 +786,48 @@ void bt_audio_sink_demo_main(void *arg)
             }
             break;
 
+            case BT_AUDIO_D2DP_TASK_STOP_REQ_MSG:
+                LOGI("BT_AUDIO_D2DP_TASK_STOP_REQ_MSG\n");
+                goto end;
+                break;
+
             default:
                 break;
             }
         }
     }
 
-    rtos_deinit_queue(&bt_audio_sink_demo_msg_que);
-    bt_audio_sink_demo_msg_que = NULL;
-    bt_audio_sink_demo_thread_handle = NULL;
+end:;
+
+#if USE_COMPLEX_VOTE_PLAY
+    app_audio_arbiter_reg_callback(AUDIO_SOURCE_ENTRY_A2DP, NULL, NULL);
+#endif
+
+    frame_length = 0;
+
+    if (ring_buffer_node_is_init(&s_a2dp_frame_nodes))
+    {
+        ring_buffer_node_clear(&s_a2dp_frame_nodes);
+        ring_buffer_node_deinit(&s_a2dp_frame_nodes);
+    }
+
+    if (p_cache_buff)
+    {
+        psram_free(p_cache_buff);
+        p_cache_buff = NULL;
+    }
+
+    if (s_sbc_decoder_init)
+    {
+        bk_sbc_decoder_deinit();
+        os_memset(&bt_audio_sink_sbc_decoder, 0, sizeof(bt_audio_sink_sbc_decoder));
+        s_sbc_decoder_init = 0;
+    }
+
     rtos_delete_thread(NULL);
 }
 
-int bt_audio_sink_demo_task_init(void)
+static int bt_audio_sink_demo_task_init(void)
 {
     bk_err_t ret = BK_OK;
 
@@ -690,6 +852,8 @@ int bt_audio_sink_demo_task_init(void)
             return BK_FAIL;
         }
 
+
+
         ret = rtos_create_thread(&bt_audio_sink_demo_thread_handle,
                                  A2DP_SINK_DEMO_TASK_PRIORITY,
                                  "bt_audio_sink_demo",
@@ -713,7 +877,59 @@ int bt_audio_sink_demo_task_init(void)
     }
 }
 
-void bt_audio_sink_media_data_ind(const uint8_t *data, uint16_t data_len)
+static int bt_audio_sink_demo_task_deinit(void)
+{
+    bk_err_t ret = BK_OK;
+
+    if (bt_audio_sink_demo_thread_handle)
+    {
+        bt_audio_a2dp_sink_task_stop_req();
+
+        LOGI("%s wait demo task end\n", __func__);
+        rtos_thread_join(&bt_audio_sink_demo_thread_handle);
+        LOGI("%s demo task end !!!\n", __func__);
+        bt_audio_sink_demo_thread_handle = NULL;
+
+        if (bt_audio_sink_demo_msg_que)
+        {
+            bk_err_t err = 0;
+            bt_audio_sink_demo_msg_t msg = {0};
+
+            while ((err = rtos_pop_from_queue(&bt_audio_sink_demo_msg_que, &msg, 0)) == 0)
+            {
+                switch (msg.type)
+                {
+                case BT_AUDIO_D2DP_DATA_IND_MSG:
+                    if (msg.data)
+                    {
+                        psram_free(msg.data);
+                        msg.data = NULL;
+                    }
+
+                    break;
+
+                default:
+                    break;
+                }
+
+                os_memset(&msg, 0, sizeof(msg));
+            }
+
+            rtos_deinit_queue(&bt_audio_sink_demo_msg_que);
+            bt_audio_sink_demo_msg_que = NULL;
+        }
+
+        if (s_a2dp_play_vote_mutex)
+        {
+            rtos_deinit_mutex(&s_a2dp_play_vote_mutex);
+            s_a2dp_play_vote_mutex = NULL;
+        }
+    }
+
+    return 0;
+}
+
+static void bt_audio_sink_media_data_ind(const uint8_t *data, uint16_t data_len)
 {
     bt_audio_sink_demo_msg_t demo_msg;
     int rc = -1;
@@ -750,7 +966,7 @@ void bt_audio_sink_media_data_ind(const uint8_t *data, uint16_t data_len)
     }
 }
 
-void bt_audio_a2dp_sink_suspend_ind(void)
+static void bt_audio_a2dp_sink_suspend_ind(void)
 {
     bt_audio_sink_demo_msg_t demo_msg;
     int rc = -1;
@@ -773,7 +989,7 @@ void bt_audio_a2dp_sink_suspend_ind(void)
     }
 }
 
-void bt_audio_a2dp_sink_start_ind(bk_a2dp_mcc_t *codec)
+static void bt_audio_a2dp_sink_start_ind(bk_a2dp_mcc_t *codec)
 {
     bt_audio_sink_demo_msg_t demo_msg;
     int rc = -1;
@@ -805,7 +1021,7 @@ void bt_audio_a2dp_sink_start_ind(bk_a2dp_mcc_t *codec)
     }
 }
 
-void bt_audio_a2dp_sink_avrcp_req(uint8_t play)
+static void bt_audio_a2dp_sink_avrcp_req(uint8_t play)
 {
     bt_audio_sink_demo_msg_t demo_msg = {0};
     int rc = -1;
@@ -826,9 +1042,29 @@ void bt_audio_a2dp_sink_avrcp_req(uint8_t play)
     }
 }
 
+static void bt_audio_a2dp_sink_task_stop_req(void)
+{
+    bt_audio_sink_demo_msg_t demo_msg = {0};
+    int rc = -1;
+
+    if (bt_audio_sink_demo_msg_que == NULL)
+    {
+        return;
+    }
+
+    demo_msg.type = BT_AUDIO_D2DP_TASK_STOP_REQ_MSG;
+
+    rc = rtos_push_to_queue(&bt_audio_sink_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
+
+    if (kNoErr != rc)
+    {
+        LOGE("%s, send queue failed\n", __func__);
+    }
+}
+
 static bk_a2dp_audio_state_t s_audio_state = BK_A2DP_AUDIO_STATE_SUSPEND;
 
-void bk_bt_app_a2dp_sink_cb(bk_a2dp_cb_event_t event, bk_a2dp_cb_param_t *p_param)
+static void bk_bt_app_a2dp_sink_cb(bk_a2dp_cb_event_t event, bk_a2dp_cb_param_t *p_param)
 {
     LOGI("%s event: %d\r\n", __func__, event);
 
@@ -927,7 +1163,7 @@ static void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param
 
     case BK_BT_GAP_LINK_KEY_NOTIF_EVT:
     {
-        s_a2dp_vol = DEFAULT_A2DP_VOLUME;
+        s_a2dp_vol = avrcp_volume_init(DEFAULT_A2DP_VOLUME);
         bluetooth_storage_save_volume(param->link_key_notif.bda, s_a2dp_vol);
     }
     break;
@@ -1189,16 +1425,8 @@ static void avrcp_tg_cb(bk_avrcp_tg_cb_event_t event, bk_avrcp_tg_cb_param_t *pa
 
         s_a2dp_vol = param->set_abs_vol.volume;
 
-        bk_bt_dac_set_gain(s_a2dp_vol >> 1);
-
-        if (s_a2dp_vol)
-        {
-            //sys_hal_aud_dacmute_en(0); //TODO
-        }
-        else
-        {
-            //sys_hal_aud_dacmute_en(1); //TODO
-        }
+        //bk_bt_dac_set_gain(s_a2dp_vol);
+        s_a2dp_vol = volume_change(s_a2dp_vol, 0);
 
         bluetooth_storage_save_volume(bt_manager_get_connected_device(), s_a2dp_vol);
     }
@@ -1322,15 +1550,19 @@ void bk_bt_app_avrcp_ct_fast_forward(uint32_t ms)
 
 void bk_bt_app_avrcp_ct_vol_up(void)
 {
-    uint8_t idx = (s_a2dp_vol + 5) >> 3;
     uint8_t old = s_a2dp_vol;
 
-    if (idx < 16)
+    if (!s_bt_env.a2dp_state)
     {
-        idx += 1;
-        s_a2dp_vol = (idx <= 0) ? 0 : (idx >= 16) ? 0x7f : ((idx - 1) * 8 + 9);
+        LOGE("%s a2dp not connected !!!\n", __func__);
+        return;
+    }
+
+    s_a2dp_vol = volume_change(s_a2dp_vol, 1);
+
+    if (old != s_a2dp_vol)
+    {
 #ifdef CONFIG_A2DP_AUDIO
-        bk_bt_dac_set_gain(s_a2dp_vol >> 1);
 
         if (s_a2dp_vol)
         {
@@ -1385,15 +1617,19 @@ void bk_bt_app_avrcp_ct_vol_up(void)
 
 void bk_bt_app_avrcp_ct_vol_down(void)
 {
-    uint8_t idx = (s_a2dp_vol + 5) >> 3;
     uint8_t old = s_a2dp_vol;
 
-    if (idx > 0)
+    if (!s_bt_env.a2dp_state)
     {
-        idx -= 1;
-        s_a2dp_vol = (idx <= 0) ? 0 : (idx >= 16) ? 0x7f : ((idx - 1) * 8 + 9);
+        LOGE("%s a2dp not connected !!!\n", __func__);
+        return;
+    }
+
+    s_a2dp_vol = volume_change(s_a2dp_vol, 2);
+
+    if (old != s_a2dp_vol)
+    {
 #ifdef CONFIG_A2DP_AUDIO
-        bk_bt_dac_set_gain(s_a2dp_vol >> 1);
 
         if (s_a2dp_vol)
         {
@@ -1446,7 +1682,53 @@ void bk_bt_app_avrcp_ct_vol_down(void)
     }
 }
 
-void bt_wifi_state_updated(void)
+void bk_bt_app_avrcp_ct_vol_change(uint32_t platform_vol)
+{
+    uint8_t old = s_a2dp_vol;
+    uint32_t platform_max_level =
+#if CONFIG_AUDIO_PLAY
+        DAC_VOL_LEVEL_COUNT
+#else
+        volume_get_level_count() - 1
+#endif
+        ;
+
+    if (!s_bt_env.a2dp_state)
+    {
+        LOGE("%s a2dp not connected !!!\n", __func__);
+        return;
+    }
+
+    s_a2dp_vol = audio_volume_2_avrcp_volume(platform_vol);
+
+    if (platform_vol == platform_max_level)
+    {
+        s_a2dp_vol = AVRCP_LEVEL_COUNT - 1;
+    }
+
+    LOGI("%s platform_vol %d avrcp vol %d -> %d\n", __func__, platform_vol, old, s_a2dp_vol);
+
+    if (old != s_a2dp_vol && (s_tg_current_registered_noti & (1 << BK_AVRCP_RN_VOLUME_CHANGE)))
+    {
+        bk_avrcp_rn_param_t cmd;
+        int ret = 0;
+
+        os_memset(&cmd, 0, sizeof(cmd));
+
+        cmd.volume = s_a2dp_vol;
+
+        ret = bk_bt_avrcp_tg_send_rn_rsp(avrcp_remote_bda, BK_AVRCP_RN_VOLUME_CHANGE, BK_AVRCP_RN_RSP_CHANGED, &cmd);
+
+        if (ret)
+        {
+            LOGE("%s send rn rsp err %d\n", __func__, ret);
+        }
+    }
+
+    bluetooth_storage_save_volume(bt_manager_get_connected_device(), s_a2dp_vol);
+}
+
+static void bt_wifi_state_updated(void)
 {
     bt_audio_sink_demo_msg_t demo_msg;
     int rc = -1;
@@ -1470,7 +1752,7 @@ void bt_wifi_state_updated(void)
 }
 
 #if CONFIG_WIFI_COEX_SCHEME
-void wifi_state_callback(uint8_t status_id, uint8_t status_info)
+static void wifi_state_callback(uint8_t status_id, uint8_t status_info)
 {
     if (COEX_WIFI_STAT_ID_SCANNING == status_id || COEX_WIFI_STAT_ID_CONNECTING == status_id)
     {
@@ -1663,6 +1945,103 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
     return 0;
 }
 
+int a2dp_sink_demo_deinit(void)
+{
+    int32_t ret = 0;
+    bk_bt_enter_pairing_mode(0);
+
+    rtos_delay_milliseconds(500);
+
+    speaker_task_deinit();
+    bt_audio_sink_demo_task_deinit();
+
+    bk_bt_a2dp_sink_register_data_callback(NULL);
+
+    LOGI("%s start bk_bt_a2dp_sink_deinit\n");
+
+    ret = bk_bt_a2dp_sink_deinit();
+
+    if (ret)
+    {
+        LOGI("%s a2dp sink deinit err %d\n", __func__, ret);
+        return -1;
+    }
+
+    ret = rtos_get_semaphore(&s_bt_api_event_cb_sema, 6 * 1000);
+
+    if (ret)
+    {
+        LOGI("%s get sem for a2dp sink deinit err\n", __func__);
+        return -1;
+    }
+
+    bk_bt_a2dp_register_callback(NULL);
+    bk_bt_avrcp_tg_register_callback(NULL);
+    bk_bt_avrcp_tg_deinit();
+    bk_bt_avrcp_ct_register_callback(NULL);
+    bk_bt_avrcp_ct_deinit();
+
+#if USE_AMP_CALL
+    ret = media_send_msg_sync(EVENT_BT_AUDIO_DEINIT_REQ, 0);
+
+    if (ret)
+    {
+        LOGE("%s mail box EVENT_BT_AUDIO_DEINIT_REQ err %d !!", __func__, ret);
+    }
+
+#endif
+
+    os_memset(&s_coex_to_bt_func, 0, sizeof(s_coex_to_bt_func));
+    coex_bt_if_init(NULL);
+
+    if (s_bt_api_event_cb_sema)
+    {
+        ret = rtos_deinit_semaphore(&s_bt_api_event_cb_sema);
+
+        if (ret)
+        {
+            LOGE("%s sem deinit err %d\n", __func__, ret);
+        }
+
+        s_bt_api_event_cb_sema = NULL;
+    }
+
+    if (s_bt_avrcp_event_cb_sema)
+    {
+        ret = rtos_deinit_semaphore(&s_bt_avrcp_event_cb_sema);
+
+        if (ret)
+        {
+            LOGE("%s avrcp evt sem deinit err %d\n", __func__, ret);
+        }
+
+        s_bt_avrcp_event_cb_sema = NULL;
+    }
+
+    os_memset(&bt_audio_a2dp_sink_codec, 0, sizeof(bt_audio_a2dp_sink_codec));
+
+    s_a2dp_vol = DEFAULT_A2DP_VOLUME;
+    s_tg_current_registered_noti = 0;
+
+    os_memset(&s_bt_env, 0, sizeof(s_bt_env));
+#if CONFIG_WIFI_COEX_SCHEME
+    os_memset(&s_coex_to_bt_func, 0, sizeof(s_coex_to_bt_func));
+#endif
+
+    s_a2dp_play_vote_flag = 0;
+
+    s_headset_a2dp_data_path = 1;
+    s_avrcp_play_status = BK_AVRCP_PLAYBACK_STOPPED;
+    s_avrcp_play_pending_status = -1;
+
+    os_memset(&s_bt_env, 0, sizeof(s_bt_env));
+
+#if USE_COMPLEX_VOTE_PLAY
+    s_audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_IDLE;
+#endif
+
+    return 0;
+}
 
 static int speaker_task_init()
 {
@@ -1691,6 +2070,51 @@ static int speaker_task_init()
     }
 }
 
+static void speaker_task_deinit(void)
+{
+    int32_t err = 0;
+#ifdef CONFIG_A2DP_AUDIO
+
+    if (a2dp_speaker_thread_handle)
+    {
+        s_spk_is_started = 0;
+
+        if (a2dp_speaker_sema)
+        {
+            rtos_set_semaphore(&a2dp_speaker_sema);
+        }
+
+        LOGI("%s wait thread end\n", __func__);
+        rtos_thread_join(&a2dp_speaker_thread_handle);
+        LOGI("%s thread end !!!\n", __func__);
+        a2dp_speaker_thread_handle = NULL;
+    }
+
+#if USE_AMP_CALL
+#if USE_COMPLEX_VOTE_PLAY
+    err = a2dp_sink_demo_vote_enable(0, A2DP_PLAY_VOTE_FLAG_FROM_A2DP);
+#else
+    err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 0);
+
+    if (err)
+    {
+        LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d stop err %d !!\n", __func__, err);
+    }
+
+#endif
+
+
+    //                err = media_send_msg_sync(EVENT_BT_AUDIO_DEINIT_REQ, 0);
+    //
+    //                if (err)
+    //                {
+    //                    LOGE("%s mail box EVENT_BT_AUDIO_DEINIT_REQ err %d !!", __func__, err);
+    //                }
+#endif
+#endif
+}
+
+
 static void speaker_task(void *arg)
 {
     bk_err_t ret = 0;
@@ -1704,7 +2128,7 @@ static void speaker_task(void *arg)
 
     cfg.nChans = CONFIG_BOARD_AUDIO_CHANNLE_NUM;
     cfg.sampRate = (bt_audio_a2dp_sink_codec.type == CODEC_AUDIO_SBC ? bt_audio_a2dp_sink_codec.cie.sbc_codec.sample_rate : bt_audio_a2dp_sink_codec.cie.aac_codec.sample_rate);
-    cfg.volume = (s_a2dp_vol >> 1);
+    cfg.volume = avrcp_volume_2_audio_volume(s_a2dp_vol);//(s_a2dp_vol >> 1);
     cfg.frame_size = cfg.sampRate *cfg.nChans / 1000 * 20 * cfg.bitsPerSample / 8;
     cfg.pool_size = cfg.frame_size * 30;
 
@@ -1976,8 +2400,6 @@ end:;
 #if (CONFIG_AAC_DECODER)
     bk_aac_decoder_deinit(&bt_audio_sink_aac_decoder);
 #endif
-    ring_buffer_node_clear(&s_a2dp_frame_nodes);
-    ring_buffer_node_deinit(&s_a2dp_frame_nodes);
 
     if (p_cache_buff)
     {
@@ -2142,10 +2564,10 @@ static int32_t a2dp_sink_demo_vote_enable(uint8_t enable, uint32_t flag)
             LOGI("%s play pending\n", __func__);
         }
     }
-//    else if (old_vote_flag > s_a2dp_play_vote_flag)
-//    {
-//        bt_audio_a2dp_sink_avrcp_req(0);
-//    }
+    //    else if (old_vote_flag > s_a2dp_play_vote_flag)
+    //    {
+    //        bt_audio_a2dp_sink_avrcp_req(0);
+    //    }
     else
     {
         LOGI("%s except flag 0x%x, send EVENT_BT_A2DP_STATUS_NOTI_REQ 0\n", __func__, s_a2dp_play_vote_flag);
@@ -2175,7 +2597,7 @@ static int32_t a2dp_sink_demo_vote_enable(uint8_t enable, uint32_t flag)
     {
         LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ %d\n", __func__, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
 
-        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
 
         if (err)
         {

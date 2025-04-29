@@ -23,7 +23,7 @@
 
 #define CONFIG_A2DP_CACHE_FRAME_NUM    4
 
-#define DEFAULT_A2DP_VOLUME  0x5A
+#define DEFAULT_A2DP_VOLUME  (128 / 2)//avrcp half //0x5A
 
 #define PAGE_SCAN_INTV   0x0800  //1.28s
 #define PAGE_SCAN_WIN    0x00B4  //11.25ms

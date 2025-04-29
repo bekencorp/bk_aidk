@@ -20,7 +20,12 @@ void ring_buffer_node_init(RingBufferNodeContext *rbn, uint8_t *address, uint32_
 
 void ring_buffer_node_deinit(RingBufferNodeContext *rbn)
 {
+    os_memset(rbn, 0, sizeof(*rbn));
+}
 
+bool ring_buffer_node_is_init(RingBufferNodeContext *rbn)
+{
+    return rbn->address ? true: false;
 }
 
 void ring_buffer_node_clear(RingBufferNodeContext *rbn)
