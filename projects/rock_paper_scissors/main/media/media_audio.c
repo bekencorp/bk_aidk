@@ -181,6 +181,11 @@ int32_t audio_init(void)
     cfg.pool_size = cfg.frame_size * 3;
     cfg.pool_empty_notify_cb = empty_notify;
     cfg.usr_data = &s_need_sync;
+    cfg.pa_ctl_en = true;
+    cfg.pa_ctl_gpio = 50;
+    cfg.pa_on_level = 1;
+    cfg.pa_on_delay = 2;
+    cfg.pa_off_delay = 2;
 
     if (!s_audio_ctrl_sem)
     {
