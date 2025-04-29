@@ -338,6 +338,7 @@ void bk_config_sync_flash(void)
     if (s_factory_cache_map == NULL) {
         return;
     }
+    LOGI("save config to flash.\r\n");
     bool read_compare = BK_TRUE;  // if malloc fail, write to flash without comparison
     uint8_t *buffer = (uint8_t *)os_malloc(s_value_max_len);
     LOGD("s_value_max_len = %u\r\n", s_value_max_len);
@@ -348,7 +349,7 @@ void bk_config_sync_flash(void)
         LOGD("key = %s\r\n", s_factory_cache_map[i].key);
         if (read_compare == BK_FALSE || is_config_update(buffer, s_factory_cache_map[i].key,
             (void *)s_factory_cache_map[i].ptr, s_factory_cache_map[i].size)) {
-            LOGD("update %s\r\n", s_factory_cache_map[i].key);
+            LOGI("update %s\r\n", s_factory_cache_map[i].key);
             bk_factory_write_flash(s_factory_cache_map[i].key, (void *)s_factory_cache_map[i].ptr,
                                    s_factory_cache_map[i].size);
         }
