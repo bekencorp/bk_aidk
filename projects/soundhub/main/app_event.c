@@ -536,7 +536,9 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_CLOSE_BLUETOOTH:
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
                     bk_genie_boarding_deinit();
+#if CONFIG_NET_PAN && !(CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
                     bk_bluetooth_deinit();
+#endif
                     break;
 
                 // OTA相关事件

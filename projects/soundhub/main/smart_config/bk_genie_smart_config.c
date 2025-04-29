@@ -802,7 +802,12 @@ extern bk_err_t bk_modem_deinit(void);
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
 #endif
+
+#if CONFIG_NET_PAN && !CONFIG_A2DP_SINK_DEMO && !CONFIG_HFP_HF_DEMO
     bk_bt_enter_pairing_mode(0);
+#else
+    BK_LOGW(TAG, "%s pan disable !!!\n", __func__);
+#endif
 
     extern bool ate_is_enabled(void);
 
@@ -826,6 +831,10 @@ int bk_genie_smart_config_init(void)
     event_handler_init();
     flag = demo_network_auto_reconnect(false);
 
+#if !CONFIG_NET_PAN && (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
+    bk_bt_enter_pairing_mode(1);
+#endif
+
     if (flag != 0x71l
 #if CONFIG_NET_PAN
         && flag != 0x74l
@@ -842,7 +851,9 @@ int bk_genie_smart_config_init(void)
         if (flag != 0x74l)
 #endif
         {
+#if CONFIG_NET_PAN && !(CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
             bk_bluetooth_deinit();
+#endif
         }
     }
 

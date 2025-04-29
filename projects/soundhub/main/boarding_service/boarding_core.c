@@ -386,8 +386,10 @@ fail:
                     LOGI("close bluetooth ing\n");
 #if CONFIG_BLUETOOTH
                     bk_genie_boarding_deinit();
+#if CONFIG_NET_PAN && !(CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
                     bk_bluetooth_deinit();
                     LOGI("close bluetooth finish!\r\n");
+#endif
 #endif
                 }
                 break;
