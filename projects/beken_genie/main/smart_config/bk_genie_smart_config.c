@@ -33,6 +33,7 @@
 #include "boarding_service.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "bk_factory_config.h"
+#include "driver/trng.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -1026,6 +1027,7 @@ extern char *channel_name_record;
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
     int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+    uint32_t rand_flag = 0;
 
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
@@ -1053,7 +1055,9 @@ extern char *channel_name_record;
     }
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
 
-    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
+    rand_flag = bk_rand();
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
 
     webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
