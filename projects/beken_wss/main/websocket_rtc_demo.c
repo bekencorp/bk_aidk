@@ -383,7 +383,7 @@ bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
     aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
     aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
-    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 16000;
+    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 24000;//16000;
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
