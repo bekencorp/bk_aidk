@@ -22,13 +22,13 @@
             "version": "2M.1220",
             "partition": "app1",
             "start_addr": "0x001ed000",
-            "size": "2176K"
+            "size": "2584K"
         },
         {
             "firmware": "app2.bin",
             "version": "2M.1220",
             "partition": "app2",
-            "start_addr": "0x0040d000",
+            "start_addr": "0x00473000",
             "size": "408K"
         }
     ]

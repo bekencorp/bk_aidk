@@ -61,6 +61,15 @@ list(APPEND srcs
 	display/lvgl_app.c
 )
 
+if (CONFIG_LVGL)
+list(APPEND srcs
+	display/lv_rock.c
+	display/lv_paper.c
+	display/lv_scissors.c
+	display/lv_custom_font.c
+)
+endif()
+
 if (CONFIG_OVERRIDE_FLASH_PARTITION)
     list(APPEND srcs
         vendor_flash.c

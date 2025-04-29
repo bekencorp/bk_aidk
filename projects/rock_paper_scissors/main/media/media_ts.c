@@ -9,7 +9,8 @@
 #include <os/mem.h>
 
 #if CONFIG_LVGL
-    #include "lvgl.h"
+#include "lvgl.h"
+#include "lv_vendor.h"
 #endif
 #include "main_functions.h"
 #include "media_audio.h"
@@ -49,10 +50,17 @@ static mux_callback_t s_release_cb;
 static beken_timer_t s_process_timer;
 static uint8_t s_ts_process_status = TS_PROCESS_IDLE;
 static uint8_t *display_frame = NULL;
+static uint16_t *scale_frame = NULL;
 
 #if CONFIG_LVGL
-    extern lv_img_dsc_t gesture_img_dsc;
-    extern lv_obj_t *camera_img;
+extern lv_obj_t *camera_img;
+extern lv_obj_t *my_img;
+extern lv_obj_t *label1;
+extern lv_obj_t *label2;
+
+LV_IMG_DECLARE(lv_rock);
+LV_IMG_DECLARE(lv_paper);
+LV_IMG_DECLARE(lv_scissors);
 #endif
 
 __attribute__((section(".itcm_sec_code"))) static int rgb565_to_rgb888_convert_ext(uint16_t *src_buffer, uint8_t *dst_buffer, int img_width, int img_height, uint8_t sign)
@@ -493,12 +501,10 @@ static void media_ts_thread_task(beken_thread_arg_t data)
             audio_play(TONE_ENUM_PLS_STOP_HAND, 1);
             audio_play(TONE_ENUM_DETECTING, 1);
 #else
-
             if (s_ts_process_status != TS_PROCESS_ING)
             {
                 goto END;
             }
-
 #endif
             appm_logd("dvp frame %dx%d_fmt %d len %d", frame->width, frame->height, frame->fmt, frame->length);
 
@@ -560,18 +566,54 @@ static void media_ts_thread_task(beken_thread_arg_t data)
             {
                 appm_logi("+++++++++detect_result = %d", detect_result);
 
-                uint16_t *buf16 = (uint16_t *)display_frame;
-
-                for (int k = 0; k < TS_PIXEL *TS_PIXEL; k++)
-                {
-                    buf16[k] = ((buf16[k] & 0xff00) >> 8) | ((buf16[k] & 0x00ff) << 8);
-                }
-
-                lv_img_set_src(camera_img, &gesture_img_dsc);
 #if AUDIO_PROMPT
                 uint8_t my_hand = random() % 3;
                 appm_logi("localhand %d peerhand %d", my_hand, detect_result);
                 int8_t compare_res = hand_compare(my_hand, detect_result);
+
+                lv_vendor_disp_lock();
+                if (label1)
+                {
+                    lv_obj_del(label1);
+                    label1 = NULL;
+                }
+
+                if (label2)
+                {
+                    lv_obj_del(label2);
+                    label2 = NULL;
+                }
+
+                switch (detect_result)
+                {
+                case GESTURE_ROCK:
+                    lv_img_set_src(camera_img, &lv_rock);
+                    break;
+
+                case GESTURE_PAPER:
+                    lv_img_set_src(camera_img, &lv_paper);
+                    break;
+
+                case GESTURE_SCISSORS:
+                    lv_img_set_src(camera_img, &lv_scissors);
+                    break;
+                }
+
+                switch (my_hand)
+                {
+                case GESTURE_ROCK:
+                    lv_img_set_src(my_img, &lv_rock);
+                    break;
+
+                case GESTURE_PAPER:
+                    lv_img_set_src(my_img, &lv_paper);
+                    break;
+
+                case GESTURE_SCISSORS:
+                    lv_img_set_src(my_img, &lv_scissors);
+                    break;
+                }
+                lv_vendor_disp_unlock();
 
                 audio_play(TONE_ENUM_YOUR_SHOW, 1);
 
@@ -712,8 +754,6 @@ int32_t media_ts_main(void)
         appm_loge("%s display_frame malloc failed", __func__);
         return -1;
     }
-
-    gesture_img_dsc.data = display_frame;
 
     ret = rtos_init_queue(&s_media_ts_queue,
                           "s_media_ts_queue",

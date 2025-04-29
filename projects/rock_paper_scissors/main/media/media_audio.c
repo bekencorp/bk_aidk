@@ -25,7 +25,7 @@ typedef struct
     const unsigned int *data_len;
 } audio_tone_map_t;
 
-#define CONSTANT_PLAY 1
+#define CONSTANT_PLAY 0
 
 static audio_play_t *s_audio_play_obj;
 static beken_semaphore_t s_audio_ctrl_sem = NULL;

@@ -19,17 +19,9 @@
 
 #if (CONFIG_SYS_CPU1)
 lv_obj_t *camera_img = NULL;
-
-lv_img_dsc_t gesture_img_dsc =
-{
-    .header.cf = LV_IMG_CF_TRUE_COLOR,
-    .header.always_zero = 0,
-    .header.w = 192,
-    .header.h = 192,
-    .data_size = 192 * 192 * 2,
-    .data = NULL,
-};
-
+lv_obj_t *my_img = NULL;
+lv_obj_t *label1 = NULL;
+lv_obj_t *label2 = NULL;
 
 void lvgl_event_handle(media_mailbox_msg_t *msg)
 {
@@ -44,15 +36,15 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
     lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config->draw_pixel_size * sizeof(lv_color_t));
 #else
-#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 11 * 1024 * 1024)
-    lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) / 10;
+#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
+    lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) * 2 / 10;
     lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
     lv_vnd_config.draw_buf_2_2 = NULL;
     lv_vnd_config.frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
     lv_vnd_config.frame_buf_2 = NULL;//(lv_color_t *)(PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) * sizeof(lv_color_t));
 #endif
     lv_vnd_config.lcd_hor_res = ppi_to_pixel_x(lcd_open->device_ppi);
-    lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi);
+    lv_vnd_config.lcd_ver_res = ppi_to_pixel_y(lcd_open->device_ppi) * 2;
     lv_vnd_config.rotation = ROTATE_NONE;
 
     lv_vendor_init(&lv_vnd_config);
@@ -63,9 +55,23 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     drv_tp_open(ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi), TP_MIRROR_NONE);
 #endif
 
+    LV_FONT_DECLARE(lv_custom_font);
+
     lv_vendor_disp_lock();
     camera_img = lv_img_create(lv_scr_act());
-    lv_obj_align(camera_img, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_pos(camera_img, 0, 0);
+    label1 = lv_label_create(lv_scr_act());
+    lv_label_set_text(label1, "猜 拳");
+    lv_obj_set_style_text_font(label1, &lv_custom_font, 0);
+    lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+
+    my_img = lv_img_create(lv_scr_act());
+    lv_obj_set_pos(my_img, 0, 160);
+    label2 = lv_label_create(lv_scr_act());
+    lv_label_set_text(label2, "游 戏");
+    lv_obj_set_style_text_font(label2, &lv_custom_font, 0);
+    lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
+
     lv_vendor_disp_unlock();
 
     lv_vendor_start();
@@ -78,8 +84,8 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 #if (CONFIG_SYS_CPU0)
 const lcd_open_t lcd_open =
 {
-    .device_ppi = PPI_360X360,
-    .device_name = "gc9c01",
+    .device_ppi = PPI_160X160,
+    .device_name = "gc9d01",
 };
 
 void lvgl_app_init(void)

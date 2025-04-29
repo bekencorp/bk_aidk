@@ -96,7 +96,7 @@ typedef enum
     BK_PARTITION_NET_PARAM_USER,
 #endif
     BK_PARTITION_MAX_USER,
-} bk_partition_user_t;
+}bk_partition_user_t;
 
 #ifdef __cplusplus
 }

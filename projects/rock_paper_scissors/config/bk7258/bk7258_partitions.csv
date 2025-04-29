@@ -3,9 +3,9 @@
 #Name,Offset,Size,Type,Read,Write
 bootloader,,68k,code,TRUE,FALSE
 app,,1904k,code,TRUE,FALSE
-app1,,2516k,code,TRUE,FALSE
+app1,,2584k,code,TRUE,FALSE
 app2,,408k,code,TRUE,FALSE
-download,,1292k,data,TRUE,
+download,,1224k,data,TRUE,
 usr_config,,68k,data,TRUE,
 easyflash,0x7fc000,8K,data,TRUE,
 rf_firmware,0x7fe000,4k,data,TRUE,
