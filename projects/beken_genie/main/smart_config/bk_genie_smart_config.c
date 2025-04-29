@@ -658,7 +658,7 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
         case EVENT_NETIF_GOT_IP4:
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
-            BK_LOGI(TAG, "netif_idex %d got ip %s.\n", got_ip->netif_if, got_ip->ip);
+            BK_LOGI(TAG, "netif_idx %d\r got ip\n", got_ip->netif_if);
             if (smart_config_running)
             {
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
@@ -763,7 +763,7 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
 				network_disc_evt_posted = 1;
 			}
 #if CONFIG_STA_AUTO_RECONNECT
-			bk_wifi_sta_start();
+			bk_wifi_sta_connect();
 #endif
             }
             break;
