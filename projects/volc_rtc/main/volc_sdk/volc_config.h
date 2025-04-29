@@ -1,0 +1,98 @@
+// Copyright (2025) Beijing Volcano Engine Technology Ltd.
+// SPDX-License-Identifier: MIT
+
+#if CONFIG_HTTP_REQUEST_AGENT
+// RTC APP ID
+#define DEFAULT_RTC_APP_ID  "xxx"
+// 服务端的地址
+#define DEFAULT_SERVER_HOST "xxx"
+// 默认的智能体id
+#define DEFAULT_BOT_ID      "xxx"
+// 默认声音id
+#define DEFAULT_VOICE_ID    "BV007_streaming"
+#else
+// RTC APP ID
+#define DEFAULT_RTC_APP_ID  "zzzz"
+// 服务端的地址
+#define DEFAULT_ROOM_ID     "zzzz"
+// 默认的智能体id
+#define DEFAULT_USER_ID     "zzzz"
+// 默认声音id
+#define DEFAULT_TOKEN       "zzzz"
+#endif
+
+
+//#define CONFIG_AUDIO_ONLY
+#if CONFIG_AUD_INTF_SUPPORT_G722
+#define CONFIG_USE_G722_CODEC 1
+#elif CONFIG_AUD_INTF_SUPPORT_OPUS
+#define CONFIG_USE_OPUS_CODEC 1
+#else
+//#define CONFIG_USE_G711U_CODEC
+//#define CONFIG_USE_G711A_CODEC
+#endif
+
+//#define CONFIG_UVC_CAMERA  /* config CONFIG_USB_UVC in cp1 */
+#define CONFIG_DVP_CAMERA
+
+#define SPK_GAIN_MAX        (0X1E)
+#define SPK_VOLUME_LEVEL (11) //[0,10]
+
+#define BANDWIDTH_ESTIMATE_MIN_BITRATE   (500000)
+#define BANDWIDTH_ESTIMATE_MAX_BITRATE   (2000000)
+#define BANDWIDTH_ESTIMATE_START_BITRATE (800000)
+
+#if defined(CONFIG_USE_G711U_CODEC)   //G711U
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            320
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+
+#elif defined(CONFIG_USE_G711A_CODEC) // G711A
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            320
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+
+#elif defined(CONFIG_USE_G722_CODEC)  // G722
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#endif //CONFIG_G722_CODEC_RUN_ON_CPU1
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_TYPE_G722
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#endif //CONFIG_G722_CODEC_RUN_ON_CPU0
+
+#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+
+#else                                // DISABLE
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            160
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+// #define CONFIG_SEND_PCM_DATA
+#endif
+
+#if CONFIG_G722_CODEC_RUN_ON_CPU0
+#define CONFIG_AUDIO_FRAME_DURATION_MS     60  // except OPUS
+#else
+#define CONFIG_AUDIO_FRAME_DURATION_MS     20  // except OPUS
+#endif
+
+// (CONFIG_PCM_FRAME_LEN * 1000 / CONFIG_PCM_SAMPLE_RATE / CONFIG_PCM_CHANNEL_NUM /sizeof(int16_t))
+
+#define DEFAULT_SDK_LOG_PATH "io.volc.rtc_sdk"

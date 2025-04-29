@@ -15,7 +15,7 @@
 
 #if CONFIG_SYS_CPU0
 bool agoora_tx_mic_data_flag = false;
-bool agoora_rx_spk_data_flag = false;
+bool byte_rx_spk_data_flag = false;
 #elif CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
 #else
@@ -61,19 +61,19 @@ void cli_beken_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         if (os_strtoul(argv[2], NULL, 10))
         {
             dump_flag |= (1<<DUMP_TYPE_AGORA_RX_SPK);
-            agoora_rx_spk_data_flag = true;
+            byte_rx_spk_data_flag = true;
             os_printf("dump beken rx spk data\n!");
         }
         else
         {
             dump_flag &= (~(1<<DUMP_TYPE_AGORA_RX_SPK));
-            agoora_rx_spk_data_flag = false;
+            byte_rx_spk_data_flag = false;
         }
     }
     else if (os_strcmp(argv[1], "dump_stop") == 0)
     {
         agoora_tx_mic_data_flag = false;
-        agoora_rx_spk_data_flag = false;
+        byte_rx_spk_data_flag = false;
         dump_flag = 0;
         os_printf("dump stop\n!");
     }

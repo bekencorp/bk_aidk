@@ -14,7 +14,7 @@ extern "C" {
 
 
 /* API */
-int send_audio_data_to_trans(uint8_t *data, unsigned int len);
+int send_audio_data_to_byte(uint8_t *data, unsigned int len);
 bk_err_t audio_tras_init(void);
 bk_err_t audio_tras_deinit(void);
 

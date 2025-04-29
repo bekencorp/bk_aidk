@@ -1,44 +1,73 @@
-set(incs . include)
+set(incs . include asr bt_pan)
 set(srcs)
 
 list(APPEND srcs
-	app_main.c
+    app_main.c
 )
 
-if (0)
+if (CONFIG_SYS_CPU0)
 list(APPEND srcs
-    websocket_rtc_demo.c
-    beken_sdk/beken_rtc.c
-    beken_debug.c
+    app_event.c
+    audio/audio_transfer.c
+    boarding_service/boarding_core.c
+    boarding_service/boarding_service.c
+    boarding_service/wifi_boarding_utils.c
+    led_blink.c
+    countdown.c
+    motor.c
+    audio_para.c
 )
+
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
-   smart_config/bk_genie_smart_config.c
+    smart_config/bk_genie_smart_config.c
 )
 endif()
+
+if (CONFIG_NET_PAN)
+list(APPEND srcs
+    bt_pan/bt_manager.c
+    bt_pan/pan_service.c
+    bt_pan/pan_demo_cli.c
+    bt_pan/storage/bluetooth_storage.c
+    bt_pan/bt_comm_list.c
+    bt_pan/hidd_service.c
+)
 endif()
 
-if (CONFIG_VOLC_RTC_DEMO_ENABLE)
-
 list(APPEND incs
-            VolcEngineRTCLiteDemo/src/file_parser/src
-            VolcEngineRTCLiteDemo/src/file_parser/include
-            VolcEngineRTCLiteDemo/src/utility
+            volc_sdk
 )
 
 list(APPEND srcs
-    VolcEngineRTCLiteDemo/src/VolcEngineRTCLiteDemo.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/audio_parser_aac.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/audio_parser_g711.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/audio_parser_pcm.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/file_parser.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/utils.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/video_parser_h264.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/video_parser_jpeg.c
-    VolcEngineRTCLiteDemo/src/file_parser/src/video_parser_yuv420.c
-    VolcEngineRTCLiteDemo/src/utility/file_writer.c
-    VolcEngineRTCLiteDemo/src/utility/pacer.c
-    VolcEngineRTCLiteDemo/src/utility/utility.c
+    volc_sdk/volc_rtc_trigger.c
+    volc_sdk/volc_rtc.c
+    audio_para.c
+)
+
+if (CONFIG_HTTP_REQUEST_AGENT)
+list(APPEND srcs
+    volc_sdk/RtcBotUtils.c
+    volc_sdk/RtcHttpUtils.c
+)
+endif()
+
+endif()
+
+if (CONFIG_SYS_CPU1)
+list(APPEND srcs
+
+)
+endif()
+
+list(APPEND srcs
+    display/avi_play.c
+    display/ota_display.c
+)
+
+if (CONFIG_SYS_CPU2)
+list(APPEND srcs
+    asr/armino_asr.c
 )
 endif()
 

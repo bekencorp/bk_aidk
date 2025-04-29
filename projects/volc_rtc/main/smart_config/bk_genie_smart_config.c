@@ -77,9 +77,9 @@ bool first_time_for_network_provisioning = true;
 /*doubao*/
 #define CUSTOM_LLM_DEFAULT_DOUBAO_URL "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN "xxx"		//need to be replaced by customers
-#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "ÄãÊÇÒ»¸öÓÐÀñÃ²µÄAIÖúÀí£¬ÇëÊ¹ÓÃÖîÈç¡°ºÃµÄ¡±£¬¡°Ã»ÎÊÌâ¡±£¬¡°±§Ç¸¡±µÈÕâÑùµÄ´Ê¿ªÊ¼ÄãµÄ»Ø´ð¡£"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½AIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ç¡°ï¿½ÃµÄ¡ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½â¡±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´Ê¿ï¿½Ê¼ï¿½ï¿½Ä»Ø´ï¿½"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_MODEL "ep-20250213161421-v9m5m"
-#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "ÐÂ´º¿ìÀÖ£¬ÓÐÊ²Ã´¿ÉÒÔ°ïÄú£¿"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "ï¿½Â´ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½Ê²Ã´ï¿½ï¿½ï¿½Ô°ï¿½ï¿½ï¿½ï¿½ï¿½"
 
 agent_type_t agent_record = DOUBAO_AGENT;
 char *agent_id_record = NULL;
@@ -148,7 +148,7 @@ int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"gpt-4o-mini\"}},\r\n");
 		} else {
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"ä½ æ˜¯ä¸€ä¸ªæœ‰ç¤¼è²Œçš„AIåŠ©ç†ã€‚\"}],\r\n");
-			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"æ–°æ˜¥å¿«ä¹ï¼Œæœ‰ä»€ä¹ˆå¯ä»¥å¸®æ‚?\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"æ–°æ˜¥å¿«ä¹ï¼Œæœ‰ä»€ä¹ˆå¯ä»¥å¸®ï¿½?\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"å¾ˆæŠ±æ­‰ã€‚\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"ep-20250213161421-v9m5m\"}},\r\n");
 		}
@@ -659,6 +659,13 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "netif_idx %d\r got ip\n", got_ip->netif_if);
+#if CONFIG_BK_MODEM
+            {
+             extern void ping_start(char* target_name, uint32_t times, size_t size);
+             ping_start("baidu.com", 4, 0);
+            }
+#endif
+
             if (smart_config_running)
             {
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
@@ -783,7 +790,7 @@ void event_handler_init(void)
     BK_LOG_ON_ERR(bk_event_register_cb(EVENT_MOD_NETIF, EVENT_ID_ALL, bk_genie_sconf_netif_event_cb, NULL));
 }
 
-extern bk_err_t agora_stop(void);
+extern bk_err_t byte_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
@@ -792,7 +799,7 @@ void bk_genie_prepare_for_smart_config(void)
 #endif
     app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
     network_reconnect_stop_timeout_check();
-    agora_stop();
+    byte_stop();
     bk_wifi_sta_stop();
 #if CONFIG_BK_MODEM
 extern bk_err_t bk_modem_deinit(void);
