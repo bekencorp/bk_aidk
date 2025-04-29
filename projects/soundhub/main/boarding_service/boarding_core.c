@@ -133,8 +133,9 @@ static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
     bk_genie_msg_t msg;
+#if (CONFIG_NFC_ENABLE)
     nfc_event_callback_register(nfc_callback);
-
+#endif
     while (1)
     {
 

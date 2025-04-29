@@ -540,8 +540,10 @@ int main(void)
 
 #if (CONFIG_SYS_CPU0)
         app_event_init();
+#if (CONFIG_NFC_ENABLE)
         void nfc_get_id_task(void);
         nfc_get_id_task();
+#endif
         volume_init();
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
