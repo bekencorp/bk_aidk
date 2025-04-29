@@ -65,6 +65,7 @@ static uart_util_t g_agora_spk_uart_util = {0};
 
 
 bool g_connected_flag = false;
+bool g_agent_offline = true;
 static char agora_appid[33] = {0};
 static char channel_name[128] = {0};
 static bool audio_en = false;
@@ -131,16 +132,26 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             g_connected_flag = true;
             LOGI("Join channel success.\n");
             break;
+        case AGORA_RTC_MSG_REJOIN_CHANNEL_SUCCESS:
+            g_connected_flag = true;
+            LOGI("Rejoin channel success.\n");
+            if (g_agent_offline == false)
+                network_reconnect_stop_timeout_check();
+            app_event_send_msg(APP_EVT_RTC_REJOIN_SUCCESS, 0);
+            break;
         case AGORA_RTC_MSG_USER_JOINED:
             LOGI("User Joined.\n");
             network_reconnect_stop_timeout_check();
             app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
-            g_connected_flag = true;	//for rejoin success
+            g_agent_offline = false;
             smart_config_running = false;
             break;
         case AGORA_RTC_MSG_USER_OFFLINE:
             LOGI("User Offline.\n");
+            g_agent_offline = true;
             app_event_send_msg(APP_EVT_AGENT_OFFLINE, 0);
+            if (g_connected_flag == true)
+               app_event_send_msg(APP_EVT_AGENT_DEVICE_REMOVE, 0);
             break;
         case AGORA_RTC_MSG_CONNECTION_LOST:
             LOGE("Lost connection. Please check wifi status.\n");
@@ -838,7 +849,11 @@ void agora_auto_run(void)
         return;
     }
 #endif
-    bk_genie_wakeup_agent();
+    if (bk_genie_wakeup_agent()) {
+        LOGE("%s, wake up agent fail!\n", __func__);
+        app_event_send_msg(APP_EVT_AGENT_START_FAIL, 0);
+        return;
+    }
     sprintf(agora_appid, "%s", app_id_record);
     sprintf(channel_name, "%s", channel_name_record);
     if (!agora_runing)

@@ -349,6 +349,15 @@ extern uint8_t first_time_for_network_provisioning;
             msg.event = DBEVT_NET_PAN_REQUEST;
             bk_genie_send_msg(&msg);
         }
+#if CONFIG_BK_MODEM
+        case BOARDING_OP_START_BK_MODEM:
+        {
+            bk_genie_msg_t msg;
+
+            msg.event = DBEVT_START_BK_MODEM;
+            bk_genie_send_msg(&msg);
+        }
+#endif
         break;
     }
 }

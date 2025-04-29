@@ -19,6 +19,22 @@ typedef struct bk_fast_connect_d
 	uint8_t ap_channel;
 }BK_FAST_CONNECT_D;
 
+typedef enum
+{
+	HTTP_STATUS_SUCCESS = 200,
+	HTTP_STATUS_PARAM_ERROR = 400,
+	HTTP_STATUS_MAX_AGENT_UPTIME_EXCEEDED = 403,
+	HTTP_STATUS_TRIAL_LIMIT_EXCEEDED = 404,
+	HTTP_STATUS_DEVICE_REMOVED = 405,
+	HTTP_STATUS_AGENT_START_FAILED = 406,
+}agent_status_code;
+
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+typedef struct {
+	char *data;
+}bk_agora_ai_data_stream_t;
+#endif
+
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
 typedef struct {
 	char *url;
@@ -66,4 +82,8 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info);
 void bk_genie_prepare_for_smart_config(void);
 int bk_genie_wakeup_agent(void);
 int bk_genie_is_net_pan_configured(void);
+int bk_genie_post_nfc_id(uint8_t *nfc_id);
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+int bk_genie_init_datastream_resource();
+#endif
 #endif

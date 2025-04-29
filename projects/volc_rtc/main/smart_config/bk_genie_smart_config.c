@@ -27,26 +27,24 @@
 #include "bk_genie_comm.h"
 #include "wifi_boarding_utils.h"
 #include "bk_genie_smart_config.h"
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-#include "bk_ef.h"
-#endif
 #include "pan_service.h"
 #include "led_blink.h"
 #include "app_event.h"
 #include "boarding_service.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
+#include "bk_factory_config.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
 #define SEND_HEADER_SIZE           1024
-#define POST_DATA_MAX_SIZE  1024
+#define POST_DATA_MAX_SIZE  1024*2
 #define MAX_URL_LEN         256
-//extern char *app_id_record;
+extern char *app_id_record;
 bool smart_config_running = false;
-//char *app_id_record = NULL;
-//char *channel_name_record = NULL;
+char *app_id_record = NULL;
+char *channel_name_record = NULL;
 static beken2_timer_t network_reconnect_tmr = {0};
-extern bool rtc_runing;
+extern bool agora_runing;
 uint8_t network_disc_evt_posted = 0;
 bool first_time_for_network_provisioning = true;
 
@@ -79,9 +77,9 @@ bool first_time_for_network_provisioning = true;
 /*doubao*/
 #define CUSTOM_LLM_DEFAULT_DOUBAO_URL "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN "xxx"		//need to be replaced by customers
-#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "你是一个有礼貌的AI助理，请使用诸如“好的”，“没问题”，“抱歉”等这样的词开始你的回答。"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "����һ������ò��AI��������ʹ�����硰�õġ�����û���⡱������Ǹ���������Ĵʿ�ʼ��Ļش�"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_MODEL "ep-20250213161421-v9m5m"
-#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "新春快乐，有什么可以帮您？"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "�´����֣���ʲô���԰�����"
 
 agent_type_t agent_record = DOUBAO_AGENT;
 char *agent_id_record = NULL;
@@ -149,9 +147,9 @@ int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"I am sorry!\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"gpt-4o-mini\"}},\r\n");
 		} else {
-			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"ä½ æ˜¯ä¸€ä¸ªæœ‰ç¤¼è²Œçš„AIåŠ©ç†ã€‚\"}],\r\n");
-			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"æ–°æ˜¥å¿«ä¹ï¼Œæœ‰ä»€ä¹ˆå¯ä»¥å¸®æ‚?\",\r\n");
-			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"å¾ˆæŠ±æ­‰ã€‚\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"你是一个有礼貌的AI助理。\"}],\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"新春快乐，有什么可以帮�?\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"很抱歉。\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"ep-20250213161421-v9m5m\"}},\r\n");
 		}
 	}
@@ -491,9 +489,8 @@ void network_reconnect_stop_timeout_check(void)
 int is_wifi_sta_auto_restart_info_saved(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if (info.flag == 0x71l)
 		return 0;
 	else
@@ -503,10 +500,8 @@ int is_wifi_sta_auto_restart_info_saved(void)
 int bk_genie_is_wifi_sta_configured(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
 
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if ((info.flag & 0x71l) == 0x71l)
 	{
 		return 1;
@@ -520,10 +515,8 @@ int bk_genie_is_wifi_sta_configured(void)
 int bk_genie_is_net_pan_configured(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
 
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 #if CONFIG_NET_PAN
 	if ((info.flag & 0x74l) == 0x74l)
 	{
@@ -539,9 +532,8 @@ int bk_genie_is_net_pan_configured(void)
 void demo_erase_network_auto_reconnect_info(void)
 {
 	BK_FAST_CONNECT_D info_tmp = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_write("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
 }
 
 extern int demo_sta_app_init(char *oob_ssid, char *connect_key);
@@ -549,9 +541,8 @@ extern int demo_softap_app_init(char *ap_ssid, char *ap_key, char *ap_channel);
 int demo_network_auto_reconnect(bool val)	//val true means from disconnect to reconnecting
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	/*0x01110001:sta, 0x01110010:softap, 0x01110100:pan*/
 	if ((info.flag & 0x71l) == 0x71l) {
 		if (val == false) {
@@ -580,6 +571,19 @@ int demo_network_auto_reconnect(bool val)	//val true means from disconnect to re
 		return 0x74l;
 	}
 #endif
+#if CONFIG_BK_MODEM
+	if ((info.flag & 0x78l) == 0x78l) {
+		if (val == false) {
+			network_reconnect_stop_timeout_check();
+			network_reconnect_start_timeout_check(50);    //50s
+			app_event_send_msg(APP_EVT_RECONNECT_NETWORK, 0);
+			network_disc_evt_posted = 0;
+		}
+extern bk_err_t bk_modem_init(void);
+		bk_modem_init();
+		return 0x78l;
+	}
+#endif
 	return 0;
 }
 
@@ -588,9 +592,8 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 	BK_FAST_CONNECT_D info_tmp = {0};
 	__maybe_unused wifi_ap_config_t *ap_config = NULL;
 	__maybe_unused wifi_sta_config_t *sta_config = NULL;
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
 	if ((info_tmp.flag & 0xf0l) != 0x70l) {
 		BK_LOGI(TAG, "erase network provisioning info, %x\r\n", info_tmp.flag);
 		info_tmp.flag = 0x70l;
@@ -613,11 +616,14 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 	} else if (type == NETIF_IF_PAN) {
 		info_tmp.flag |= 0x74l;
 #endif
+#if CONFIG_BK_MODEM
+	} else if (type == NETIF_IF_PPP) {
+		info_tmp.flag |= 0x78l;
+#endif
 	} else
 		return -1;
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_set_env_enhance("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
-#endif
+	bk_config_write("d_network_id", (const void *)&info_tmp, sizeof(BK_FAST_CONNECT_D));
+
 	return 0;
 }
 
@@ -625,9 +631,8 @@ int demo_save_network_auto_restart_info(netif_if_t type, void *val)
 static int bk_genie_reselect_pan(void)
 {
 	BK_FAST_CONNECT_D info = {0};
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-	bk_get_env_enhance("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
-#endif
+
+	bk_config_read("d_network_id", (void *)&info, sizeof(BK_FAST_CONNECT_D));
 	if (info.flag & 0x74l) {
 		BK_LOGI(TAG, "%s\r\n", __func__);
 		bk_wifi_sta_stop();
@@ -640,7 +645,7 @@ static int bk_genie_reselect_pan(void)
 }
 #endif
 
-extern void beken_auto_run(void);
+extern void agora_auto_run(void);
 static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
 {
     netif_event_got_ip4_t *got_ip;
@@ -653,13 +658,15 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
         case EVENT_NETIF_GOT_IP4:
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
-            BK_LOGI(TAG, "%s got ip %s.\n", got_ip->netif_if == NETIF_IF_STA ? "STA" : "BK PAN", got_ip->ip);
+            BK_LOGI(TAG, "netif_idx %d\r got ip\n", got_ip->netif_if);
             if (smart_config_running)
             {
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
                 bk_wifi_sta_get_config(&sta_config);
                 demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
-                msg.event = DBEVT_WIFI_STATION_CONNECTED;
+                //inform beken apk netif got ip
+                msg.event = DBEVT_NETWORK_CONNECTED;
+                msg.param = got_ip->netif_if;
                 bk_genie_send_msg(&msg);
 #if CONFIG_STA_AUTO_RECONNECT
                 if (!first_time_for_network_provisioning) {
@@ -683,10 +690,8 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
 skip_agent_request:
 #endif
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
-				BK_LOGI(TAG, "%s, begin auto run\r\n", __func__);
-                beken_auto_run();
+                agora_auto_run();
 #else
-#if 0
                 if (bk_genie_get_agent_info(&info) == 0)
                 {
                     if (info.valid != 1)
@@ -704,12 +709,8 @@ skip_agent_request:
                     app_id_record = os_strdup(info.appid);
                     channel_name_record = os_strdup(info.channel_name);
                     BK_LOGI(TAG, "%s, %s\r\n", app_id_record, channel_name_record);
-                    beken_auto_run();
+                    agora_auto_run();
                 }
-#else
-			BK_LOGI(TAG, "%s, begin auto run\r\n", __func__);
-			beken_auto_run();
-#endif
 #endif
             }
 
@@ -762,7 +763,7 @@ static int bk_genie_sconf_wifi_event_cb(void *arg, event_module_t event_module, 
 				network_disc_evt_posted = 1;
 			}
 #if CONFIG_STA_AUTO_RECONNECT
-			bk_wifi_sta_start();
+			bk_wifi_sta_connect();
 #endif
             }
             break;
@@ -782,7 +783,7 @@ void event_handler_init(void)
     BK_LOG_ON_ERR(bk_event_register_cb(EVENT_MOD_NETIF, EVENT_ID_ALL, bk_genie_sconf_netif_event_cb, NULL));
 }
 
-extern bk_err_t beken_rtc_stop(void);
+extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
@@ -791,8 +792,12 @@ void bk_genie_prepare_for_smart_config(void)
 #endif
     app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
     network_reconnect_stop_timeout_check();
-    beken_rtc_stop();
+    agora_stop();
     bk_wifi_sta_stop();
+#if CONFIG_BK_MODEM
+extern bk_err_t bk_modem_deinit(void);
+    bk_modem_deinit();
+#endif
 #if !CONFIG_STA_AUTO_RECONNECT
     demo_erase_network_auto_reconnect_info();
     bk_genie_erase_agent_info();
@@ -821,9 +826,12 @@ int bk_genie_smart_config_init(void)
     event_handler_init();
     flag = demo_network_auto_reconnect(false);
 
-    if (flag != 0x71l && flag != 0x73l
+    if (flag != 0x71l
 #if CONFIG_NET_PAN
         && flag != 0x74l
+#endif
+#if CONFIG_BK_MODEM
+	 && flag != 0x78l
 #endif
     ) {
         bk_genie_prepare_for_smart_config();
@@ -851,9 +859,7 @@ void bk_genie_erase_agent_info(void)
 {
     bk_genie_agent_info_t info_tmp = {0};
 
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    bk_set_env_enhance("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
-#endif
+    bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
 }
 
 int bk_genie_save_agent_info(char *appid, char *channel_name)
@@ -863,9 +869,8 @@ int bk_genie_save_agent_info(char *appid, char *channel_name)
     info_tmp.valid = 1;
     os_strcpy(info_tmp.appid, appid);
     os_strcpy(info_tmp.channel_name, channel_name);
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    bk_set_env_enhance("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
-#endif
+    bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_genie_agent_info_t));
+
     return 0;
 }
 
@@ -873,24 +878,238 @@ int bk_genie_get_agent_info(bk_genie_agent_info_t *info)
 {
     bk_genie_agent_info_t info_tmp = {0};
 
-#if (CONFIG_EASY_FLASH && CONFIG_EASY_FLASH_V4)
-    if (bk_get_env_enhance("d_agent_info", (void *)&info_tmp, sizeof(bk_genie_agent_info_t)) <= 0)
+    if (bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_genie_agent_info_t)) <= 0)
     {
         return -1;
     }
-#endif
     os_memcpy(info, &info_tmp, sizeof(bk_genie_agent_info_t));
     return 0;
 }
-#if 0
+
+int bk_genie_rsp_parse_update(char *buffer)
+{
+	char *app_id_update = NULL;
+	int code_update = 0;
+	__maybe_unused bk_genie_agent_info_t info = {0};
+	cJSON *json = cJSON_Parse(buffer);
+	if (!json)
+	{
+		BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
+		return BK_FAIL;
+	}
+	cJSON *code = cJSON_GetObjectItem(json, "code");
+	if (code && ((code->type & 0xFF) == cJSON_Number)) {
+		code_update = code->valueint;
+		switch(code_update)
+		{
+			case HTTP_STATUS_SUCCESS:
+				break;
+			case HTTP_STATUS_TRIAL_LIMIT_EXCEEDED:
+				BK_LOGI(TAG, "[UPDATE] the maximum number of agent expiriences has been reached, please contact armino_support@bekencorp.com for in-depth communication !\n");
+			case HTTP_STATUS_PARAM_ERROR:
+			case HTTP_STATUS_MAX_AGENT_UPTIME_EXCEEDED:
+			case HTTP_STATUS_DEVICE_REMOVED:
+			case HTTP_STATUS_AGENT_START_FAILED:
+				cJSON_Delete(json);
+				return BK_FAIL;
+				break;
+
+			default:
+				cJSON_Delete(json);
+				return BK_FAIL;
+				break;
+		}
+	}
+	else {
+		BK_LOGE(TAG, "[Error] not find code msg\n");
+		cJSON_Delete(json);
+		return BK_FAIL;
+	}
+
+	cJSON *data = cJSON_GetObjectItem(json, "data");
+	if (data)
+	{
+		cJSON *app_id = cJSON_GetObjectItem(data, "app_id");
+		if (app_id && ((app_id->type & 0xFF) == cJSON_String)) {
+			app_id_update = os_strdup(app_id->valuestring);
+			BK_LOGI(TAG, "[UPDATE] appid:%s size:%d\n", app_id_update, strlen(app_id_update));
+		}
+		else {
+			BK_LOGE(TAG, "[Error] not find app_id msg\n");
+			cJSON_Delete(json);
+			return BK_FAIL;
+		}
+	}
+	else
+	{
+		BK_LOGE(TAG, "[Error] not find data msg\n");
+		cJSON_Delete(json);
+		return BK_FAIL;
+	}
+	cJSON_Delete(json);
+
+	if (bk_genie_get_agent_info(&info) == 0)
+	{
+		if (info.valid != 1)
+		{
+			return BK_FAIL;
+		}
+		BK_LOGI(TAG, "[ORGINAL] appid:%s size:%d\r\n", info.appid, strlen(info.appid));
+	}
+
+	if (app_id_update && info.appid && (strcmp(app_id_update, info.appid)!=0))
+	{
+		BK_LOGI(TAG, "need update app id\n");
+		if (app_id_record)
+		{
+			os_free(app_id_record);
+		}
+		app_id_record = os_strdup(app_id_update);
+		bk_genie_save_agent_info(app_id_record, channel_name_record);
+	}
+	if (app_id_update)
+		os_free(app_id_update);
+	return BK_OK;
+}
+
 extern char *bk_get_bk_server_url(void);
 int bk_genie_wakeup_agent(void)
 {
+#if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+	agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
+	__maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
+	unsigned char uid[32] = {0};
+	char uid_str[65] = {0}, chan_name[65] = {0};
+	int chan_len;
+
+	bk_uid_get_data(uid);
+	for (int i = 0; i < 24; i++)
+	{
+		sprintf(uid_str + i * 2, "%02x", uid[i]);
+	}
+	if (agent_type == OPEN_AI_AGENT)
+		chan_len = os_snprintf(chan_name, 65, "Openai_%s", uid_str);
+	else
+		chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
+	agent_conf.channel = os_zalloc(chan_len+1);
+	os_strcpy(agent_conf.channel, chan_name);
+
+	agent_conf.custom_llm = custom_llm_default_conf(agent_type);
+	bk_agora_ai_agent_start(&agent_conf, agent_type);
+
+	if (agent_conf.channel)
+		os_free(agent_conf.channel);
+	custom_llm_default_conf_free(agent_conf.custom_llm);
+extern char *app_id_record;
+extern char *channel_name_record;
+	if (app_id_record)
+	{
+	    os_free(app_id_record);
+	}
+	app_id_record = os_strdup(AGORA_DEBUG_APPID);
+	if (channel_name_record)
+	{
+	    os_free(channel_name_record);
+	}
+	channel_name_record = os_strdup(chan_name);
+
+	return 0;
+#else
     struct webclient_session *session = NULL;
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
-    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = -1;
+    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
 
+    /* create webclient session and set header response size */
+    session = webclient_session_create(SEND_HEADER_SIZE);
+    if (session == NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+    if ((url_len < 0) || (url_len >= MAX_URL_LEN))
+    {
+        BK_LOGE(TAG, "URL len overflow\r\n");
+        ret = -1;
+        return ret;
+    }
+
+    /*Generate data*/
+    post_data = os_malloc(POST_DATA_MAX_SIZE);
+    if (post_data == NULL)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "no memory for post_data buffer\n");
+        goto __exit;
+    }
+    os_memset(post_data, 0, POST_DATA_MAX_SIZE);
+
+    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+    BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
+
+    webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
+    webclient_header_fields_add(session, "Content-Type: application/json\r\n");
+
+    buffer = (char *) web_malloc(RCV_BUF_SIZE);
+    if (buffer == NULL)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "no memory for receive response buffer.\n");
+        goto __exit;
+    }
+    os_memset(buffer, 0, RCV_BUF_SIZE);
+
+    /* send POST request by default header */
+    if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
+        goto __exit;
+    }
+
+    BK_LOGI(TAG, "webclient post response data: \n");
+    do
+    {
+        bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
+        if (bytes_read > 0)
+        {
+            break;
+        }
+    }
+    while (1);
+    BK_LOGI(TAG, "bytes_read: %d\n", bytes_read);
+
+    BK_LOGI(TAG, "buffer %s.\n", buffer);
+
+    ret = bk_genie_rsp_parse_update(buffer);
+__exit:
+    if (session)
+    {
+        webclient_close(session);
+    }
+
+    if (buffer)
+    {
+        web_free(buffer);
+    }
+
+    if (post_data)
+    {
+        os_free(post_data);
+    }
+
+    return ret;
+#endif
+}
+
+int bk_genie_post_nfc_id(uint8_t *nfc_id)
+{
+    struct webclient_session *session = NULL;
+    char *buffer = NULL, *nfc_post_data = NULL;
+    char generate_url[256] = {0};
+    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = -1;
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
     if (session == NULL)
@@ -906,18 +1125,19 @@ int bk_genie_wakeup_agent(void)
     }
 
     /*Generate data*/
-    post_data = os_malloc(POST_DATA_MAX_SIZE);
-    if (post_data == NULL)
+    nfc_post_data = os_malloc(POST_DATA_MAX_SIZE);
+    if (nfc_post_data == NULL)
     {
         BK_LOGE(TAG, "no memory for post_data buffer\n");
         goto __exit;
     }
-    os_memset(post_data, 0, POST_DATA_MAX_SIZE);
+    os_memset(nfc_post_data, 0, POST_DATA_MAX_SIZE);
 
-    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
-    BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
+    data_len = os_snprintf(nfc_post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",\"agent_type_id\":\"%02x:%02x:%02x:%02x:%02x:%02x:%02x\"}", channel_name_record, 
+                    nfc_id[0], nfc_id[1], nfc_id[2], nfc_id[3], nfc_id[4], nfc_id[5] ,nfc_id[6]);
+    BK_LOGI(TAG, "%s, %s\r\n", __func__, nfc_post_data);
 
-    webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
+    webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(nfc_post_data));
     webclient_header_fields_add(session, "Content-Type: application/json\r\n");
 
     buffer = (char *) web_malloc(RCV_BUF_SIZE);
@@ -929,7 +1149,7 @@ int bk_genie_wakeup_agent(void)
     os_memset(buffer, 0, RCV_BUF_SIZE);
 
     /* send POST request by default header */
-    if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
+    if ((resp_status = webclient_post(session, generate_url, nfc_post_data, data_len)) != 200)
     {
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
         goto __exit;
@@ -960,11 +1180,140 @@ __exit:
         web_free(buffer);
     }
 
-    if (post_data)
+    if (nfc_post_data)
     {
-        os_free(post_data);
+        os_free(nfc_post_data);
     }
+
+    return ret;
+
+}
+
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+#include "base_64.h"
+#define CONFIG_DATASTREAM_TASK_PRIORITY 4
+static beken_thread_t datastream_thread_handle = NULL;
+beken_queue_t datastream_queue = NULL;
+#define MAX_DATASTREAM_SPLIT 4
+#define MAX_DATASTREAM_LEN 1024*4
+void parse_data_stream_main()
+{
+    char *save_ptr = NULL, *store_str = NULL,
+		*msg_payload = NULL, *decode_str = NULL;
+    const char *delim = "|";
+    char *msg_id = NULL, *last_msg_id = NULL, *cur_index_str = NULL, *total_num_str = NULL;
+    uint8_t cur_index = 0, total_num = 0, store_cur_index = 0, store_total_num = 0;
+    int  remaining_len = 0;
+    __maybe_unused int ret = 0, decode_len;
+    bk_agora_ai_data_stream_t msg;
+
+    while (1) {
+        ret = rtos_pop_from_queue(&datastream_queue, &msg, BEKEN_WAIT_FOREVER);
+        //message id
+        msg_id = strtok_r(msg.data, delim, &save_ptr);
+        cur_index_str = strtok_r(NULL, delim, &save_ptr);
+	 total_num_str = strtok_r(NULL, delim, &save_ptr);
+	 //pkt index
+	 cur_index = os_strtoul(cur_index_str, NULL, 10);
+	 //total pkt num
+	 total_num = os_strtoul(total_num_str, NULL, 10);
+	 //message content
+	 msg_payload = strtok_r(NULL, delim, &save_ptr);
+	 if (!last_msg_id) {
+		last_msg_id = os_strdup(msg_id);
+	 } else {
+		if (os_strcmp(msg_id, last_msg_id)) {
+			os_free(last_msg_id);
+			last_msg_id = os_strdup(msg_id);
+		}
+	 }
+	 if (!last_msg_id) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+        }
+        store_cur_index = cur_index;
+        store_total_num = total_num;
+        if (store_total_num > MAX_DATASTREAM_SPLIT)
+            goto new_msg_loop;
+        if (store_cur_index < 1 ||store_cur_index > store_total_num)
+            goto new_msg_loop;
+
+        //check decode string
+        if (!decode_str)
+            decode_str = psram_zalloc(1025*total_num);
+        if (store_cur_index == 1 && decode_str) {
+            os_free(decode_str);
+            decode_str = psram_zalloc(1025*total_num);
+        }
+        if (!decode_str) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+        }
+
+        //check store string and store
+        if (!store_str) {
+            store_str = psram_zalloc(MAX_DATASTREAM_LEN+1);
+            if (!store_str) {
+                BK_LOGI(TAG,"OOM!\r\n");
+                goto new_msg_loop;
+            }
+        }
+
+        remaining_len = MAX_DATASTREAM_LEN - os_strlen(store_str);
+        os_snprintf(store_str+os_strlen(store_str), remaining_len, "%s", msg_payload);
+        //decode data stream
+        if (store_cur_index == store_total_num) {
+		BK_LOGI(TAG,"enc_data: %s\r\n", store_str);
+		base64_decode((unsigned char *)store_str, os_strlen(store_str), &decode_len, (unsigned char *)decode_str);
+		BK_LOGI(TAG,"dec_data: %s\r\n", decode_str);
+		//for customer further development
+		goto new_msg_loop;
+        }
+	 os_free(msg.data);
+	 continue;
+new_msg_loop:
+        os_free(msg.data);
+        if (last_msg_id) {
+            os_free(last_msg_id);
+            last_msg_id = NULL;
+        }
+        if (decode_str) {
+            os_free(decode_str);
+            decode_str = NULL;
+        }
+        if (store_str) {
+            os_free(store_str);
+            store_str = NULL;
+        }
+    }
+}
+
+int bk_genie_init_datastream_resource()
+{
+    int ret = 0;
+
+    ret = rtos_init_queue(&datastream_queue,
+							 "datastream_queue",
+							 sizeof(char *),
+							 4);
+
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+    ret = rtos_create_psram_thread(&datastream_thread_handle,
+                                CONFIG_DATASTREAM_TASK_PRIORITY,
+                                "parse_data_stream",
+                                (beken_thread_function_t)parse_data_stream_main,
+                                4096,
+                                (beken_thread_arg_t)0);
+#else
+    ret = rtos_create_thread(&datastream_thread_handle,
+                                CONFIG_DATASTREAM_TASK_PRIORITY,
+                                "parse_data_stream",
+                                (beken_thread_function_t)parse_data_stream_main,
+                                4096,
+                                (beken_thread_arg_t)0);
+#endif
 
     return ret;
 }
 #endif
+

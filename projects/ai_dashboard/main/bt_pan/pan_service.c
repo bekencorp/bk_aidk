@@ -19,6 +19,7 @@
 #include "panif.h"
 #include "netif/etharp.h"
 #include "app_event.h"
+#include "hidd_service.h"
 
 #define TAG "pan"
 
@@ -548,6 +549,10 @@ int pan_service_init(void)
 #endif
     cli_pan_demo_init();
 
+    /***for iphone***/
+    bt_hidd_init();
+    /***for iphone***/
+
     s_pan_tx_list = bt_comm_list_new();
     if (!s_pan_tx_list)
     {
@@ -584,6 +589,7 @@ void bt_pan_service_task_deinit(void)
     }
 }
 
+
 int pan_service_deinit(void)
 {
     LOGI("%s\r\n", __func__);
@@ -593,6 +599,10 @@ int pan_service_deinit(void)
         LOGI("pan service already de-initialised\r\n");
         return 0;
     }
+
+    /***for iphone***/
+    bt_hidd_deinit();
+    /***for iphone***/
 
     bt_manager_deinit();
 

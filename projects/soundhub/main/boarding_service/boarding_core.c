@@ -97,11 +97,43 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
     return BK_OK;
 }
 
+
+#include "components/bk_nfc.h"
+typedef struct
+{
+	uint32_t event;
+	uint8_t *param;
+} nfc_msg_t;
+
+#define NFC_GOT_ID  1
+
+uint8_t nfc_callback(uint8_t event_param, void*card_id)
+{
+    nfc_msg_t msg;
+
+    switch(event_param)
+    {
+        case NFC_GOT_ID:
+        {
+            msg.event = DBEVT_NFC_GOT_ID;
+            msg.param = (uint8_t*)(card_id);
+            bk_genie_send_msg((bk_genie_msg_t *)&msg);
+        }
+        break;
+        
+        default :
+        break;
+    }
+    return 0;
+}
+
 extern void agora_auto_run(void);
+#include "agora_config.h"
 static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
     bk_genie_msg_t msg;
+    nfc_event_callback_register(nfc_callback);
 
     while (1)
     {
@@ -121,23 +153,15 @@ static void bk_genie_message_handle(void)
                 }
                 break;
 
-                case DBEVT_WIFI_STATION_CONNECTED:
+                case DBEVT_NETWORK_CONNECTED:
                 {
-                    LOGI("DBEVT_WIFI_STATION_CONNECTED\n");
+                    LOGI("DBEVT_NETWORK_CONNECTED\n");
                     netif_ip4_config_t ip4_config;
-                    extern uint32_t uap_ip_is_start(void);
+			netif_if_t netif_idx;
 
+			netif_idx = msg.param;
                     os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
-                    bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-
-                    if (uap_ip_is_start())
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-                    }
-                    else
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_STA, &ip4_config);
-                    }
+                    bk_netif_get_ip4_config(netif_idx, &ip4_config);
 
                     LOGI("ip: %s\n", ip4_config.ip);
 
@@ -166,7 +190,12 @@ static void bk_genie_message_handle(void)
                     {
                         sprintf(uid_str + i * 2, "%02x", uid[i]);
                     }
-                    len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
+#if CONFIG_AUDIO_FRAME_DURATION_MS
+			if (CONFIG_AUDIO_FRAME_DURATION_MS == 60)
+				len = os_snprintf(payload, 128, "{\"channel\":\"%s\",\"agent_param\": {\"audio_duration\": 60}}", uid_str);
+			else
+#endif
+				len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
                 }
@@ -357,9 +386,7 @@ fail:
                     LOGI("close bluetooth ing\n");
 #if CONFIG_BLUETOOTH
                     bk_genie_boarding_deinit();
-#if CONFIG_NET_PAN && !(CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
                     bk_bluetooth_deinit();
-#endif
                     LOGI("close bluetooth finish!\r\n");
 #endif
                 }
@@ -430,6 +457,30 @@ fail:
                 }
                 break;
 
+                case DBEVT_NFC_GOT_ID:
+                {
+                    uint8_t nfc_id[7];
+                    nfc_msg_t nfc_info;
+                    nfc_info.param = (uint8_t *)(msg.param);
+                    os_memcpy(nfc_id, nfc_info.param, 7);
+                    LOGI("DBEVT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
+                    nfc_id[3], nfc_id[4], nfc_id[5], nfc_id[6]);
+
+                    bk_genie_post_nfc_id(nfc_id);
+                }
+                    break;
+
+#if CONFIG_BK_MODEM
+                case DBEVT_START_BK_MODEM:
+                {
+extern bk_err_t bk_modem_init(void);
+                    ret = bk_modem_init();
+			if (ret) {
+                        bk_modem_init();
+			}
+                }
+                    break;
+#endif
                 default:
                     break;
             }

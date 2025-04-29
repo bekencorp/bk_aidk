@@ -33,6 +33,7 @@ list(APPEND srcs
     bt_pan/pan_demo_cli.c
     bt_pan/storage/bluetooth_storage.c
     bt_pan/bt_comm_list.c
+    bt_pan/hidd_service.c
 )
 endif()
 endif()

@@ -39,6 +39,9 @@
 #include <led_blink.h>
 #include <common/bk_include.h>
 #include "components/bluetooth/bk_dm_bluetooth.h"
+#if CONFIG_NET_PAN
+#include "storage/bluetooth_storage.h"
+#endif
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 extern int bk_cli_init(void);
@@ -84,9 +87,15 @@ static const struct cli_command s_agora_rtc_commands[] =
 
 #if (CONFIG_SYS_CPU0)
 static const uint32_t s_user_value2 = 10;
+#if CONFIG_NET_PAN
+static const bt_user_storage_t s_bt_factory_storage ={0};
+#endif
 const struct factory_config_t s_user_config[] = {
     {"user_key1", (void *)"user_value1", 11, BK_FALSE, 0},
     {"user_key2", (void *)&s_user_value2, 4, BK_TRUE, 4},
+#if CONFIG_NET_PAN
+    {BT_STORAGE_KEY, (void *)&s_bt_factory_storage, sizeof(s_bt_factory_storage), BK_TRUE, sizeof(s_bt_factory_storage)},
+#endif
 };
 #endif
 
@@ -111,37 +120,55 @@ static int agora_rtc_cli_init(void)
 #endif
 
 #if (CONFIG_SYS_CPU0)
+#define CONFIG_NETWORK_TASK_PRIORITY 4
+static beken_thread_t config_network_thread_handle = NULL;
+
+void prepare_config_network_main(void)
+{
+    if(bk_bluetooth_init())
+    {
+        BK_LOGE(TAG, "bluetooth init err\n");
+    }
+    bk_genie_prepare_for_smart_config();
+
+    config_network_thread_handle = NULL;
+    rtos_delete_thread(NULL);
+}
+
 // 按键 1 的回调函数
 void volume_init(void)
 {
-	int volume_size = bk_config_read("volume", (void *)&volume, 4);
-	if (volume_size != 4)
-	{
-		BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
-	}
-	if (volume > (SPK_VOLUME_LEVEL-1)) {
-		volume = SPK_VOLUME_LEVEL-1;
-		if (0 != bk_config_write("volume", (void *)&volume, 4))
-		{
-			BK_LOGE(TAG, "storage volume: %d fail\n", volume);
-		}
-	}
+    int volume_size = bk_config_read("volume", (void *)&volume, 4);
+    if (volume_size != 4)
+    {
+        BK_LOGE(TAG, "read volume config fail, use default config volume_size:%d\n", volume_size);
+    }
 
-	/* SPK_GAIN_MAX * [(exp(i/(SPK_VOLUME_LEVEL-1)-1)/(exp(1)-1)] */
-	uint32_t step[SPK_VOLUME_LEVEL] = {0,6,12,20,28,37,47,58,71,84,100};
-	for (uint32_t i = 0; i < SPK_VOLUME_LEVEL; i++) {
-		g_volume_gain[i] = SPK_GAIN_MAX * step[i]/100;
-	}
+    if (volume > (SPK_VOLUME_LEVEL-1)) {
+        volume = SPK_VOLUME_LEVEL-1;
+        if (0 != bk_config_write("volume", (void *)&volume, 4))
+        {
+            BK_LOGE(TAG, "storage volume: %d fail\n", volume);
+        }
+    }
+
+    /* SPK_GAIN_MAX * [(exp(i/(SPK_VOLUME_LEVEL-1)-1)/(exp(1)-1)] */
+    uint32_t step[SPK_VOLUME_LEVEL] = {0,6,12,20,28,37,47,58,71,84,100};
+    for (uint32_t i = 0; i < SPK_VOLUME_LEVEL; i++) {
+        g_volume_gain[i] = SPK_GAIN_MAX * step[i]/100;
+    }
 }
 
-void volume_increase()
+void volume_increase(void)
 {
     BK_LOGI(TAG, " volume up\r\n");
+
     if (volume == (SPK_VOLUME_LEVEL-1))
     {
         BK_LOGI(TAG, "volume have reached maximum volume: %d\n", SPK_GAIN_MAX);
         return;
     }
+
     if (BK_OK == bk_aud_intf_set_spk_gain(g_volume_gain[volume+1]))
     {
         volume += 1;
@@ -157,14 +184,16 @@ void volume_increase()
     }
 }
 
-void volume_decrease()
+void volume_decrease(void)
 {
     BK_LOGI(TAG, " volume down\r\n");
+
     if (volume == 0)
     {
         BK_LOGI(TAG, "volume have reached minimum volume: 0\n");
         return;
     }
+
     if (BK_OK == bk_aud_intf_set_spk_gain(g_volume_gain[volume-1]))
     {
         volume -= 1;
@@ -180,7 +209,7 @@ void volume_decrease()
     }
 }
 
-void power_off()
+void power_off(void)
 {
     BK_LOGI(TAG, " power_off\r\n");
     BK_LOGW(TAG, " ************TODO:Just force deep sleep for Demo!\r\n");
@@ -191,12 +220,12 @@ void power_off()
     bk_reboot_ex(RESET_SOURCE_FORCE_DEEPSLEEP);
 }
 
-void power_on()
+void power_on(void)
 {
     BK_LOGI(TAG, "power_on\r\n");
 }
 
-void ai_agent_config()
+void ai_agent_config(void)
 {
     //BK_LOGW(TAG, " ************TODO:AI Agent doesn't complete!\r\n");
 }
@@ -232,12 +261,26 @@ static void handle_system_event(key_event_t event)
             break;
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!\n");
-            if(bk_bluetooth_init())
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+            int ret = rtos_create_psram_thread(&config_network_thread_handle,
+                                        CONFIG_NETWORK_TASK_PRIORITY,
+                                        "wifi_config_network",
+                                        (beken_thread_function_t)prepare_config_network_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+#else
+            int ret = rtos_create_thread(&config_network_thread_handle,
+                                        CONFIG_NETWORK_TASK_PRIORITY,
+                                        "wifi_config_network",
+                                        (beken_thread_function_t)prepare_config_network_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+#endif
+            if (ret != kNoErr)
             {
-                BK_LOGE(TAG, "bluetooth init err\n");
+                BK_LOGE(TAG, "wifi config network task fail: %d\r\n", ret);
+                config_network_thread_handle = NULL;
             }
-
-            bk_genie_prepare_for_smart_config();
             break;
         case FACTORY_RESET:
             BK_LOGW(TAG, "trigger factory config reset\r\n");
@@ -252,30 +295,30 @@ static void handle_system_event(key_event_t event)
 }
 
 KeyConfig_t key_config[] = {
-        {
-            .gpio_id = KEY_GPIO_13,   //corresponding to the actual key
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = VOLUME_UP,
-            .double_event = VOLUME_UP,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
-            .long_event = CONFIG_NETWORK
-        },
-        {
-            .gpio_id = KEY_GPIO_12,
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = POWER_ON,
-            .double_event = POWER_ON,
-            .long_event = SHUT_DOWN
-        },
-        {
-            .gpio_id = KEY_GPIO_8,
-            .active_level = LOW_LEVEL_TRIGGER,
-            .short_event = VOLUME_DOWN,
-            .double_event = VOLUME_DOWN,
-            .long_event = FACTORY_RESET
-        }
+    {
+        .gpio_id = KEY_GPIO_13,   //corresponding to the actual key
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = VOLUME_UP,
+        .double_event = VOLUME_UP,	//TRICK: at shutdown mode, it can't recognize double press,short_event is really power on.(but short event is used by VOLUME UP when system is active).
+        .long_event = CONFIG_NETWORK
+    },
+    {
+        .gpio_id = KEY_GPIO_12,
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = POWER_ON,
+        .double_event = POWER_ON,
+        .long_event = SHUT_DOWN
+    },
+    {
+        .gpio_id = KEY_GPIO_8,
+        .active_level = LOW_LEVEL_TRIGGER,
+        .short_event = VOLUME_DOWN,
+        .double_event = VOLUME_DOWN,
+        .long_event = FACTORY_RESET
+    }
 };
 
-static void bk_key_register_wakeup_source()
+static void bk_key_register_wakeup_source(void)
 {
     for (uint8_t i = 0; i < sizeof(key_config) / sizeof(KeyConfig_t); i++)
     {
@@ -291,9 +334,9 @@ static void bk_key_register_wakeup_source()
             }
         }
     }
-
 }
-static bk_err_t app_force_analog_ldo_gpio_close()
+
+static bk_err_t app_force_analog_ldo_gpio_close(void)
 {
     /*audio*/
     sys_hal_set_ana_reg18_value(0);
@@ -305,7 +348,7 @@ static bk_err_t app_force_analog_ldo_gpio_close()
     sys_drv_aud_audbias_en(0);
     sys_drv_apll_en(0);
 
-    /*usb/psram ldo ctrl at deepsleep last location*/
+   	/*usb/psram ldo ctrl at deepsleep last location*/
     /*ldo*/
     gpio_dev_unmap(GPIO_50);
     gpio_dev_unmap(GPIO_52);
@@ -323,26 +366,28 @@ static bk_err_t app_force_analog_ldo_gpio_close()
 
     return 0;
 }
-static void bk_enter_deepsleep()
-{
-    #if CONFIG_GSENSOR_ENABLE
-		extern int gsensor_enter_sleep_config();
-		gsensor_enter_sleep_config();
-		rtos_delay_milliseconds(10);
-    #endif
 
-	BK_LOGI(TAG,"RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
+static void bk_enter_deepsleep(void)
+{
+#if CONFIG_GSENSOR_ENABLE
+    extern int gsensor_enter_sleep_config();
+    gsensor_enter_sleep_config();
+    rtos_delay_milliseconds(10);
+#endif
+
+    BK_LOGI(TAG,"RESET_SOURCE_FORCE_DEEPSLEEP\r\n");
     bk_key_register_wakeup_source();
     bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_AUDP);
-	bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
-	app_force_analog_ldo_gpio_close();
-	bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
+    bk_pm_clear_deep_sleep_modules_config(PM_POWER_MODULE_NAME_VIDP);
+    app_force_analog_ldo_gpio_close();
+    bk_pm_sleep_mode_set(PM_MODE_DEEP_SLEEP);
     rtos_delay_milliseconds(10);
 }
 
-static void bk_wait_power_on()
+static void bk_wait_power_on(void)
 {
     uint32_t press_time = 0;
+
     GLOBAL_INT_DECLARATION();
     GLOBAL_INT_DISABLE();
     do {
@@ -366,7 +411,6 @@ static void bk_wait_power_on()
         bk_key_register_wakeup_source();
         bk_enter_deepsleep();
     }
-
 }
 #endif
 
@@ -377,7 +421,6 @@ void user_app_main(void)
 
     agora_rtc_cli_init();
 #endif
-
 }
 
 int main(void)
@@ -398,9 +441,8 @@ int main(void)
 #endif
 #endif
 
-    #if (CONFIG_SYS_CPU0)
-    /*to judgement key is long press or short press; long press exit deepsleep*/
-
+#if (CONFIG_SYS_CPU0)
+        /*to judgement key is long press or short press; long press exit deepsleep*/
         if(bk_misc_get_reset_reason() == RESET_SOURCE_DEEPPS_GPIO && (bk_gpio_get_wakeup_gpio_id() == KEY_GPIO_12))
         {
             //motor vibration
@@ -412,13 +454,12 @@ int main(void)
         bk_regist_factory_user_config((const struct factory_config_t *)&s_user_config,
                                        sizeof(s_user_config)/sizeof(s_user_config[0]));
         bk_factory_init();
-    #endif
+#endif
 
 
     //led init move before
-    #if (CONFIG_SYS_CPU0)
-
-
+#if (CONFIG_SYS_CPU0)
+        
         //No operation countdown 3 minutes to shut down
         // start_countdown(countdown_ms);
         //led init move before
@@ -474,6 +515,10 @@ int main(void)
         bk_genie_smart_config_init();
 #endif
 
+#if CONFIG_ENABLE_AGORA_DATASTREAM
+        bk_genie_init_datastream_resource();
+#endif
+
         register_event_handler(handle_system_event);
         bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));
 
@@ -492,11 +537,11 @@ int main(void)
     }
     else
     {
-
-    #if (CONFIG_SYS_CPU0)
-		bk_init();
+#if (CONFIG_SYS_CPU0)
+        bk_init();
         bk_enter_deepsleep();
-	#endif
-}
+#endif
+    }
+
     return 0;
 }
