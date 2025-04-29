@@ -19,6 +19,7 @@
 #include "bk_ef.h"
 #include "bk_cli.h"
 #include "bk_factory_config.h"
+#include "driver/flash.h"
 
 #define TAG "factory"
 
@@ -302,10 +303,12 @@ int bk_config_write(const char *key, const void *value, int value_len)
 {
     BK_ASSERT(value_len > 0);
     if (s_factory_cache_map == NULL) {
+        LOGW("config cache not init.\r\n");
         return -1;
     }
     int index = find_cache_index(key);
     if (index < 0) {
+        LOGW("key not found inf cache.\r\n");
         return -1;
     }
     if (s_factory_cache_map[index].size >= value_len) {
@@ -348,7 +351,7 @@ void bk_config_sync_flash(void)
     for (size_t i = 0; i < s_factory_cache_num; i++) {
         LOGD("key = %s\r\n", s_factory_cache_map[i].key);
         if (read_compare == BK_FALSE || is_config_update(buffer, s_factory_cache_map[i].key,
-            (void *)s_factory_cache_map[i].ptr, s_factory_cache_map[i].size)) {
+            (void *)s_factory_cache_map[i].ptr, s_factory_cache_map[i].valid_len)) {
             LOGI("update %s\r\n", s_factory_cache_map[i].key);
             bk_factory_write_flash(s_factory_cache_map[i].key, (void *)s_factory_cache_map[i].ptr,
                                    s_factory_cache_map[i].size);
@@ -367,6 +370,16 @@ static void bk_reboot_sync_config(void)
     bk_config_sync_flash();
     bk_ef_set_check_lock(BK_TRUE);
     rtos_enable_int(int_mask);
+}
+
+bk_err_t bk_config_sync_flash_safely(void)
+{
+    if (is_ble_erase_flash_ready() != BK_TRUE) {
+        LOGE("check flash fail, do not sync config to flash.\r\n");
+        return BK_FAIL;
+    }
+    bk_config_sync_flash();
+    return BK_OK;
 }
 
 #endif

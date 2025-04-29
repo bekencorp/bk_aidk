@@ -37,6 +37,8 @@ void bk_regist_factory_user_config(const struct factory_config_t *config, uint16
 
 void bk_config_sync_flash(void);
 
+bk_err_t bk_config_sync_flash_safely(void);
+
 // return 0: success, -1: fail.
 int bk_config_write(const char *key, const void *value, int value_len);
 
