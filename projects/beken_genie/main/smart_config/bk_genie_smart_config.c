@@ -659,6 +659,13 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "netif_idx %d\r got ip\n", got_ip->netif_if);
+#if CONFIG_BK_MODEM
+            {
+             extern void ping_start(char* target_name, uint32_t times, size_t size);
+             ping_start("baidu.com", 4, 0);
+            }
+#endif
+
             if (smart_config_running)
             {
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
