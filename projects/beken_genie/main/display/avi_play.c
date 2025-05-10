@@ -277,9 +277,23 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
     LOGI("%s \r\n", __func__);
 
     lv_vendor_disp_lock();
-    bk_avi_play_stop();
-    lvgl_ui_index = 0;
+
+    if (lvgl_ui_index == 1) {
+        bk_avi_play_stop();
+    }
+
+    if (label1) {
+        lv_obj_del(label1);
+        label1 = NULL;
+    }
+
+    if (label2) {
+        lv_obj_del(label2);
+        label2 = NULL;
+    }
     lv_vendor_disp_unlock();
+
+    lvgl_ui_index = 0;
 
     lv_vendor_stop();
     lcd_display_close();
