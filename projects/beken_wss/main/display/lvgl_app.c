@@ -142,10 +142,18 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
 
     lv_vendor_fs_init();
 
-    uint32_t file_len = lv_img_read_filelen("/simhei.ttf");
+    int fd = open("/simhei_new.ttf", O_RDONLY);
+    if (fd < 0) {
+        LOGE("file_content malloc failed\r\n");
+        lv_vendor_fs_deinit();
+        return BK_FAIL;
+    }
+
+    int file_len = lv_img_read_filelen("/simhei_new.ttf");
     LOGI("file_len = %d\r\n", file_len);
     if (file_len <= 0) {
         LOGE("file len read failed\r\n");
+        close(fd);
         lv_vendor_fs_deinit();
         return BK_FAIL;
     }
@@ -153,14 +161,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     uint32_t *file_content = psram_malloc(file_len);
     if (file_content == NULL) {
         LOGE("file_content malloc failed\r\n");
-        lv_vendor_fs_deinit();
-        return BK_FAIL;
-    }
-
-    int fd = open("/simhei_new1.ttf", O_RDONLY);
-    if (fd < 0) {
-        LOGE("file_content malloc failed\r\n");
-        psram_free(file_content);
+        close(fd);
         lv_vendor_fs_deinit();
         return BK_FAIL;
     }
@@ -178,7 +179,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     lv_vendor_disp_lock();
 
     static lv_ft_info_t info;
-    info.name = "/simhei.ttf";
+    info.name = "/simhei_new.ttf";
     info.weight = 24;
     info.style = FT_FONT_STYLE_NORMAL;
     info.mem = file_content;
