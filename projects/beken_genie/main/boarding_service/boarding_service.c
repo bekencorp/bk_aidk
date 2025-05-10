@@ -99,6 +99,16 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
         }
         break;
 
+        case BOARDING_OP_START_WIFI_SCAN:
+        {
+            bk_genie_msg_t msg;
+
+            msg.event = DBEVT_START_WIFI_SCAN;
+            msg.param = (uint32_t)bk_genie_boarding_info;
+            bk_genie_send_msg(&msg);
+        }
+        break;
+
         case BOARDING_OP_SOFT_AP_START:
         {
             bk_genie_msg_t msg;

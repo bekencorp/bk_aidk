@@ -128,6 +128,38 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
     return 0;
 }
 
+static int bk_genie_wlan_scan_done_handler(void *arg, event_module_t event_module,
+								  int event_id, void *event_data)
+{
+    wifi_scan_result_t scan_result = {0};
+    char payload[200] = {0};
+    uint16 len = 0;
+    int i;
+    
+    BK_LOG_ON_ERR(bk_wifi_scan_get_result(&scan_result));
+    if (scan_result.ap_num == 0)
+        goto exit;
+    //BK_LOG_ON_ERR(bk_wifi_scan_dump_result(&scan_result));
+    //generate scan result as json array, ["ssid1", "ssid2", ......]
+    len = os_snprintf(payload, 200, "[");
+    for (i = 0; i < scan_result.ap_num; i++) {
+        if (!os_strlen(scan_result.aps[i].ssid))
+            continue;
+        if ((len + 4 + os_strlen(scan_result.aps[i].ssid)) > 200)
+            break;
+        if (i != 0)
+            len += os_snprintf(payload+len, 200, ",");
+        len += os_snprintf(payload+len, 200, "\"%s\"", scan_result.aps[i].ssid);
+    }
+    len += os_snprintf(payload+len, 200, "]");
+    LOGI("upload scan_rst %s, num:%d\r\n", payload, i+1);
+exit:
+    bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_WIFI_SCAN, 0, payload, len);
+    bk_wifi_scan_free_result(&scan_result);
+
+    return BK_OK;
+}
+
 extern void agora_auto_run(void);
 #include "agora_config.h"
 static void bk_genie_message_handle(void)
@@ -152,6 +184,17 @@ static void bk_genie_message_handle(void)
                     bk_genie_boarding_info_t *bk_genie_boarding_info = (bk_genie_boarding_info_t *) msg.param;
                     bk_genie_wifi_sta_connect(bk_genie_boarding_info->boarding_info.ssid_value,
                                               bk_genie_boarding_info->boarding_info.password_value);
+                    bk_event_unregister_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
+                                                               bk_genie_wlan_scan_done_handler);
+                }
+                break;
+
+                case DBEVT_START_WIFI_SCAN:
+                {
+                    LOGI("DBEVT_START_WIFI_SCAN\n");
+                    bk_event_register_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
+                    						   bk_genie_wlan_scan_done_handler, NULL);
+                    BK_LOG_ON_ERR(bk_wifi_scan_start(NULL));
                 }
                 break;
 
@@ -197,9 +240,9 @@ static void bk_genie_message_handle(void)
 			len += os_snprintf(payload+len, 256, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
 #endif
 #if CONFIG_AUD_INTF_SUPPORT_OPUS
-			len += os_snprintf(payload+len, 256, "\"output_audio_codec\": \"OPUS\"");
+			len += os_snprintf(payload+len, 256, "\"out_acodec\": \"OPUS\"");
 #else
-			len += os_snprintf(payload+len, 256, "\"output_audio_codec\": \"G722\"");
+			len += os_snprintf(payload+len, 256, "\"out_acodec\": \"G722\"");
 #endif
 			len += os_snprintf(payload+len, 256, "}}");
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
@@ -491,6 +534,12 @@ extern bk_err_t bk_modem_init(void);
                     break;
 #endif
                 default:
+                {
+                    LOGI("UNSUPPORT OP CODE\n");
+                    unsigned char payload = 'a';
+                    //100 is beken private definition, means unsupport status code
+                    bk_genie_boarding_event_notify_with_data(msg.event, 100, (char *)(&payload), 1);
+                }
                     break;
             }
         }

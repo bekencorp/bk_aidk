@@ -20,6 +20,7 @@ typedef enum
     BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME = 15,
     BOARDING_OP_START_AGENT_FROM_DEV = 16,
     BOARDING_OP_START_BK_MODEM = 23,
+    BOARDING_OP_START_WIFI_SCAN=24,
 } boarding_opcode_t;
 
 typedef void (*ble_boarding_op_cb_t)(uint16_t opcode, uint16_t length, uint8_t *data);
