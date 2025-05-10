@@ -73,13 +73,13 @@ typedef struct
 } agora_rtc_config_t;
 
 #define DEFAULT_AGORA_RTC_CONFIG() {                  \
-        .p_appid = NULL,                              \
-                   .license = {0},                               \
-                              .enable_bwe_param = true,                     \
-                                                  .bwe_param_max_bps = 5000000,                 \
-                                                                       .log_disable = true,                          \
-                                                                                      .area_code = AREA_CODE_GLOB,                  \
-    }
+    .p_appid = NULL,                                  \
+    .license = {0},                                   \
+    .enable_bwe_param = true,                         \
+    .bwe_param_max_bps = 5000000,                     \
+    .log_disable = true,                              \
+    .area_code = AREA_CODE_GLOB,                      \
+}
 
 typedef struct
 {
@@ -100,18 +100,18 @@ typedef struct
     agora_rtc_audio_config_t audio_config;
 } agora_rtc_option_t;
 
-#define DEFAULT_AGORA_RTC_OPTION() {                                        \
-        .p_channel_name = NULL,                                             \
-                          .p_token = NULL,                                                    \
-                                     .uid = 0,                                                           \
-                                            .auto_subscribe_audio = true,                                    \
-                                                                    .auto_subscribe_video = false,                                       \
-                                                                            .audio_config = {                                                   \
-                                                                                                                                                .audio_data_type = AUDIO_DATA_TYPE_PCMU,        \
-                                                                                                                                                .pcm_sample_rate = 8000,                        \
-                                                                                                                                                .pcm_channel_num = 1,                           \
-                                                                                            },                                                  \
-    }
+#define DEFAULT_AGORA_RTC_OPTION() {                    \
+    .p_channel_name = NULL,                             \
+    .p_token = NULL,                                    \
+    .uid = 0,                                           \
+    .auto_subscribe_audio = true,                       \
+    .auto_subscribe_video = false,                      \
+        .audio_config = {                               \
+        .audio_data_type = AUDIO_DATA_TYPE_PCMU,        \
+        .pcm_sample_rate = 8000,                        \
+        .pcm_channel_num = 1,                           \
+    },                                                  \
+}
 
 
 

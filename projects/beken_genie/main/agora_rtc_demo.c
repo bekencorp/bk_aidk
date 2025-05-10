@@ -57,7 +57,7 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AGORA_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif  //AGORA_RX_SPK_DATA_DUMP
 
-#ifdef CONFIG_USE_G722_CODEC
+#if CONFIG_USE_G722_CODEC || CONFIG_USE_OPUS_CODEC
 #define AUDIO_SAMP_RATE         (16000)
 #else
 #define AUDIO_SAMP_RATE         (8000)
@@ -484,13 +484,18 @@ bk_err_t audio_turn_on(void)
     }
 
 #ifdef CONFIG_USE_G722_CODEC
-#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
-#endif
+    #endif
 
-#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
-#endif
+    #endif
+#elif CONFIG_USE_OPUS_CODEC
+    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = CONFIG_AUDIO_FRAME_DURATION_MS;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = CONFIG_AUDIO_FRAME_DURATION_MS;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 16000;
 #else
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif

@@ -78,9 +78,9 @@ bool first_time_for_network_provisioning = true;
 /*doubao*/
 #define CUSTOM_LLM_DEFAULT_DOUBAO_URL "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN "xxx"		//need to be replaced by customers
-#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "ÄãÊÇÒ»¸öÓĞÀñÃ²µÄAIÖúÀí£¬ÇëÊ¹ÓÃÖîÈç¡°ºÃµÄ¡±£¬¡°Ã»ÎÊÌâ¡±£¬¡°±§Ç¸¡±µÈÕâÑùµÄ´Ê¿ªÊ¼ÄãµÄ»Ø´ğ¡£"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_PROMPT  "ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½AIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ç¡°ï¿½ÃµÄ¡ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½â¡±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´Ê¿ï¿½Ê¼ï¿½ï¿½Ä»Ø´ï¿½"
 #define CUSTOM_LLM_DEFAULT_DOUBAO_MODEL "ep-20250213161421-v9m5m"
-#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "ĞÂ´º¿ìÀÖ£¬ÓĞÊ²Ã´¿ÉÒÔ°ïÄú£¿"
+#define CUSTOM_LLM_DEFAULT_DOUBAO_GREETING "ï¿½Â´ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½Ê²Ã´ï¿½ï¿½ï¿½Ô°ï¿½ï¿½ï¿½ï¿½ï¿½"
 
 agent_type_t agent_record = DOUBAO_AGENT;
 char *agent_id_record = NULL;
@@ -132,7 +132,11 @@ int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"agent_rtc_uid\": \"1234\",\r\n");
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"remote_rtc_uids\": [\"123\"],\r\n");
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"advanced_features\": {\"enable_bhvs\": true,\"enable_aivad\": false},\r\n");
+#if CONFIG_USE_OPUS_CODEC
+	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"parameters\": {\"enable_dump\": true,\"output_audio_codec\": \"OPUS\"},\r\n");
+#else
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"parameters\": {\"enable_dump\": true,\"output_audio_codec\": \"G722\"},\r\n");
+#endif
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"enable_string_uid\": false,\r\n");
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"idle_timeout\": %d,\r\n", 300);	//5min
 	if (agent_conf->custom_llm) {
@@ -149,7 +153,7 @@ int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"gpt-4o-mini\"}},\r\n");
 		} else {
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"system_messages\": [{\"role\": \"system\",\"content\": \"ä½ æ˜¯ä¸€ä¸ªæœ‰ç¤¼è²Œçš„AIåŠ©ç†ã€‚\"}],\r\n");
-			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"æ–°æ˜¥å¿«ä¹ï¼Œæœ‰ä»€ä¹ˆå¯ä»¥å¸®æ‚?\",\r\n");
+			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"greeting_message\": \"æ–°æ˜¥å¿«ä¹ï¼Œæœ‰ä»€ä¹ˆå¯ä»¥å¸®ï¿½?\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"failure_message\": \"å¾ˆæŠ±æ­‰ã€‚\",\r\n");
 			len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"params\": {\"model\": \"ep-20250213161421-v9m5m\"}},\r\n");
 		}

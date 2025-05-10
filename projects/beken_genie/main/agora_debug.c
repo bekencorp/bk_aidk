@@ -20,6 +20,9 @@ bool agoora_tx_mic_data_flag = false;
 bool agoora_rx_spk_data_flag = false;
 #elif CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+bool agoora_tx_mic_data_flag = false;
+#endif
 extern void aud_set_production_mode(int val);
 #else
 #endif

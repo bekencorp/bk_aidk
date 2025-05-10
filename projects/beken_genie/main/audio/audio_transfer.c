@@ -49,6 +49,7 @@ typedef enum
 typedef struct
 {
     aud_tras_op_t op;
+    uint16_t len;
 } aud_tras_msg_t;
 
 static beken_thread_t  agora_aud_thread_hdl = NULL;
@@ -67,6 +68,9 @@ static uint8_t *mic_data_buffer = NULL;
 #endif
 //#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
 //#define MIC_FRAME_SIZE     160
+#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
+#define MIC_FRAME_SIZE   320
+#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
 #else
 #define MIC_FRAME_SIZE   160
 #define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
@@ -87,12 +91,14 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
     }
 
 #ifdef CONFIG_USE_G722_CODEC
-#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
     info.data_type = AUDIO_DATA_TYPE_G722;
-#endif
-#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    #endif
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     info.data_type = AUDIO_DATA_TYPE_PCM;
-#endif
+    #endif
+#elif CONFIG_USE_OPUS_CODEC
+    info.data_type = AUDIO_DATA_TYPE_OPUS;
 #else
     info.data_type = AUDIO_DATA_TYPE_PCMA;
 #endif
@@ -128,6 +134,33 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
     return len;
 }
 
+#if CONFIG_USE_OPUS_CODEC
+static bk_err_t agora_aud_send_msg(uint16_t len)
+{
+    bk_err_t ret;
+    aud_tras_msg_t msg;
+
+    msg.op = AUD_TRAS_TX_DATA;
+    msg.len = len;
+
+    if (agora_aud_msg_que)
+    {
+        ret = rtos_push_to_queue(&agora_aud_msg_que, &msg, BEKEN_NO_WAIT);
+        if (kNoErr != ret)
+        {
+            LOGD("audio send msg: AUD_TRAS_TX_DATA fail\n");
+            return kOverrunErr;
+        }
+
+        return ret;
+    }
+    else
+    {
+        LOGE("agora_aud_send_msg:agora_aud_msg_que is NULL\n");
+    }
+    return kNoResourcesErr;
+}
+#else
 static bk_err_t agora_aud_send_msg(void)
 {
     bk_err_t ret;
@@ -148,10 +181,32 @@ static bk_err_t agora_aud_send_msg(void)
     }
     return kNoResourcesErr;
 }
-
+#endif
 
 int send_audio_data_to_agora(uint8_t *data, unsigned int len)
 {
+#if CONFIG_USE_OPUS_CODEC
+    if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+    {
+        ring_buffer_write(&mic_data_rb, data, len);
+        agora_aud_send_msg(len);
+
+        uint32_t fill_size = ring_buffer_get_fill_size(&mic_data_rb);
+        LOGD("len:%d,mic_data_rb:fill size:%d\n",len,fill_size);
+
+        //BK_ASSERT(len == fill_size);
+    }
+    else
+    {
+        LOGE("len:%d,mic_data_rb fill size:%d,free size:%d,not enough\n",
+            len,
+            ring_buffer_get_fill_size(&mic_data_rb),
+            ring_buffer_get_free_size(&mic_data_rb));
+        return 0;
+    }
+    
+    return len;
+#else
     if (ring_buffer_get_free_size(&mic_data_rb) >= len)
     {
         ring_buffer_write(&mic_data_rb, data, len);
@@ -167,6 +222,8 @@ int send_audio_data_to_agora(uint8_t *data, unsigned int len)
     }
 
     return len;
+#endif
+
 }
 
 static void agora_aud_tras_main(void)
@@ -204,6 +261,24 @@ static void agora_aud_tras_main(void)
             switch (msg.op)
             {
                 case AUD_TRAS_TX_DATA:
+                    #if CONFIG_USE_OPUS_CODEC
+                    size = ring_buffer_get_fill_size(&mic_data_rb);
+                    if (size >=  msg.len)
+                    {
+                        GLOBAL_INT_DISABLE();
+                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
+                        GLOBAL_INT_RESTORE();
+
+                        if (count == msg.len)
+                        {
+                            send_agora_audio_frame(mic_temp_buff, count);
+                        }
+                        else
+                        {
+                            LOGE("ring_buffer_read count(%d) != msg.len(%d)\n", count, msg.len);
+                        }
+                    }
+                    #else
                     size = ring_buffer_get_fill_size(&mic_data_rb);
                     if (size >= AGORA_SEND_FRAME_SIZE)
                     {
@@ -223,6 +298,7 @@ static void agora_aud_tras_main(void)
                         rtos_delay_milliseconds(5);
                         agora_aud_send_msg();
                     }
+                    #endif
                     break;
 
                 case AUD_TRAS_EXIT:
