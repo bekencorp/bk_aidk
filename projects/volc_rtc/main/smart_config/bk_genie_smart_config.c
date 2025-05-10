@@ -1035,7 +1035,7 @@ extern char *channel_name_record;
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -1124,7 +1124,7 @@ int bk_genie_post_nfc_id(uint8_t *nfc_id)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
