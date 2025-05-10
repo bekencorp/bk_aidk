@@ -22,6 +22,7 @@
 #include "lcd_act.h"
 #include "components/bk_uid.h"
 #include "aud_tras.h"
+#include "media_app.h"
 
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
@@ -478,10 +479,11 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
 			LOGE("join WebSocket server fail\r\n");
 		}
     } else if ((strcmp(type->valuestring, "reply_text") == 0) || (strcmp(type->valuestring, "request_text") == 0)) {
-        text_info_t info = {};
+        text_info_t info = {0};
         info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
         rtc_websocket_parse_text(&info, root);
         LOGE("text: type:%s data:%s\n", info.text_type ? "reply":"request", info.text_data);
+        media_app_lvgl_send_data(&info);
     } else {
         LOGE("Error: Unknown type: %s\n", type->valuestring);
     }

@@ -2,7 +2,7 @@ set(incs . include asr bt_pan)
 set(srcs)
 
 list(APPEND srcs
-	app_main.c
+    app_main.c
 )
 
 if (CONFIG_SYS_CPU0)
@@ -43,8 +43,7 @@ list(APPEND srcs
 endif()
 
 list(APPEND srcs
-    display/avi_play.c
-    display/ota_display.c
+    display/lvgl_app.c
 )
 
 if (CONFIG_SYS_CPU2)
