@@ -466,21 +466,6 @@ bk_err_t audio_turn_on(void)
     aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
     aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 
-    audio_tras_init();
-
-    aud_intf_drv_setup.aud_intf_tx_mic_data = send_audio_data_to_agora;
-    ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, aud_intf driver init fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-
-    ret = bk_aud_intf_set_mode(AUD_INTF_WORK_MODE_VOICE);
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-
 #ifdef CONFIG_USE_G722_CODEC
 #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
     aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
@@ -504,6 +489,22 @@ bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
 
+    bk_aud_intf_aud_codec_init(&aud_intf_voc_setup.aud_codec_setup_input);
+
+    audio_tras_init();
+
+    aud_intf_drv_setup.aud_intf_tx_mic_data = send_audio_data_to_agora;
+    ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        LOGE("%s, %d, aud_intf driver init fail, ret:%d\n", __func__, __LINE__, ret);
+    }
+
+    ret = bk_aud_intf_set_mode(AUD_INTF_WORK_MODE_VOICE);
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
+    }
     ret = bk_aud_intf_voc_init(aud_intf_voc_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
     {
