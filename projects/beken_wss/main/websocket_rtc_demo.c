@@ -482,6 +482,7 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
 			network_reconnect_stop_timeout_check();
 			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
 			smart_config_running = false;
+			__get_beken_rtc()->disconnecting_state = 0;
 		}
 		else {
 			LOGE("join WebSocket server fail\r\n");
@@ -493,7 +494,7 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
         LOGE("text: type:%s data:%s\n", info.text_type ? "reply":"request", info.text_data);
         media_app_lvgl_send_data(&info);
     } else {
-        LOGE("Error: Unknown type: %s\n", type->valuestring);
+        LOGE("Warning: Unknown type: %s\n", type->valuestring);
     }
     cJSON_Delete(root);
 }
@@ -510,7 +511,8 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
 			g_connected_flag = false;
-			if (g_connected_flag == true)
+			__get_beken_rtc()->disconnecting_state++;
+			if (__get_beken_rtc()->disconnecting_state == 1)
 				app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
 			break;
         case WEBSOCKET_EVENT_DATA:

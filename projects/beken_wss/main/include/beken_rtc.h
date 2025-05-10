@@ -111,6 +111,7 @@ typedef struct {
 	data_buffer_fixed_t *ab_buffer;
 	beken_timer_t data_read_tmr;
 	audio_info_t audio_info;
+	int disconnecting_state;
 }rtc_session;
 
 #define HEAD_SIZE_TOTAL             (sizeof(db_trans_head_t))
