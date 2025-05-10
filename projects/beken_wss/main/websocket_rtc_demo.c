@@ -29,7 +29,7 @@
 #endif
 #include "app_event.h"
 #include "cJSON.h"
-
+#include "audio_process.h"
 #define TAG "WS_MAIN"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
@@ -105,6 +105,7 @@ rtc_session *__get_beken_rtc(void)
 extern bool smart_config_running;
 extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
+extern app_aud_para_t app_aud_cust_para;
 
 #if CONFIG_WIFI_ENABLE
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
@@ -403,7 +404,7 @@ bk_err_t audio_turn_on(void)
     {
         LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
     }
-
+    bk_aud_intf_audio_para_set((app_aud_para_t *)&app_aud_cust_para);
     ret = bk_aud_intf_voc_init(aud_intf_voc_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
     {

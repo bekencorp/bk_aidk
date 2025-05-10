@@ -39,6 +39,7 @@ if (CONFIG_SYS_CPU0)
 	    led_blink.c
 	    countdown.c
 	    motor.c
+            audio_para.c
 	)
 
 if (CONFIG_NETWORK_AUTO_RECONNECT)
