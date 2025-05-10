@@ -45,6 +45,12 @@ list(APPEND srcs
 )
 endif()
 
+if (CONFIG_LVGL)
+list(APPEND srcs
+    display/lv_font.c
+)
+endif()
+
 list(APPEND srcs
     display/avi_play.c
     display/ota_display.c

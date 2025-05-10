@@ -23,8 +23,12 @@
 #include "aud_intf.h"
 #include "aud_intf_types.h"
 #endif
+#if CONFIG_NETWORK_AUTO_RECONNECT
+#include "bk_genie_smart_config.h"
+#endif
 #include "bat_monitor.h"
 #include "bk_ota_private.h"
+
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -48,12 +52,19 @@ typedef struct
 extern void lvgl_app_init(void);
 extern void lvgl_app_deinit(void);
 extern bk_err_t agora_stop(void);
-
+extern bk_err_t video_turn_on(void);
+extern bk_err_t video_turn_off(void);
 
 static app_evt_info_t app_evt_info;
 
-
-
+//image recognition mode switch
+#define CONFIG_IR_MODE_SWITCH_TASK_PRIORITY 4
+static beken_thread_t config_ir_mode_switch_thread_handle = NULL;
+uint8_t ir_mode_switching = 0;
+extern bool agora_runing;
+extern bool g_agent_offline;
+extern bool video_started;
+extern uint8_t lvgl_app_init_flag;
 
 bk_err_t app_event_send_msg(uint32_t event, uint32_t param)
 {
@@ -307,6 +318,41 @@ static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
 
 }
 
+void ir_mode_switch_main(void)
+{
+    if (!agora_runing) {
+        BK_LOGW(TAG, "Please Run AgoraRTC First!");
+        goto exit;
+    }
+
+    ir_mode_switching = 1;
+
+    if (!video_started) {
+        bk_genie_upate_agent_info("text_and_image");
+        while (g_agent_offline)
+        {
+            if (!agora_runing)
+            {
+                goto exit;
+            }
+            rtos_delay_milliseconds(100);
+        }
+        video_turn_on();
+    } else {
+        video_turn_off();
+        bk_genie_upate_agent_info("text");
+    }
+
+    if (lvgl_app_init_flag == 1) {
+        media_app_lvgl_switch_ui();
+    }
+
+exit:
+    config_ir_mode_switch_thread_handle = NULL;
+    ir_mode_switching = 0;
+    rtos_delete_thread(NULL);
+}
+
 static void app_event_thread(beken_thread_arg_t data)
 {
 	int ret = BK_OK;
@@ -338,6 +384,36 @@ static void app_event_thread(beken_thread_arg_t data)
             bool skip_countdown_update = false;
             switch (msg.event)
             {
+                case APP_EVT_IR_MODE_SWITCH:
+                    if (is_standby == 0) {
+                        if (config_ir_mode_switch_thread_handle) {
+                            BK_LOGW(TAG, "Last oper for IR_MODE ongoing!\n");
+                            break;
+                        }
+                        BK_LOGW(TAG, "Start to switch image recognition mode!\n");
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+                        ret = rtos_create_psram_thread(&config_ir_mode_switch_thread_handle,
+                                                    CONFIG_IR_MODE_SWITCH_TASK_PRIORITY,
+                                                    "ir_mode_switch",
+                                                    (beken_thread_function_t)ir_mode_switch_main,
+                                                    4096,
+                                                    (beken_thread_arg_t)0);
+#else
+                        ret = rtos_create_thread(&config_ir_mode_switch_thread_handle,
+                                                    CONFIG_IR_MODE_SWITCH_TASK_PRIORITY,
+                                                    "ir_mode_switch",
+                                                    (beken_thread_function_t)ir_mode_switch_main,
+                                                    4096,
+                                                    (beken_thread_arg_t)0);
+#endif
+                        if (ret != kNoErr)
+                        {
+                            BK_LOGE(TAG, "switch image recognition mode fail: %d\r\n", ret);
+                            config_ir_mode_switch_thread_handle = NULL;
+                        }
+                    }
+                    break;
+
                 case APP_EVT_ASR_WAKEUP:	//hi armino
                     is_standby = 0;
                     indicates_state &= ~(1<<INDICATES_STANDBY);

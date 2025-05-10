@@ -43,6 +43,12 @@ list(APPEND srcs
 )
 endif()
 
+if (CONFIG_LVGL)
+list(APPEND srcs
+    ../../beken_genie/main/display/lv_font.c
+)
+endif()
+
 list(APPEND srcs
     ../../beken_genie/main/display/avi_play.c
     ../../beken_genie/main/display/ota_display.c

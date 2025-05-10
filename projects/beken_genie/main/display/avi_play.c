@@ -58,6 +58,10 @@ static lv_img_dsc_t img_dsc =
     .data = NULL,
 };
 
+static lv_obj_t *label1 = NULL;
+static lv_obj_t *label2 = NULL;
+static uint8_t lvgl_ui_index = 0;
+
 static void bk_avi_play_config_free(bk_avi_play_t *avi_play)
 {
     if (avi_play->avi)
@@ -249,23 +253,21 @@ static void lv_timer_cb(lv_timer_t *timer)
 
 static void bk_avi_play_start(void)
 {
-    lv_vendor_disp_lock();
     img = lv_img_create(lv_scr_act());
     lv_img_set_src(img, &img_dsc);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
 
     timer = lv_timer_create(lv_timer_cb, 1000 / bk_avi_play.avi->fps, NULL);
-    lv_vendor_disp_unlock();
 
     LOGI("%s complete\r\n", __func__);
 }
 
 static void bk_avi_play_stop(void)
 {
-    lv_vendor_disp_lock();
     lv_timer_del(timer);
+    timer = NULL;
     lv_obj_del(img);
-    lv_vendor_disp_unlock();
+    img = NULL;
 
     LOGI("%s complete\r\n", __func__);
 }
@@ -274,7 +276,10 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 {
     LOGI("%s \r\n", __func__);
 
+    lv_vendor_disp_lock();
     bk_avi_play_stop();
+    lvgl_ui_index = 0;
+    lv_vendor_disp_unlock();
 
     lv_vendor_stop();
     lcd_display_close();
@@ -358,9 +363,56 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         return ret;
     }
 
+    LV_FONT_DECLARE(lv_font);
+
+    lv_vendor_disp_lock();
+
     bk_avi_play_start();
 
+    label1 = lv_label_create(lv_scr_act());
+    lv_label_set_text(label1, "图 像");
+    lv_obj_set_style_text_font(label1, &lv_font, 0);
+    lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+    lv_obj_add_flag(label1, LV_OBJ_FLAG_HIDDEN);
+
+    label2 = lv_label_create(lv_scr_act());
+    lv_label_set_text(label2, "识 别");
+    lv_obj_set_style_text_font(label2, &lv_font, 0);
+    lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
+    lv_obj_add_flag(label2, LV_OBJ_FLAG_HIDDEN);
+
+    lvgl_ui_index = 1;
+
+    lv_vendor_disp_unlock();
+
     lv_vendor_start();
+
+    return BK_OK;
+}
+
+bk_err_t lvgl_event_switch_ui_handle(media_mailbox_msg_t *msg)
+{
+    LOGI("%s \r\n", __func__);
+
+    if (lvgl_ui_index == 1) {
+        lv_vendor_disp_lock();
+        bk_avi_play_stop();
+
+        lv_obj_clear_flag(label1, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(label2, LV_OBJ_FLAG_HIDDEN);
+        lvgl_ui_index = 2;
+        lv_vendor_disp_unlock();
+    } else if (lvgl_ui_index == 2) {
+        lv_vendor_disp_lock();
+        lv_obj_add_flag(label1, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(label2, LV_OBJ_FLAG_HIDDEN);
+
+        bk_avi_play_start();
+        lvgl_ui_index = 1;
+        lv_vendor_disp_unlock();
+    } else {
+        LOGE("%s index is invalid\r\n", __func__);
+    }
 
     return BK_OK;
 }
@@ -379,6 +431,10 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
             ret = lvgl_event_close_handle(msg);
             break;
 
+        case EVENT_LVGL_SWITCH_UI_IND:
+            ret = lvgl_event_switch_ui_handle(msg);
+            break;
+
         default:
             break;
     }
@@ -388,7 +444,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 #endif
 
 #if (CONFIG_SYS_CPU0)
-static uint8_t lvgl_app_init_flag = 0;
+uint8_t lvgl_app_init_flag = 0;
 
 const lcd_open_t lcd_open =
 {
