@@ -32,7 +32,7 @@ Beken Genie AI
         * SPI LCD X2 (GC9D01)
         * 麦克
         * 喇叭
-        * SD NAND 60MB
+        * SD NAND 128MB
         * NFC (MFRC522)
         * 陀螺仪 (SC7A20H)
         * 充电管理芯片 (ETA3422)

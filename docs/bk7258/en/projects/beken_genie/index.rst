@@ -34,7 +34,7 @@ The design includes reference solutions and demos for common peripherals, such a
         * SPI LCD X2 (GC9D01)
         * MIC
         * Speaker
-        * SD NAND 60MB
+        * SD NAND 128MB
         * NFC (MFRC522)
         * G-Sensor (SC7A20H)
         * PMU (ETA3422)
