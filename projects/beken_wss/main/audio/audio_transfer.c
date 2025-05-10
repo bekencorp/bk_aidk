@@ -9,7 +9,7 @@
 #include "audio_transfer.h"
 #include "beken_rtc.h"
 #include "beken_config.h"
-
+#include "aud_intf.h"
 
 #define TAG "beken_tras"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -191,6 +191,10 @@ int send_audio_data_to_trans(uint8_t *data, unsigned int len)
         return 0;
     }
     #else
+    uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
     if (ring_buffer_get_free_size(&mic_data_rb) >= len)
     {
         ring_buffer_write(&mic_data_rb, data, len);
@@ -200,7 +204,7 @@ int send_audio_data_to_trans(uint8_t *data, unsigned int len)
         return 0;
     }
 
-    if (ring_buffer_get_fill_size(&mic_data_rb) >= MIC_FRAME_SIZE)
+    if (ring_buffer_get_fill_size(&mic_data_rb) >= buf_fill_th)
     {
         send_audio_msg();
     }
@@ -217,6 +221,10 @@ static void audio_tras_main(void)
     uint32_t count = 0;
 
     uint8_t *mic_temp_buff = NULL;
+    uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
 
     #if 0
     if (agoora_tx_mic_data_flag)
@@ -226,6 +234,13 @@ static void audio_tras_main(void)
     #endif
 
     rtos_set_semaphore(&aud_sem);
+
+    mic_temp_buff = psram_malloc(buf_fill_th);
+    if (NULL == mic_temp_buff)
+    {
+        LOGE("mic_temp_buff malloc fail\n");
+        goto aud_tras_exit;
+    }
 
     while (1)
     {
@@ -243,48 +258,34 @@ static void audio_tras_main(void)
                     //LOGI("atm:msg len:%d,md_rb fill size:%d\n",msg.len,size);
                     if (size >= msg.len)
                     {
-                        mic_temp_buff = psram_malloc(MIC_FRAME_SIZE);
-                        if (mic_temp_buff != NULL)
+                        GLOBAL_INT_DISABLE();
+                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
+                        GLOBAL_INT_RESTORE();
+
+                        if (count == msg.len)
                         {
-                            GLOBAL_INT_DISABLE();
-                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
-                            GLOBAL_INT_RESTORE();
-                            if (count == msg.len)
-                            {
-                                //LOGE("saf in!\n");   
-                                send_audio_frame(mic_temp_buff, count);
-                                //LOGE("saf out\n", count,msg.len);
-                            }
-                            else
-                            {
-                                LOGE("mic_data_rb count(%d) != frm size:%d\n", count,msg.len);
-                            }
-                            psram_free(mic_temp_buff);
+                            send_audio_frame(mic_temp_buff, count);
                         }
                         else
                         {
-                            LOGE("mic_temp_buff alloc fail!\n");
+                            LOGE("ring_buffer_read count(%d) != msg.len(%d)\n", count, msg.len);
                         }
                     }
                     #else
                     size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >= MIC_FRAME_SIZE)
+                    if (size >= buf_fill_th)
                     {
-                        mic_temp_buff = psram_malloc(MIC_FRAME_SIZE);
-                        if (mic_temp_buff != NULL)
+                        GLOBAL_INT_DISABLE();
+                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, buf_fill_th);
+                        GLOBAL_INT_RESTORE();
+
+                        if (count == buf_fill_th)
                         {
-                            GLOBAL_INT_DISABLE();
-                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, MIC_FRAME_SIZE);
-                            GLOBAL_INT_RESTORE();
-                            if (count == MIC_FRAME_SIZE)
-                            {
-                                send_audio_frame(mic_temp_buff, count);
-                            }
-                            else
-                            {
-                                LOGD("ring_buffer_read count(%d) != MIC_FRAME_SIZE(160)\n", count);
-                            }
-                            psram_free(mic_temp_buff);
+                            send_audio_frame(mic_temp_buff, count);
+                        }
+                        else
+                        {
+                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, buf_fill_th);
                         }
 
                         rtos_delay_milliseconds(2);
@@ -306,6 +307,11 @@ static void audio_tras_main(void)
     }
 
 aud_tras_exit:
+
+    if (mic_temp_buff)
+    {
+        psram_free(mic_temp_buff);
+    }
 
     #if 0
     if (agoora_tx_mic_data_flag)
@@ -342,14 +348,19 @@ aud_tras_exit:
 bk_err_t audio_tras_init(void)
 {
     bk_err_t ret = BK_OK;
+    uint32_t tx_trans_buf_size = bk_aud_get_enc_output_size_in_byte()*MIC_FRAME_NUM;
 
-    mic_data_buffer = psram_malloc(MIC_FRAME_SIZE * MIC_FRAME_NUM);
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    tx_trans_buf_size = bk_aud_get_enc_input_size_in_byte()*MIC_FRAME_NUM;
+    #endif
+
+    mic_data_buffer = psram_malloc(tx_trans_buf_size);
     if (mic_data_buffer == NULL)
     {
         LOGE("malloc mic_data_buffer fail\n");
         return BK_FAIL;
     }
-    ring_buffer_init(&mic_data_rb, mic_data_buffer, MIC_FRAME_SIZE * MIC_FRAME_NUM, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+    ring_buffer_init(&mic_data_rb, mic_data_buffer, tx_trans_buf_size, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
     ret = rtos_init_semaphore(&aud_sem, 1);
     if (ret != BK_OK)

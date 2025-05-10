@@ -9,7 +9,7 @@
 #include "audio_transfer.h"
 #include "agora_rtc.h"
 #include "agora_config.h"
-
+#include "aud_intf.h"
 
 #define TAG "agora_tras"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -59,8 +59,9 @@ static RingBufferContext mic_data_rb;
 static uint8_t *mic_data_buffer = NULL;
 #if defined(CONFIG_USE_G722_CODEC)
 #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
-#define MIC_FRAME_SIZE   (160)
-#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
+#define MIC_FRAME_20MS_ENC_SIZE (64000*20/1000/8) //64k bitrate/20ms frame
+#define MIC_FRAME_SIZE (MIC_FRAME_20MS_ENC_SIZE * (CONFIG_AUDIO_FRAME_DURATION_MS / 20))
+#define AGORA_SEND_FRAME_SIZE (MIC_FRAME_SIZE)
 #endif
 #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
 #define MIC_FRAME_SIZE   (640)
@@ -207,6 +208,11 @@ int send_audio_data_to_agora(uint8_t *data, unsigned int len)
     
     return len;
 #else
+    uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
+
     if (ring_buffer_get_free_size(&mic_data_rb) >= len)
     {
         ring_buffer_write(&mic_data_rb, data, len);
@@ -216,7 +222,7 @@ int send_audio_data_to_agora(uint8_t *data, unsigned int len)
         return 0;
     }
 
-    if (ring_buffer_get_fill_size(&mic_data_rb) >= MIC_FRAME_SIZE)
+    if (ring_buffer_get_fill_size(&mic_data_rb) >= buf_fill_th)
     {
         agora_aud_send_msg();
     }
@@ -234,6 +240,10 @@ static void agora_aud_tras_main(void)
     uint32_t count = 0;
 
     uint8_t *mic_temp_buff = NULL;
+    uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
 
     #if 0
     if (agoora_tx_mic_data_flag)
@@ -244,7 +254,7 @@ static void agora_aud_tras_main(void)
 
     rtos_set_semaphore(&agora_aud_sem);
 
-    mic_temp_buff = psram_malloc(AGORA_SEND_FRAME_SIZE);
+    mic_temp_buff = psram_malloc(buf_fill_th);
     if (NULL == mic_temp_buff)
     {
         LOGE("mic_temp_buff malloc fail\n");
@@ -280,19 +290,19 @@ static void agora_aud_tras_main(void)
                     }
                     #else
                     size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >= AGORA_SEND_FRAME_SIZE)
+                    if (size >= buf_fill_th)
                     {
                         GLOBAL_INT_DISABLE();
-                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, AGORA_SEND_FRAME_SIZE);
+                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, buf_fill_th);
                         GLOBAL_INT_RESTORE();
 
-                        if (count == AGORA_SEND_FRAME_SIZE)
+                        if (count == buf_fill_th)
                         {
                             send_agora_audio_frame(mic_temp_buff, count);
                         }
                         else
                         {
-                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, AGORA_SEND_FRAME_SIZE);
+                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, buf_fill_th);
                         }
 
                         rtos_delay_milliseconds(5);
@@ -354,14 +364,19 @@ aud_tras_exit:
 bk_err_t audio_tras_init(void)
 {
     bk_err_t ret = BK_OK;
+    uint32_t tx_trans_buf_size = bk_aud_get_enc_output_size_in_byte()*MIC_FRAME_NUM;
 
-    mic_data_buffer = psram_malloc(MIC_FRAME_SIZE * MIC_FRAME_NUM);
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    tx_trans_buf_size = bk_aud_get_enc_input_size_in_byte()*MIC_FRAME_NUM;
+    #endif
+
+    mic_data_buffer = psram_malloc(tx_trans_buf_size);
     if (mic_data_buffer == NULL)
     {
         LOGE("malloc mic_data_buffer fail\n");
         return BK_FAIL;
     }
-    ring_buffer_init(&mic_data_rb, mic_data_buffer, MIC_FRAME_SIZE * MIC_FRAME_NUM, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+    ring_buffer_init(&mic_data_rb, mic_data_buffer, tx_trans_buf_size, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
     ret = rtos_init_semaphore(&agora_aud_sem, 1);
     if (ret != BK_OK)
