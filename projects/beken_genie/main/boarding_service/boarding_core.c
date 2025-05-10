@@ -145,9 +145,9 @@ static int bk_genie_wlan_scan_done_handler(void *arg, event_module_t event_modul
     for (i = 0; i < scan_result.ap_num; i++) {
         if (!os_strlen(scan_result.aps[i].ssid))
             continue;
-        if ((len + 4 + os_strlen(scan_result.aps[i].ssid)) > 200)
+        if ((len + 5 + os_strlen(scan_result.aps[i].ssid)) > 200)
             break;
-        if (i != 0)
+        if ((i != 0) && (len != 1))
             len += os_snprintf(payload+len, 200, ",");
         len += os_snprintf(payload+len, 200, "\"%s\"", scan_result.aps[i].ssid);
     }
