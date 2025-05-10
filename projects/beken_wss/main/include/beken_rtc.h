@@ -56,6 +56,7 @@ typedef struct
 	uint16_t csize;
 	uint16_t ccount;
 	uint16_t sequence;
+	uint16_t last_seq;
 	db_trans_head_t *tbuf;
 	rtc_user_audio_rx_data_handle_cb cb;
 	uint16_t tsize;
@@ -82,6 +83,7 @@ typedef struct {
 	size_t *length_buffer;
 	size_t length_read_index;
 	size_t length_write_index;
+	size_t buffer_count;
 } data_buffer_t;
 
 /**
