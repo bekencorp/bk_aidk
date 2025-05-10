@@ -53,6 +53,8 @@ static uint8_t *display_frame = NULL;
 static uint16_t *scale_frame = NULL;
 
 #if CONFIG_LVGL
+static uint8_t lv_label_flag = 0;
+
 extern lv_obj_t *camera_img;
 extern lv_obj_t *my_img;
 extern lv_obj_t *label1;
@@ -572,17 +574,9 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                 int8_t compare_res = hand_compare(my_hand, detect_result);
 
                 lv_vendor_disp_lock();
-                if (label1)
-                {
-                    lv_obj_del(label1);
-                    label1 = NULL;
-                }
-
-                if (label2)
-                {
-                    lv_obj_del(label2);
-                    label2 = NULL;
-                }
+                lv_obj_add_flag(label1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(label2, LV_OBJ_FLAG_HIDDEN);
+                lv_label_flag = 1;
 
                 switch (detect_result)
                 {
@@ -599,6 +593,8 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                     break;
                 }
 
+                lv_obj_clear_flag(camera_img, LV_OBJ_FLAG_HIDDEN);
+
                 switch (my_hand)
                 {
                 case GESTURE_ROCK:
@@ -613,6 +609,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                     lv_img_set_src(my_img, &lv_scissors);
                     break;
                 }
+                lv_obj_clear_flag(my_img, LV_OBJ_FLAG_HIDDEN);
                 lv_vendor_disp_unlock();
 
                 audio_play(TONE_ENUM_YOUR_SHOW, 1);
@@ -661,7 +658,6 @@ static void media_ts_thread_task(beken_thread_arg_t data)
                 {
                     audio_play(TONE_ENUM_DRAW, 1);
                 }
-
 #endif
             }
             else
@@ -674,7 +670,7 @@ static void media_ts_thread_task(beken_thread_arg_t data)
             }
         }
 
-END:;
+END:
 
         if (tmp_buff1)
         {
@@ -705,9 +701,19 @@ END:;
         }
 
         s_ts_process_status = TS_PROCESS_IDLE;
+
 #if AUDIO_PROMPT
         rtos_delay_milliseconds(5000);
 #endif
+        if (lv_label_flag) {
+            lv_vendor_disp_lock();
+            lv_obj_add_flag(camera_img, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(my_img, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(label1, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(label2, LV_OBJ_FLAG_HIDDEN);
+            lv_label_flag = 0;
+            lv_vendor_disp_unlock();
+        }
     }
 }
 

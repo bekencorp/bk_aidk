@@ -60,6 +60,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
     lv_vendor_disp_lock();
     camera_img = lv_img_create(lv_scr_act());
     lv_obj_set_pos(camera_img, 0, 0);
+    lv_obj_add_flag(camera_img, LV_OBJ_FLAG_HIDDEN);
     label1 = lv_label_create(lv_scr_act());
     lv_label_set_text(label1, "猜 拳");
     lv_obj_set_style_text_font(label1, &lv_custom_font, 0);
@@ -67,6 +68,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 
     my_img = lv_img_create(lv_scr_act());
     lv_obj_set_pos(my_img, 0, 160);
+    lv_obj_add_flag(my_img, LV_OBJ_FLAG_HIDDEN);
     label2 = lv_label_create(lv_scr_act());
     lv_label_set_text(label2, "游 戏");
     lv_obj_set_style_text_font(label2, &lv_custom_font, 0);
