@@ -184,7 +184,7 @@ static void bk_genie_message_handle(void)
                     LOGI("DBEVT_START_AGORA_AGENT_START\n");
                     unsigned char uid[32] = {0};
                     char uid_str[65] = {0};
-                    char payload[128] = {0};
+                    char payload[256] = {0};
                     uint16 len = 0;
 
                     bk_uid_get_data(uid);
@@ -192,12 +192,16 @@ static void bk_genie_message_handle(void)
                     {
                         sprintf(uid_str + i * 2, "%02x", uid[i]);
                     }
+			len = os_snprintf(payload, 256, "{\"channel\":\"%s\",\"agent_param\": {", uid_str);
 #if CONFIG_AUDIO_FRAME_DURATION_MS
-			if (CONFIG_AUDIO_FRAME_DURATION_MS == 60)
-				len = os_snprintf(payload, 128, "{\"channel\":\"%s\",\"agent_param\": {\"audio_duration\": 60}}", uid_str);
-			else
+			len += os_snprintf(payload+len, 256, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
 #endif
-				len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+			len += os_snprintf(payload+len, 256, "\"output_audio_codec\": \"OPUS\"");
+#else
+			len += os_snprintf(payload+len, 256, "\"output_audio_codec\": \"G722\"");
+#endif
+			len += os_snprintf(payload+len, 256, "}}");
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
                 }
