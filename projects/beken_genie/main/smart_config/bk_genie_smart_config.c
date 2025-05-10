@@ -1041,7 +1041,7 @@ extern char *channel_name_record;
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -1117,6 +1117,97 @@ __exit:
 
     return ret;
 #endif
+}
+
+int bk_genie_upate_agent_info(char *update_info)
+{
+    struct webclient_session *session = NULL;
+    char *buffer = NULL, *post_data = NULL;
+    char generate_url[256] = {0};
+    int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+
+    /* create webclient session and set header response size */
+    session = webclient_session_create(SEND_HEADER_SIZE);
+    if (session == NULL)
+    {
+        ret = -1;
+        goto __exit;
+    }
+
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url());
+    if ((url_len < 0) || (url_len >= MAX_URL_LEN))
+    {
+        BK_LOGE(TAG, "URL len overflow\r\n");
+        ret = -1;
+        return ret;
+    }
+
+    /*Generate data*/
+    post_data = os_malloc(POST_DATA_MAX_SIZE);
+    if (post_data == NULL)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "no memory for post_data buffer\n");
+        goto __exit;
+    }
+    os_memset(post_data, 0, POST_DATA_MAX_SIZE);
+
+    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"model_type\":\"%s\"}", update_info);
+    BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
+
+    webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
+    webclient_header_fields_add(session, "Content-Type: application/json\r\n");
+
+    buffer = (char *) web_malloc(RCV_BUF_SIZE);
+    if (buffer == NULL)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "no memory for receive response buffer.\n");
+        goto __exit;
+    }
+    os_memset(buffer, 0, RCV_BUF_SIZE);
+
+    /* send POST request by default header */
+    if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
+    {
+        ret = -1;
+        BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
+        goto __exit;
+    }
+
+    BK_LOGI(TAG, "webclient post response data: \n");
+    do
+    {
+        bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
+        if (bytes_read > 0)
+        {
+            break;
+        }
+    }
+    while (1);
+    BK_LOGI(TAG, "bytes_read: %d\n", bytes_read);
+
+    BK_LOGI(TAG, "buffer %s.\n", buffer);
+
+    ret = bk_genie_rsp_parse_update(buffer);
+__exit:
+    if (session)
+    {
+        webclient_close(session);
+    }
+
+    if (buffer)
+    {
+        web_free(buffer);
+    }
+
+    if (post_data)
+    {
+        os_free(post_data);
+    }
+
+    return ret;
 }
 
 int bk_genie_post_nfc_id(uint8_t *nfc_id)

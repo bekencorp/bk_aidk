@@ -137,6 +137,44 @@ void prepare_config_network_main(void)
     rtos_delete_thread(NULL);
 }
 
+//image recognition mode switch
+#define CONFIG_IR_MODE_SWITCH_TASK_PRIORITY 4
+static beken_thread_t config_ir_mode_switch_thread_handle = NULL;
+uint8_t ir_mode_switching = 0;
+extern bool agora_runing;
+extern bool g_agent_offline;
+extern bool video_started;
+extern bk_err_t video_turn_on(void);
+extern bk_err_t video_turn_off(void);
+void ir_mode_switch_main(void)
+{
+    if (!agora_runing) {
+		BK_LOGW(TAG, "Please Run AgoraRTC First!");
+		goto exit;
+    }
+    ir_mode_switching = 1;
+    if (!video_started) {
+        bk_genie_upate_agent_info("text_and_image");
+        while (g_agent_offline)
+        {
+            if (!agora_runing)
+            {
+                goto exit;
+            }
+            rtos_delay_milliseconds(100);
+        }
+        video_turn_on();
+    } else {
+        video_turn_off();
+        bk_genie_upate_agent_info("text");
+    }
+
+exit:
+    config_ir_mode_switch_thread_handle = NULL;
+    ir_mode_switching = 0;
+    rtos_delete_thread(NULL);
+}
+
 // 按键 1 的回调函数
 void volume_init(void)
 {
@@ -287,6 +325,7 @@ void ai_agent_config(void)
 static void handle_system_event(key_event_t event)
 {
     uint32_t time;
+    int ret = kNoErr;
     extern void bk_bt_app_avrcp_ct_vol_change(uint32_t platform_vol);
     switch (event)
     {
@@ -331,14 +370,14 @@ static void handle_system_event(key_event_t event)
         case CONFIG_NETWORK:
             BK_LOGW(TAG, "Start to config network!\n");
 #if CONFIG_PSRAM_AS_SYS_MEMORY
-            int ret = rtos_create_psram_thread(&config_network_thread_handle,
+            ret = rtos_create_psram_thread(&config_network_thread_handle,
                                         CONFIG_NETWORK_TASK_PRIORITY,
                                         "wifi_config_network",
                                         (beken_thread_function_t)prepare_config_network_main,
                                         4096,
                                         (beken_thread_arg_t)0);
 #else
-            int ret = rtos_create_thread(&config_network_thread_handle,
+            ret = rtos_create_thread(&config_network_thread_handle,
                                         CONFIG_NETWORK_TASK_PRIORITY,
                                         "wifi_config_network",
                                         (beken_thread_function_t)prepare_config_network_main,
@@ -349,6 +388,33 @@ static void handle_system_event(key_event_t event)
             {
                 BK_LOGE(TAG, "wifi config network task fail: %d\r\n", ret);
                 config_network_thread_handle = NULL;
+            }
+            break;
+        case IR_MODE_SWITCH:	////image recognition mode switch
+            if (config_ir_mode_switch_thread_handle) {
+                BK_LOGW(TAG, "Last oper for IR_MODE ongoing!\n");
+                break;
+            }
+            BK_LOGW(TAG, "Start to switch image recognition mode!\n");
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+            ret = rtos_create_psram_thread(&config_ir_mode_switch_thread_handle,
+                                        CONFIG_IR_MODE_SWITCH_TASK_PRIORITY,
+                                        "ir_mode_switch",
+                                        (beken_thread_function_t)ir_mode_switch_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+#else
+            ret = rtos_create_thread(&config_ir_mode_switch_thread_handle,
+                                        CONFIG_IR_MODE_SWITCH_TASK_PRIORITY,
+                                        "ir_mode_switch",
+                                        (beken_thread_function_t)ir_mode_switch_main,
+                                        4096,
+                                        (beken_thread_arg_t)0);
+#endif
+            if (ret != kNoErr)
+            {
+                BK_LOGE(TAG, "switch image recognition mode fail: %d\r\n", ret);
+                config_ir_mode_switch_thread_handle = NULL;
             }
             break;
         case FACTORY_RESET:
@@ -374,7 +440,7 @@ KeyConfig_t key_config[] = {
     {
         .gpio_id = KEY_GPIO_12,
         .active_level = LOW_LEVEL_TRIGGER,
-        .short_event = POWER_ON,
+        .short_event = IR_MODE_SWITCH,
         .double_event = POWER_ON,
         .long_event = SHUT_DOWN
     },

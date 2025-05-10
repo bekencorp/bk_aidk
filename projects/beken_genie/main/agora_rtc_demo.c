@@ -126,6 +126,7 @@ static void cli_agora_rtc_help(void)
     LOGI("agora_debug {dump_mic_data value}\n");
 }
 
+extern uint8_t ir_mode_switching;
 static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
 {
     switch (p_msg->code)
@@ -152,7 +153,7 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
             LOGI("User Offline.\n");
             g_agent_offline = true;
             app_event_send_msg(APP_EVT_AGENT_OFFLINE, 0);
-            if (g_connected_flag == true)
+            if (g_connected_flag == true && !ir_mode_switching)
                app_event_send_msg(APP_EVT_AGENT_DEVICE_REMOVE, 0);
             break;
         case AGORA_RTC_MSG_CONNECTION_LOST:
@@ -324,6 +325,7 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
     return ret;
 }
 
+bool video_started = false;
 bk_err_t video_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
@@ -351,12 +353,12 @@ bk_err_t video_turn_off(void)
 
     bk_wifi_set_wifi_media_mode(false);
     bk_wifi_set_video_quality(WIFI_VIDEO_QUALITY_HD);
+    video_started = false;
 
     return BK_OK;
 }
 
-
-static bk_err_t video_turn_on(void)
+bk_err_t video_turn_on(void)
 {
     bk_err_t ret = BK_OK;
     LOGI("%s\n", __func__);
@@ -406,6 +408,7 @@ static bk_err_t video_turn_on(void)
     }
 #endif
     memory_free_show();
+    video_started = true;
 
     return BK_OK;
 
