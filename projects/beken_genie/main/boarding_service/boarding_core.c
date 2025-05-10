@@ -18,6 +18,7 @@
 #include "led_blink.h"
 #include "pan_service.h"
 #include "app_event.h"
+#include "bk_factory_config.h"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -246,6 +247,9 @@ static void bk_genie_message_handle(void)
                     {
                         bk_genie_save_agent_info(app_id_record, channel_name_record);
                         LOGI("begin agora_auto_run\n");
+                        ret = bk_config_sync_flash_safely();
+                        if (ret)
+                            LOGE("sync flash fail!!!\r\n");
                         agora_auto_run();
 
                         if (!bk_genie_is_net_pan_configured())
