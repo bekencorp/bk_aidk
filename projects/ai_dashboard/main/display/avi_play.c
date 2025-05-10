@@ -382,7 +382,7 @@ static uint8_t lvgl_app_init_flag = 0;
 const lcd_open_t lcd_open =
 {
     .device_ppi = PPI_360X360,
-    .device_name = "gc9c01",
+    .device_name = "st77916",
 };
 
 void lvgl_app_init(void)
