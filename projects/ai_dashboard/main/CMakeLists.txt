@@ -18,6 +18,7 @@ list(APPEND srcs
     led_blink.c
     countdown.c
     motor.c
+    audio_para.c
 )
 
 if (CONFIG_NETWORK_AUTO_RECONNECT)

@@ -10,6 +10,7 @@
 #include "agora_rtc.h"
 #include "agora_config.h"
 #include "aud_intf.h"
+#include <modules/audio_process.h>
 
 #define TAG "agora_tras"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -49,7 +50,6 @@ typedef enum
 typedef struct
 {
     aud_tras_op_t op;
-    uint16_t len;
 } aud_tras_msg_t;
 
 static beken_thread_t  agora_aud_thread_hdl = NULL;
@@ -57,6 +57,10 @@ static beken_queue_t agora_aud_msg_que = NULL;
 static beken_semaphore_t agora_aud_sem = NULL;
 static RingBufferContext mic_data_rb;
 static uint8_t *mic_data_buffer = NULL;
+#if CONFIG_AUD_VAD_SUPPORT
+static uint8_t *mic_drop_data = NULL;
+#endif
+
 #if defined(CONFIG_USE_G722_CODEC)
 #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
 #define MIC_FRAME_20MS_ENC_SIZE (64000*20/1000/8) //64k bitrate/20ms frame
@@ -72,15 +76,25 @@ static uint8_t *mic_data_buffer = NULL;
 #elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
 #define MIC_FRAME_SIZE   320
 #define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
+static RingBufferContext mic_data_len_rb;
+static uint8_t *mic_data_len_buffer = NULL;
 #else
 #define MIC_FRAME_SIZE   160
 #define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
 #endif
 #define MIC_FRAME_NUM 4
+#define PRE_VAD_START_FRAME_NUM 2 
+static uint16_t mic_tx_buf_frame_num = MIC_FRAME_NUM;
 
 extern bool agoora_tx_mic_data_flag;
 extern bool g_connected_flag;
 
+enum vad_state
+{
+    VAD_NONE              = (0x00),
+    VAD_SPEECH_START      = (0x01),
+    VAD_SPEECH_END        = (0x02),
+};
 
 static int send_agora_audio_frame(uint8_t *data, unsigned int len)
 {
@@ -135,33 +149,6 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
     return len;
 }
 
-#if CONFIG_USE_OPUS_CODEC
-static bk_err_t agora_aud_send_msg(uint16_t len)
-{
-    bk_err_t ret;
-    aud_tras_msg_t msg;
-
-    msg.op = AUD_TRAS_TX_DATA;
-    msg.len = len;
-
-    if (agora_aud_msg_que)
-    {
-        ret = rtos_push_to_queue(&agora_aud_msg_que, &msg, BEKEN_NO_WAIT);
-        if (kNoErr != ret)
-        {
-            LOGD("audio send msg: AUD_TRAS_TX_DATA fail\n");
-            return kOverrunErr;
-        }
-
-        return ret;
-    }
-    else
-    {
-        LOGE("agora_aud_send_msg:agora_aud_msg_que is NULL\n");
-    }
-    return kNoResourcesErr;
-}
-#else
 static bk_err_t agora_aud_send_msg(void)
 {
     bk_err_t ret;
@@ -182,49 +169,119 @@ static bk_err_t agora_aud_send_msg(void)
     }
     return kNoResourcesErr;
 }
-#endif
 
-int send_audio_data_to_agora(uint8_t *data, unsigned int len)
+uint16_t agora_get_buf_frame_cnt(void)
 {
-#if CONFIG_USE_OPUS_CODEC
-    if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+    uint16_t buf_frame_cnt = MIC_FRAME_NUM;
+    
+    #if CONFIG_AUD_VAD_SUPPORT
+    app_aud_para_t * aud_para = get_app_aud_cust_para();
+    if(aud_para->aec_config_voice.vad_enable)
     {
-        ring_buffer_write(&mic_data_rb, data, len);
-        agora_aud_send_msg(len);
+        uint32_t enc_frame_ms = bk_aud_get_enc_frame_len_in_ms();
+        buf_frame_cnt = (aud_para->aec_config_voice.vad_start_threshold + enc_frame_ms/2)/enc_frame_ms;
+        buf_frame_cnt = (buf_frame_cnt > MIC_FRAME_NUM)?buf_frame_cnt:MIC_FRAME_NUM;
 
-        uint32_t fill_size = ring_buffer_get_fill_size(&mic_data_rb);
-        LOGD("len:%d,mic_data_rb:fill size:%d\n",len,fill_size);
-
-        //BK_ASSERT(len == fill_size);
+        LOGI("buf_frame_cnt:%d,vad_start_th:%d,enc_frame_ms:%d\n",
+             buf_frame_cnt,
+             aud_para->aec_config_voice.vad_start_threshold,
+             enc_frame_ms);
     }
     else
     {
-        LOGE("len:%d,mic_data_rb fill size:%d,free size:%d,not enough\n",
-            len,
-            ring_buffer_get_fill_size(&mic_data_rb),
-            ring_buffer_get_free_size(&mic_data_rb));
+         LOGI("buf_frame_cnt:%d\n",buf_frame_cnt);
+    }    
+    #endif
+
+    return buf_frame_cnt;
+}
+
+int send_audio_data_to_agora(uint8_t *data, unsigned int len)
+{
+#if CONFIG_AUD_VAD_SUPPORT
+    app_aud_para_t * aud_para = get_app_aud_cust_para();
+#endif
+
+#if CONFIG_USE_OPUS_CODEC
+    uint16_t pkt_len = len;
+
+    if ((ring_buffer_get_free_size(&mic_data_rb) >= len) && (ring_buffer_get_free_size(&mic_data_len_rb) >= sizeof(uint16_t)))
+    {
+        ring_buffer_write(&mic_data_rb, data, len);
+        ring_buffer_write(&mic_data_len_rb, (uint8_t *)&pkt_len, sizeof(uint16_t));
+        #if CONFIG_AUD_VAD_SUPPORT
+        if(aud_para->aec_config_voice.vad_enable)
+        {            
+            if(VAD_SPEECH_START != bk_aud_intf_get_aec_vad_flag())//vad no speech detected
+            {
+                //buffer data is more than vad start threshold,dorp old data
+                if((ring_buffer_get_fill_size(&mic_data_len_rb)/sizeof(uint16_t)) >= mic_tx_buf_frame_num)
+                {              
+                    ring_buffer_read(&mic_data_len_rb, (uint8_t *)&pkt_len, sizeof(uint16_t));
+                    ring_buffer_read(&mic_data_rb, (uint8_t *)mic_drop_data, pkt_len);
+                }
+            }
+            else
+            {
+                agora_aud_send_msg();
+                
+            }
+        }
+        else
+        #endif
+        {
+            agora_aud_send_msg();
+        }
+    }
+    else
+    {
+        LOGE("len:%d,free size of mic_data_rb:%d or mic_data_len_rb:%d is not enough!\n",
+             len,
+             ring_buffer_get_free_size(&mic_data_rb),
+             ring_buffer_get_free_size(&mic_data_len_rb));
         return 0;
     }
     
     return len;
 #else
+    #if CONFIG_AUD_VAD_SUPPORT
     uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
     #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
     #endif
 
     if (ring_buffer_get_free_size(&mic_data_rb) >= len)
     {
         ring_buffer_write(&mic_data_rb, data, len);
+        #if CONFIG_AUD_VAD_SUPPORT
+        if(aud_para->aec_config_voice.vad_enable)
+        {            
+            if(VAD_SPEECH_START != bk_aud_intf_get_aec_vad_flag())//vad no speech detected
+            {
+                //buffer data is more than vad start threshold,dorp old data
+                if(ring_buffer_get_fill_size(&mic_data_rb) >= mic_tx_buf_frame_num*buf_fill_th)
+                {              
+                    ring_buffer_read(&mic_data_rb, (uint8_t *)mic_drop_data, buf_fill_th);
+                }
+            }
+            else
+            {
+                agora_aud_send_msg();
+            }
+        }
+        else
+        #endif
+        {
+            agora_aud_send_msg();
+        } 
     }
     else
     {
+        LOGE("len:%d,free size of mic_data_rb:%d is not enough!\n",
+             len,
+             ring_buffer_get_free_size(&mic_data_rb));
         return 0;
-    }
-
-    if (ring_buffer_get_fill_size(&mic_data_rb) >= buf_fill_th)
-    {
-        agora_aud_send_msg();
     }
 
     return len;
@@ -236,13 +293,17 @@ static void agora_aud_tras_main(void)
 {
     bk_err_t ret = BK_OK;
     GLOBAL_INT_DECLARATION();
-    uint32_t size = 0;
+    int32_t size = 0;
     uint32_t count = 0;
 
     uint8_t *mic_temp_buff = NULL;
     uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
     #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+    #endif
+    #if CONFIG_USE_OPUS_CODEC
+    uint16_t pkt_len = 0;
+    int32_t len_buf_size = 0;
     #endif
 
     #if 0
@@ -272,25 +333,47 @@ static void agora_aud_tras_main(void)
             {
                 case AUD_TRAS_TX_DATA:
                     #if CONFIG_USE_OPUS_CODEC
-                    size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >=  msg.len)
+                    len_buf_size = ring_buffer_get_fill_size(&mic_data_len_rb);
+                    
+                    while(sizeof(uint16_t) <= len_buf_size)
                     {
                         GLOBAL_INT_DISABLE();
-                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
-                        GLOBAL_INT_RESTORE();
-
-                        if (count == msg.len)
+                        count = ring_buffer_read(&mic_data_len_rb, (uint8_t *)&pkt_len, sizeof(uint16_t));
+                        if(count == sizeof(uint16_t))
                         {
-                            send_agora_audio_frame(mic_temp_buff, count);
+                            size = ring_buffer_get_fill_size(&mic_data_rb);
+                            if (size >= pkt_len)
+                            {
+                                count = ring_buffer_read(&mic_data_rb, mic_temp_buff, pkt_len);
+                            }
+                            else
+                            {
+                                LOGE("mic_data_rb fill size (%d) < pkt_len(%d)\n", size, pkt_len);
+                            }
                         }
                         else
                         {
-                            LOGE("ring_buffer_read count(%d) != msg.len(%d)\n", count, msg.len);
+                            LOGE("mic_data_len_rb read count (%d) != sizeof(uint16_t):%d\n", size, sizeof(uint16_t));
                         }
+                        GLOBAL_INT_RESTORE();
+
+                        if (count == pkt_len)
+                        {
+                            send_agora_audio_frame(mic_temp_buff, pkt_len);
+                            #if CONFIG_AUD_VAD_SUPPORT
+                            aud_tras_update_tx_size(pkt_len);
+                            #endif
+                        }
+                        else
+                        {
+                            LOGE("mic_data_rb read count(%d) != pkt_len(%d)\n", count, pkt_len);
+                        }
+                        len_buf_size -= sizeof(uint16_t);
+                        rtos_delay_milliseconds(5);
                     }
                     #else
                     size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >= buf_fill_th)
+                    while(size >= buf_fill_th)
                     {
                         GLOBAL_INT_DISABLE();
                         count = ring_buffer_read(&mic_data_rb, mic_temp_buff, buf_fill_th);
@@ -298,15 +381,17 @@ static void agora_aud_tras_main(void)
 
                         if (count == buf_fill_th)
                         {
-                            send_agora_audio_frame(mic_temp_buff, count);
+                            send_agora_audio_frame(mic_temp_buff, buf_fill_th);
+                            #if CONFIG_AUD_VAD_SUPPORT
+                            aud_tras_update_tx_size(buf_fill_th);
+                            #endif
                         }
                         else
                         {
-                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, buf_fill_th);
+                            LOGE("mic_data_rb read count(%d) != pkt_len(%d)\n", count, buf_fill_th);
                         }
-
+                        size -= buf_fill_th;
                         rtos_delay_milliseconds(5);
-                        agora_aud_send_msg();
                     }
                     #endif
                     break;
@@ -343,6 +428,22 @@ aud_tras_exit:
         mic_data_buffer = NULL;
     }
 
+    #if CONFIG_USE_OPUS_CODEC
+    if (mic_data_len_buffer)
+    {
+        ring_buffer_clear(&mic_data_len_rb);
+        psram_free(mic_data_len_buffer);
+        mic_data_len_buffer = NULL;
+    }
+    #endif
+
+    #if CONFIG_AUD_VAD_SUPPORT
+    if (mic_drop_data)
+    {
+        psram_free(mic_drop_data);
+    }
+    #endif
+
     /* delete msg queue */
     ret = rtos_deinit_queue(&agora_aud_msg_que);
     if (ret != kNoErr)
@@ -359,15 +460,22 @@ aud_tras_exit:
     rtos_set_semaphore(&agora_aud_sem);
 
     rtos_delete_thread(NULL);
+
+    mic_tx_buf_frame_num = MIC_FRAME_NUM;
 }
 
 bk_err_t audio_tras_init(void)
 {
     bk_err_t ret = BK_OK;
-    uint32_t tx_trans_buf_size = bk_aud_get_enc_output_size_in_byte()*MIC_FRAME_NUM;
+    uint16_t buf_frame_num;
+    uint32_t tx_trans_buf_size;
+
+    mic_tx_buf_frame_num = agora_get_buf_frame_cnt();
+    buf_frame_num = mic_tx_buf_frame_num + PRE_VAD_START_FRAME_NUM;
+    tx_trans_buf_size = bk_aud_get_enc_output_size_in_byte()*(buf_frame_num);//2 more frame than vad start threshold
 
     #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-    tx_trans_buf_size = bk_aud_get_enc_input_size_in_byte()*MIC_FRAME_NUM;
+    tx_trans_buf_size = bk_aud_get_enc_input_size_in_byte()*(buf_frame_num);
     #endif
 
     mic_data_buffer = psram_malloc(tx_trans_buf_size);
@@ -377,6 +485,28 @@ bk_err_t audio_tras_init(void)
         return BK_FAIL;
     }
     ring_buffer_init(&mic_data_rb, mic_data_buffer, tx_trans_buf_size, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+
+    #if CONFIG_USE_OPUS_CODEC
+    mic_data_len_buffer = psram_malloc(sizeof(uint16_t)*(buf_frame_num));
+    if (mic_data_len_buffer == NULL)
+    {
+        LOGE("malloc mic_data_buffer fail\n");
+        return BK_FAIL;
+    }
+    ring_buffer_init(&mic_data_len_rb, mic_data_len_buffer, sizeof(uint16_t)*(buf_frame_num), DMA_ID_MAX, RB_DMA_TYPE_NULL);
+    #endif
+
+    #if CONFIG_AUD_VAD_SUPPORT
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    mic_drop_data = psram_malloc(bk_aud_get_enc_input_size_in_byte());
+    #else
+    mic_drop_data = psram_malloc(bk_aud_get_enc_output_size_in_byte());
+    #endif
+    if (NULL == mic_drop_data)
+    {
+        LOGE("mic_drop_data malloc fail\n");
+    }
+    #endif
 
     ret = rtos_init_semaphore(&agora_aud_sem, 1);
     if (ret != BK_OK)
@@ -388,7 +518,7 @@ bk_err_t audio_tras_init(void)
     ret = rtos_init_queue(&agora_aud_msg_que,
                           "agora_tras_que",
                           sizeof(aud_tras_msg_t),
-                          20);
+                          ((buf_frame_num>20)?buf_frame_num:20));
     if (ret != kNoErr)
     {
         LOGE("create agoar audio tras message queue fail\n");
@@ -424,6 +554,22 @@ fail:
         mic_data_buffer = NULL;
     }
 
+    #if CONFIG_USE_OPUS_CODEC
+    if (mic_data_len_buffer)
+    {
+        ring_buffer_clear(&mic_data_len_rb);
+        psram_free(mic_data_len_buffer);
+        mic_data_len_buffer = NULL;
+    }
+    #endif
+
+    #if CONFIG_AUD_VAD_SUPPORT
+    if (mic_drop_data)
+    {
+        psram_free(mic_drop_data);
+    }
+    #endif
+
     if (agora_aud_sem)
     {
         rtos_deinit_semaphore(&agora_aud_sem);
@@ -435,6 +581,8 @@ fail:
         rtos_deinit_queue(&agora_aud_msg_que);
         agora_aud_msg_que = NULL;
     }
+
+    mic_tx_buf_frame_num = MIC_FRAME_NUM;
 
     return BK_FAIL;
 }

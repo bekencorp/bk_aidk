@@ -142,3 +142,9 @@ app_aud_para_t app_aud_cust_para = {
     .eq_ul_voice = CUST_EQ_PARA_UL_VOICE(),
     .aec_config_voice = CUST_AEC_CONFIG_VOICE(),
 };
+
+app_aud_para_t * get_app_aud_cust_para(void)
+{
+    return &app_aud_cust_para;
+}
+
