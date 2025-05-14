@@ -26,12 +26,13 @@
 static lv_vnd_config_t lv_vnd_config = {0};
 static lv_obj_t *label = NULL;
 static lv_timer_t *label_timer = NULL;
+static lv_ft_info_t info;
+static lv_style_t style;
 static int current_pos = 0; // current position
 static int text_length = 0; // text total length
 static char *text_data = NULL;
 static char *buffer = NULL;
-static uint8_t label_timer_is_running = 0;
-
+static uint32_t *file_content = NULL;
 typedef struct {
     uint8_t text_type;
     char *text_data;
@@ -55,9 +56,8 @@ static void lvgl_label_timer_cb(lv_timer_t *timer)
         lv_label_set_text(label, buffer);
         current_pos += char_len;
     } else {
-        lv_timer_del(timer);
+        lv_timer_del(label_timer);
         label_timer = NULL;
-        label_timer_is_running = 0;
     }
 }
 
@@ -68,10 +68,9 @@ bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
     text_length = os_strlen(text_info->text_data);
     LOGI("text_length = %d\r\n", text_length);
 
-    if (label_timer_is_running) {
+    if (label_timer) {
         lv_timer_del(label_timer);
         label_timer = NULL;
-        label_timer_is_running = 0;
     }
 
     if (text_data != NULL) {
@@ -107,8 +106,41 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 {
     LOGI("%s \r\n", __func__);
 
+    lv_vendor_disp_lock();
+    if (label_timer) {
+        lv_timer_del(label_timer);
+        label_timer = NULL;
+    }
+
+    if (label) {
+        lv_obj_del(label);
+        label = NULL;
+    }
+
+    lv_style_reset(&style);
+
+    lv_ft_font_destroy(info.font);
+
+    lv_vendor_disp_unlock();
+
     lv_vendor_stop();
+
     lcd_display_close();
+
+    if (file_content) {
+        psram_free(file_content);
+        file_content = NULL;
+    }
+
+    if (text_data) {
+        psram_free(text_data);
+        text_data = NULL;
+    }
+
+    if (buffer) {
+        psram_free(buffer);
+        buffer = NULL;
+    }
 
     return BK_OK;
 }
@@ -150,7 +182,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     }
 
     int file_len = lv_img_read_filelen("/simhei_new.ttf");
-    LOGI("file_len = %d\r\n", file_len);
     if (file_len <= 0) {
         LOGE("file len read failed\r\n");
         close(fd);
@@ -158,7 +189,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         return BK_FAIL;
     }
 
-    uint32_t *file_content = psram_malloc(file_len);
+    file_content = psram_malloc(file_len);
     if (file_content == NULL) {
         LOGE("file_content malloc failed\r\n");
         close(fd);
@@ -169,6 +200,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     uint32_t read_len = read(fd, file_content, file_len);
     LOGI("read_len = %d \r\n", read_len);
     close(fd);
+    lv_vendor_fs_deinit();
 
     lcd_display_open(lcd_open);
 
@@ -178,7 +210,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
 
     lv_vendor_disp_lock();
 
-    static lv_ft_info_t info;
     info.name = "/simhei_new.ttf";
     info.weight = 24;
     info.style = FT_FONT_STYLE_NORMAL;
@@ -188,7 +219,6 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
         LV_LOG_ERROR("create failed.");
     }
 
-    static lv_style_t style;
     lv_style_init(&style);
     lv_style_set_text_font(&style, info.font);
     lv_style_set_text_align(&style, LV_TEXT_ALIGN_CENTER);
@@ -235,7 +265,7 @@ void lvgl_event_handle(media_mailbox_msg_t *msg)
 #endif
 
 #if (CONFIG_SYS_CPU0)
-static uint8_t lvgl_app_init_flag = 0;
+uint8_t lvgl_app_init_flag = 0;
 
 const lcd_open_t lcd_open =
 {
