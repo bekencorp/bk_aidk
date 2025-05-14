@@ -1,1 +1,1 @@
-tools/Makefile
+include tools/build_main.mk
