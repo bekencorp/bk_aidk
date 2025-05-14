@@ -253,7 +253,6 @@ static void cmd_headset_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 
         hfp_demo_vr(enable);
     }
-
     else if(os_strcmp(argv[1], "dial") == 0 && argc >= 3)
     {
         uint8_t enable = 0;
