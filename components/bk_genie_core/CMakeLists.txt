@@ -1,4 +1,4 @@
-set(incs . include asr bt_pan)
+set(incs . include asr bt_pan audio)
 set(srcs)
 
 if (CONFIG_BEKEN_GENIE_CORE)
@@ -11,6 +11,7 @@ if (CONFIG_SYS_CPU0)
 list(APPEND srcs
     app_event.c
     audio/audio_transfer.c
+    audio/audio_para.c
     boarding_service/boarding_core.c
     boarding_service/boarding_service.c
     boarding_service/wifi_boarding_utils.c
@@ -32,6 +33,7 @@ list(APPEND srcs
     bt_pan/pan_demo_cli.c
     bt_pan/storage/bluetooth_storage.c
     bt_pan/bt_comm_list.c
+    bt_pan/hidd_service.c
 )
 endif()
 

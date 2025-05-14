@@ -21,6 +21,7 @@
 #include "media_app.h"
 #include "lcd_act.h"
 #include "components/bk_uid.h"
+#include "audio_transfer.h"
 #if CONFIG_NETWORK_AUTO_RECONNECT
 #include "bk_genie_smart_config.h"
 #endif
@@ -62,13 +63,6 @@ static uart_util_t g_byte_spk_uart_util = {0};
 #define BYTE_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif  //BYTE_RX_SPK_DATA_DUMP
 
-#if CONFIG_USE_G722_CODEC || CONFIG_USE_OPUS_CODEC
-#define AUDIO_SAMP_RATE         (16000)
-#else
-#define AUDIO_SAMP_RATE         (8000)
-#endif
-#define AEC_ENABLE              (1)
-
 
 bool g_connected_flag = false;
 bool g_agent_offline = true;
@@ -76,28 +70,28 @@ bool g_agent_offline = true;
 static char channel_name[128] = {0};
 static bool audio_en = false;
 static bool video_en = false;
-static media_camera_device_t camera_device =
-{
+// static media_camera_device_t camera_device =
+// {
 
-#if defined(CONFIG_UVC_CAMERA)
-    .type = UVC_CAMERA,
-    .mode = JPEG_MODE,
-    .fmt  = PIXEL_FMT_JPEG,
-    /* expect the width and length */
-    .info.resolution.width  = 640,//640,//864,
-    .info.resolution.height = 480,
-    .info.fps = FPS25,
-#elif defined(CONFIG_DVP_CAMERA)
-    /* DVP Camera */
-    .type = DVP_CAMERA,
-    .mode = H264_MODE,//JPEG_MODE
-    .fmt  = PIXEL_FMT_H264,//PIXEL_FMT_JPEG
-    /* expect the width and length */
-    .info.resolution.width  = 640,//1280,//,
-    .info.resolution.height = 480,//720,//,
-    .info.fps = FPS20,
-#endif
-};
+// #if defined(CONFIG_UVC_CAMERA)
+//     .type = UVC_CAMERA,
+//     .mode = JPEG_MODE,
+//     .fmt  = PIXEL_FMT_JPEG,
+//     /* expect the width and length */
+//     .info.resolution.width  = 640,//640,//864,
+//     .info.resolution.height = 480,
+//     .info.fps = FPS25,
+// #elif defined(CONFIG_DVP_CAMERA)
+//     /* DVP Camera */
+//     .type = DVP_CAMERA,
+//     .mode = H264_MODE,//JPEG_MODE
+//     .fmt  = PIXEL_FMT_H264,//PIXEL_FMT_JPEG
+//     /* expect the width and length */
+//     .info.resolution.width  = 640,//1280,//,
+//     .info.resolution.height = 480,//720,//,
+//     .info.fps = FPS20,
+// #endif
+// };
 
 
 static beken_thread_t  byte_thread_hdl = NULL;
@@ -117,12 +111,6 @@ bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
 #endif
-#endif
-
-#if CONFIG_WIFI_ENABLE
-extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
-#else
-#define rwnxl_set_video_transfer_flag(...)
 #endif
 
 
@@ -209,346 +197,11 @@ static void memory_free_show(void)
 #endif
 }
 
-#if defined(CONFIG_UVC_CAMERA)
-static void media_checkout_uvc_device_info(bk_uvc_device_brief_info_t *info, uvc_state_t state)
-{
-    bk_uvc_config_t uvc_config_info_param = {0};
-    uint8_t format_index = 0;
-    uint8_t frame_num = 0;
-    uint8_t index = 0;
-
-    if (state == UVC_CONNECTED)
-    {
-        uvc_config_info_param.vendor_id  = info->vendor_id;
-        uvc_config_info_param.product_id = info->product_id;
-
-        format_index = info->format_index.mjpeg_format_index;
-        frame_num    = info->all_frame.mjpeg_frame_num;
-        if (format_index > 0)
-        {
-            LOGI("%s uvc_get_param MJPEG format_index:%d\r\n", __func__, format_index);
-            for (index = 0; index < frame_num; index++)
-            {
-                LOGI("uvc_get_param MJPEG width:%d heigth:%d index:%d\r\n",
-                     info->all_frame.mjpeg_frame[index].width,
-                     info->all_frame.mjpeg_frame[index].height,
-                     info->all_frame.mjpeg_frame[index].index);
-                for (int i = 0; i < info->all_frame.mjpeg_frame[index].fps_num; i++)
-                {
-                    LOGI("uvc_get_param MJPEG fps:%d\r\n", info->all_frame.mjpeg_frame[index].fps[i]);
-                }
-
-                if (info->all_frame.mjpeg_frame[index].width == camera_device.info.resolution.width
-                    && info->all_frame.mjpeg_frame[index].height == camera_device.info.resolution.height)
-                {
-                    uvc_config_info_param.frame_index = info->all_frame.mjpeg_frame[index].index;
-                    uvc_config_info_param.fps         = info->all_frame.mjpeg_frame[index].fps[0];
-                    uvc_config_info_param.width       = camera_device.info.resolution.width;
-                    uvc_config_info_param.height      = camera_device.info.resolution.height;
-                }
-            }
-        }
-
-        uvc_config_info_param.format_index = format_index;
-
-        if (media_app_set_uvc_device_param(&uvc_config_info_param) != BK_OK)
-        {
-            LOGE("%s, failed\r\n, __func__");
-        }
-    }
-    else
-    {
-        LOGI("%s, %d\r\n", __func__, state);
-    }
-}
-#endif
-
-// void app_media_read_frame_callback(frame_buffer_t *frame)
-// {
-//     video_frame_info_t info = { 0 };
-
-//     if (false == g_connected_flag)
-//     {
-//         /* byte rtc is not running, do not send video. */
-//         return;
-//     }
-
-//     info.stream_type = VIDEO_STREAM_HIGH;
-//     if (frame->fmt == PIXEL_FMT_JPEG)
-//     {
-//         info.data_type = VIDEO_DATA_TYPE_GENERIC_JPEG;
-//         info.frame_type = VIDEO_FRAME_KEY;
-//     }
-//     else if (frame->fmt == PIXEL_FMT_H264)
-//     {
-//         info.data_type = VIDEO_DATA_TYPE_H264;
-//         info.frame_type = VIDEO_FRAME_AUTO_DETECT;
-//     }
-//     else
-//     {
-//         LOGE("not support format: %d \r\n", frame->fmt);
-//     }
-
-//     bk_byte_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
-
-//     /* send two frame images per second */
-//     rtos_delay_milliseconds(500);
-// }
 
 static int byte_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, audio_data_type_e data_type)
 {
-    bk_err_t ret = BK_OK;
-
-    #if 0//CONFIG_DEBUG_DUMP
-    if(byte_rx_spk_data_flag)
-    {
-        //BYTE_RX_SPK_DATA_DUMP_DATA(data, size);
-        #if 0
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_BYTE_RX_SPK,1);
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_BYTE_RX_SPK,0,DUMP_FILE_TYPE_G722,size);
-        #else
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_BYTE_RX_SPK,0,size);
-        #endif
-        DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_BYTE_RX_SPK);
-        DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_BYTE_RX_SPK);
-        DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_BYTE_RX_SPK);
-        DEBUG_DATA_DUMP_BY_UART_DATA(data, size);
-    }
-    #endif//CONFIG_DEBUG_DUMP
-
-    ret = bk_aud_intf_write_spk_data((uint8_t *)data, (uint32_t)size);
-    if (ret != BK_OK)
-    {
-        LOGE("write spk data fail \r\n");
-    }
-
-    return ret;
+    return audio_tras_user_audio_rx_data_handle(data, size);
 }
-
-bk_err_t video_turn_off(void)
-{
-    bk_err_t ret =  BK_OK;
-    LOGI("%s\n", __func__);
-
-    ret = media_app_unregister_read_frame_callback();
-    if (ret != BK_OK)
-    {
-        LOGE("%s, %d, unregister read_frame_cb failed\n", __func__, __LINE__);
-    }
-
-    ret = media_app_h264_pipeline_close();
-    if (ret != BK_OK)
-    {
-        LOGE("%s, %d, h264_pipeline_close failed\n", __func__, __LINE__);
-    }
-
-    ret = media_app_camera_close(camera_device.type);
-    if (ret != BK_OK)
-    {
-        LOGE("%s, %d, media_app_camera_close failed\n", __func__, __LINE__);
-    }
-
-    rwnxl_set_video_transfer_flag(false);
-
-    bk_wifi_set_wifi_media_mode(false);
-    bk_wifi_set_video_quality(WIFI_VIDEO_QUALITY_HD);
-
-    return BK_OK;
-}
-
-
-static bk_err_t video_turn_on(void)
-{
-//     bk_err_t ret = BK_OK;
-//     LOGI("%s\n", __func__);
-
-//     bk_wifi_set_wifi_media_mode(true);
-//     bk_wifi_set_video_quality(WIFI_VIDEO_QUALITY_FD);
-
-//     rwnxl_set_video_transfer_flag(true);
-
-// #if defined(CONFIG_UVC_CAMERA)
-//     media_app_uvc_register_info_notify_cb(media_checkout_uvc_device_info);
-// #endif
-
-//     ret = media_app_camera_open(&camera_device);
-//     if (ret != BK_OK)
-//     {
-//         LOGE("%s, %d, media_app_camera_open failed\n", __func__, __LINE__, ret);
-//         goto fail;
-//     }
-
-//     bool media_mode = false;
-//     uint8_t quality = 0;
-//     bk_wifi_get_wifi_media_mode_config(&media_mode);
-//     bk_wifi_get_video_quality_config(&quality);
-//     LOGE("~~~~~~~~~~wifi media mode %d, video quality %d~~~~~~\r\n", media_mode, quality);
-
-// #if defined(CONFIG_UVC_CAMERA)
-//     ret = media_app_h264_pipeline_open();
-//     if (ret != BK_OK)
-//     {
-//         LOGE("%s, %d, h264_pipeline_open failed, ret:%d\n", __func__, __LINE__, ret);
-//         goto fail;
-//     }
-
-//     ret = media_app_register_read_frame_callback(PIXEL_FMT_H264, app_media_read_frame_callback);
-//     if (ret != BK_OK)
-//     {
-//         LOGE("%s, %d, register read_frame_cb failed\n", __func__, __LINE__, ret);
-//         goto fail;
-//     }
-// #elif defined(CONFIG_DVP_CAMERA)
-//     ret = media_app_register_read_frame_callback(camera_device.fmt, app_media_read_frame_callback);
-//     if (ret != BK_OK)
-//     {
-//         LOGE("%s, %d, register read_frame_cb failed\n", __func__, __LINE__, ret);
-//         goto fail;
-//     }
-// #endif
-//     memory_free_show();
-
-//     return BK_OK;
-
-// fail:
-//     video_turn_off();
-
-    return BK_FAIL;
-}
-
-bk_err_t audio_turn_off(void)
-{
-    bk_err_t ret =  BK_OK;
-    LOGI("%s\n", __func__);
-#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-    if (g_connected_flag)
-    {
-        bk_byte_rtc_register_audio_rx_handle(NULL);
-    }
-#else
-    /* deregister callback to handle audio data received from byte rtc */
-    bk_byte_rtc_register_audio_rx_handle(NULL);
-#endif
-
-    /* stop voice */
-    ret = bk_aud_intf_voc_stop();
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, voice stop fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-
-    /* deinit vioce */
-    ret = bk_aud_intf_voc_deinit();
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, voice deinit fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-
-    bk_aud_intf_set_mode(AUD_INTF_WORK_MODE_NULL);
-
-    ret = bk_aud_intf_drv_deinit();
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, aud_intf driver deinit fail, ret:%d\n", ret);
-    }
-
-    audio_tras_deinit();
-
-    BYTE_RX_SPK_DATA_DUMP_CLOSE();
-
-    return BK_OK;
-}
-
-bk_err_t audio_turn_on(void)
-{
-    bk_err_t ret =  BK_OK;
-    LOGI("%s\n", __func__);
-
-    BYTE_RX_SPK_DATA_DUMP_OPEN();
-
-    aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
-    aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
-
-#ifdef CONFIG_USE_G722_CODEC
-    #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
-    #endif
-
-    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
-    #endif
-#elif CONFIG_USE_OPUS_CODEC
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
-    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 20;//60ms frame
-    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 20;//60ms frame
-    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 16000;
-#else
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
-#endif
-
-    aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_DIFFEN;
-    aud_intf_voc_setup.aec_enable = AEC_ENABLE;
-    aud_intf_voc_setup.samp_rate  = AUDIO_SAMP_RATE;
-#if CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE
-    aud_intf_voc_setup.mic_gain   = 0x30;
-#else
-    aud_intf_voc_setup.mic_gain   = 0x3F;
-#endif
-    aud_intf_voc_setup.spk_gain   = g_volume_gain[volume];
-    aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
-    aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
-
-    bk_aud_intf_aud_codec_init(&aud_intf_voc_setup.aud_codec_setup_input);
-
-    audio_tras_init();
-
-    aud_intf_drv_setup.aud_intf_tx_mic_data = send_audio_data_to_byte;
-    ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, aud_intf driver init fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-
-    ret = bk_aud_intf_set_mode(AUD_INTF_WORK_MODE_VOICE);
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
-    }
-    bk_aud_intf_audio_para_set((app_aud_para_t *)&app_aud_cust_para);
-    ret = bk_aud_intf_voc_init(aud_intf_voc_setup);
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
-    }
-
-#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-
-#else
-    ret = bk_byte_rtc_register_audio_rx_handle((byte_rtc_audio_rx_data_handle)byte_rtc_user_audio_rx_data_handle);
-    if (ret != BK_OK)
-    {
-        LOGE("bk_byte_rtc_register_audio_rx_handle fail, ret:%d \r\n", ret);
-    }
-#endif
-
-// #if CONFIG_USE_G722_CODEC
-// 	rtc_fill_audio_info(&audio_info, "g722", 16000, 16000, 20, 20, 160);
-// #elif CONFIG_USE_OPUS_CODEC
-//     rtc_fill_audio_info(&audio_info, "opus", aud_intf_voc_setup.aud_codec_setup_input.adc_samp_rate,
-//         aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate,
-//         aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms, aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms,
-//         bk_aud_get_dec_input_size_in_byte());
-// #endif
-
-    ret = bk_aud_intf_voc_start();
-    if (ret != BK_ERR_AUD_INTF_OK)
-    {
-        LOGE("bk_aud_intf_voc_start fail, ret:%d \r\n", ret);
-    }
-
-    return BK_OK;
-}
-
 
 void byte_main(void)
 {
@@ -586,7 +239,7 @@ void byte_main(void)
     byte_rtc_config.p_appid = (char *)psram_malloc(strlen(room_info->app_id) + 1);
     os_strcpy((char *)byte_rtc_config.p_appid, room_info->app_id);
     byte_rtc_config.log_level = BYTE_RTC_LOG_LEVEL_INFO;
-    
+    audio_tras_register_tx_data_func(bk_byte_rtc_audio_data_send);
     ret = bk_byte_rtc_create(&byte_rtc_config, (byte_rtc_msg_notify_cb)byte_rtc_user_notify_msg_handle);
     if (ret != BK_OK)
     {
@@ -676,7 +329,7 @@ exit:
     /* free video sources */
     if (video_en)
     {
-        video_turn_off();
+        //video_turn_off();
     }
 
     /* free byte */
@@ -901,7 +554,10 @@ void byte_auto_run(void)
         byte_start();
     }
 }
+void agora_auto_run(void)
+{
 
+}
 #define BYTE_RTC_CMD_CNT   (sizeof(s_byte_rtc_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_byte_rtc_commands[] =

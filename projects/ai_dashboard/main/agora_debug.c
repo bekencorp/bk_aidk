@@ -47,13 +47,13 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     {
         if (os_strtoul(argv[2], NULL, 10))
         {
-            dump_flag |= (1<<DUMP_TYPE_AGORA_TX_MIC);
+            dump_flag |= (1<<DUMP_TYPE_TX_MIC);
             agoora_tx_mic_data_flag = true;
             os_printf("dump agora tx mic data\n!");
         }
         else
         {
-            dump_flag &= (~(1<<DUMP_TYPE_AGORA_TX_MIC));
+            dump_flag &= (~(1<<DUMP_TYPE_TX_MIC));
             agoora_tx_mic_data_flag = false;
         }
     }
@@ -61,13 +61,13 @@ void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     {
         if (os_strtoul(argv[2], NULL, 10))
         {
-            dump_flag |= (1<<DUMP_TYPE_AGORA_RX_SPK);
+            dump_flag |= (1<<DUMP_TYPE_RX_SPK);
             agoora_rx_spk_data_flag = true;
             os_printf("dump agora rx spk data\n!");
         }
         else
         {
-            dump_flag &= (~(1<<DUMP_TYPE_AGORA_RX_SPK));
+            dump_flag &= (~(1<<DUMP_TYPE_RX_SPK));
             agoora_rx_spk_data_flag = false;
         }
     }

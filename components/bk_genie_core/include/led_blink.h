@@ -1,5 +1,5 @@
-#ifndef __AGORA_LED_BLINK_H__
-#define __AGORA_LED_BLINK_H__
+#ifndef __LED_BLINK_H__
+#define __LED_BLINK_H__
 
 #ifdef __cplusplus
 extern "C" {

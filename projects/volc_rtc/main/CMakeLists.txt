@@ -1,4 +1,4 @@
-set(incs . include asr bt_pan)
+set(incs . include)
 set(srcs)
 
 list(APPEND srcs
@@ -6,17 +6,6 @@ list(APPEND srcs
 )
 
 if (CONFIG_SYS_CPU0)
-list(APPEND srcs
-    app_event.c
-    audio/audio_transfer.c
-    boarding_service/boarding_core.c
-    boarding_service/boarding_service.c
-    boarding_service/wifi_boarding_utils.c
-    led_blink.c
-    countdown.c
-    motor.c
-    audio_para.c
-)
 
 if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
@@ -24,16 +13,6 @@ list(APPEND srcs
 )
 endif()
 
-if (CONFIG_NET_PAN)
-list(APPEND srcs
-    bt_pan/bt_manager.c
-    bt_pan/pan_service.c
-    bt_pan/pan_demo_cli.c
-    bt_pan/storage/bluetooth_storage.c
-    bt_pan/bt_comm_list.c
-    bt_pan/hidd_service.c
-)
-endif()
 
 list(APPEND incs
             volc_sdk
@@ -42,7 +21,6 @@ list(APPEND incs
 list(APPEND srcs
     volc_sdk/volc_rtc_trigger.c
     volc_sdk/volc_rtc.c
-    audio_para.c
 )
 
 if (CONFIG_HTTP_REQUEST_AGENT)
@@ -60,16 +38,7 @@ list(APPEND srcs
 )
 endif()
 
-list(APPEND srcs
-    display/avi_play.c
-    display/ota_display.c
-)
 
-if (CONFIG_SYS_CPU2)
-list(APPEND srcs
-    asr/armino_asr.c
-)
-endif()
 
 if (CONFIG_OVERRIDE_FLASH_PARTITION)
     list(APPEND srcs
@@ -78,5 +47,8 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
 endif()
 
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init lwip_intf_v2_1 VolcEngineRTCLite media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service ota bk_nfc)
+armino_component_register(SRCS "${srcs}" 
+    INCLUDE_DIRS "${incs}" 
+    PRIV_REQUIRES bk_init lwip_intf_v2_1 VolcEngineRTCLite media_service multimedia avdk_utils bk_genie_core
+                  mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service ota bk_nfc)
 

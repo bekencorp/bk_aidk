@@ -128,7 +128,7 @@ bk_err_t bk_byte_rtc_destroy(void);
 bk_err_t bk_byte_rtc_start(byte_rtc_option_t *option);
 bk_err_t bk_byte_rtc_stop(void);
 int bk_byte_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const video_frame_info_t *info_ptr);
-int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len, audio_frame_info_t *info_ptr);
+int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len);
 bk_err_t bk_byte_rtc_register_audio_rx_handle(byte_rtc_audio_rx_data_handle audio_rx_handle);
 bk_err_t bk_byte_rtc_register_video_rx_handle(byte_rtc_video_rx_data_handle video_rx_handle);
 

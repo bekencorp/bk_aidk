@@ -9,7 +9,7 @@
 
 #include "volc_rtc.h"
 #include "volc_config.h"
-
+#include "audio_transfer.h"
 
 #define TAG "byte_rtc"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -546,7 +546,7 @@ int bk_byte_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const 
     return rval;
 }
 
-int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len, audio_frame_info_t *info_ptr)
+int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len)
 {
     // API: send audio data
     audio_frame_info_t info = { 0 };
@@ -557,7 +557,18 @@ int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len, audio_frame_
         return BK_FAIL;
     }
 
-    info.data_type = info_ptr->data_type;
+    #if CONFIG_AUD_INTF_SUPPORT_G722
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
+    info.data_type = AUDIO_DATA_TYPE_G722;
+    #endif
+    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+    info.data_type = AUDIO_DATA_TYPE_PCM;
+    #endif
+    #elif CONFIG_AUD_INTF_SUPPORT_OPUS
+    info.data_type = AUDIO_DATA_TYPE_OPUS;
+    #else
+    info.data_type = AUDIO_DATA_TYPE_PCMA;
+    #endif
 
     int rval = byte_rtc_send_audio_data(rtc->engine, rtc->byte_rtc_option.room->room_id, data_ptr, data_len, &info);
 	//LOGI("rtc TX audio, data_ptr=%p, data_len=%d\r\n", data_ptr, (int)data_len);

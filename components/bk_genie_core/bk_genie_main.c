@@ -25,7 +25,6 @@
 #include "bk_genie_comm.h"
 #include "wifi_boarding_utils.h"
 #if (CONFIG_SYS_CPU0)
-// #include "agora_config.h"
 #include "aud_intf.h"
 #include "bk_factory_config.h"
 #if CONFIG_NETWORK_AUTO_RECONNECT
@@ -41,7 +40,7 @@
 #include "components/bluetooth/bk_dm_bluetooth.h"
 
 
-#define TAG "AGORA"
+#define TAG "BK_GNC"
 
 #define SPK_GAIN_MAX        (0X1E)
 #define SPK_VOLUME_LEVEL (11) //[0,10]
@@ -423,13 +422,13 @@ int bk_genie_main(void)
 
     bk_genie_core_init();
 
-#if CONFIG_NETWORK_AUTO_RECONNECT
-    bk_genie_smart_config_init();
-#endif
+// #if CONFIG_NETWORK_AUTO_RECONNECT
+//     bk_genie_smart_config_init();
+// #endif
 
-#if CONFIG_ENABLE_AGORA_DATASTREAM
-    bk_genie_init_datastream_resource();
-#endif
+// #if CONFIG_ENABLE_AGORA_DATASTREAM
+//     bk_genie_init_datastream_resource();
+// #endif
 
     register_event_handler(handle_system_event);
     bk_key_driver_init(key_config, sizeof(key_config) / sizeof(KeyConfig_t));

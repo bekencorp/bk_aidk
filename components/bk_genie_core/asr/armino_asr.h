@@ -1,10 +1,3 @@
-/*************************************************************
- *
- * This is a part of the Agora Media Framework Library.
- * Copyright (C) 2021 Agora IO
- * All rights reserved.
- *
- *************************************************************/
 #ifndef __ARMINO_ASR_H__
 #define __ARMINO_ASR_H__
 

@@ -115,7 +115,7 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
     {
         case NFC_GOT_ID:
         {
-            msg.event = DBECT_NFC_GOT_ID;
+            msg.event = DBEVT_NFC_GOT_ID;
             msg.param = (uint8_t*)(card_id);
             bk_genie_send_msg((bk_genie_msg_t *)&msg);
         }
@@ -127,14 +127,14 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
     return 0;
 }
 
-extern void beken_auto_run(void);
+// extern void byte_auto_run(void);
+// #include "volc_config.h"
 static void bk_genie_message_handle(void)
 {
     bk_err_t ret = BK_OK;
     bk_genie_msg_t msg;
-#if (CONFIG_NFC_ENABLE)
-    nfc_event_callback_register(nfc_callback);
-#endif
+    //nfc_event_callback_register(nfc_callback);
+
     while (1)
     {
 
@@ -153,23 +153,15 @@ static void bk_genie_message_handle(void)
                 }
                 break;
 
-                case DBEVT_WIFI_STATION_CONNECTED:
+                case DBEVT_NETWORK_CONNECTED:
                 {
-                    LOGI("DBEVT_WIFI_STATION_CONNECTED\n");
+                    LOGI("DBEVT_NETWORK_CONNECTED\n");
                     netif_ip4_config_t ip4_config;
-                    extern uint32_t uap_ip_is_start(void);
+                    netif_if_t netif_idx;
 
+                    netif_idx = msg.param;
                     os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
-                    bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-
-                    if (uap_ip_is_start())
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
-                    }
-                    else
-                    {
-                        bk_netif_get_ip4_config(NETIF_IF_STA, &ip4_config);
-                    }
+                    bk_netif_get_ip4_config(netif_idx, &ip4_config);
 
                     LOGI("ip: %s\n", ip4_config.ip);
 
@@ -198,6 +190,11 @@ static void bk_genie_message_handle(void)
                     {
                         sprintf(uid_str + i * 2, "%02x", uid[i]);
                     }
+#if CONFIG_AUDIO_FRAME_DURATION_MS
+                    if (CONFIG_AUDIO_FRAME_DURATION_MS == 60)
+                        len = os_snprintf(payload, 128, "{\"channel\":\"%s\",\"agent_param\": {\"audio_duration\": 60}}", uid_str);
+                    else
+#endif
                     len = os_snprintf(payload, 128, "{\"channel\":\"%s\"}", uid_str);
                     LOGI("ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
                     bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGORA_AGENT_INFO, 0, payload, len);
@@ -205,73 +202,61 @@ static void bk_genie_message_handle(void)
                 break;
 
                 case DBEVT_START_AGORA_AGENT_RSP:
-                {
-                    LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
-#if 0
-                    cJSON *json = NULL;
+//                {
+//                     LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
+//                     cJSON *json = NULL;
 
-                    json = cJSON_Parse((char *)(msg.param));
-                    if (!json)
-                    {
-                        LOGE("Error before: [%s]\n", cJSON_GetErrorPtr());
-                        goto fail;
-                    }
-					
-                    if (app_id_record)
-                    {
-                        os_free(app_id_record);
-                    }
-                    if (channel_name_record)
-                    {
-                        os_free(channel_name_record);
-                    }
-                    cJSON *app_id = cJSON_GetObjectItem(json, "app_id");
-                    if (app_id && ((app_id->type & 0xFF) == cJSON_String))
-                    {
-                        app_id_record = os_strdup(app_id->valuestring);
-                    }
-                    else
-                    {
-                        LOGE("[Error] not find msg\n");
-                    }
+//                     json = cJSON_Parse((char *)(msg.param));
+//                     if (!json)
+//                     {
+//                         LOGE("Error before: [%s]\n", cJSON_GetErrorPtr());
+//                         goto fail;
+//                     }
+//                     if (app_id_record)
+//                     {
+//                         os_free(app_id_record);
+//                     }
+//                     if (channel_name_record)
+//                     {
+//                         os_free(channel_name_record);
+//                     }
+//                     cJSON *app_id = cJSON_GetObjectItem(json, "app_id");
+//                     if (app_id && ((app_id->type & 0xFF) == cJSON_String))
+//                     {
+//                         app_id_record = os_strdup(app_id->valuestring);
+//                     }
+//                     else
+//                     {
+//                         LOGE("[Error] not find msg\n");
+//                     }
 
-                    cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
-                    if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
-                    {
-                        channel_name_record = os_strdup(channel_name->valuestring);
-                        LOGI("real channel name:%s\r\n", channel_name_record);
-                    }
-                    else
-                    {
-                        LOGE("[Error] not find msg\n");
-                    }
-                    cJSON_Delete(json);
-                    if (app_id_record && channel_name_record)
-                    {
-                        bk_genie_save_agent_info(app_id_record, channel_name_record);
-                        LOGI("begin beken_auto_run\n");
-                        beken_auto_run();
+//                     cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
+//                     if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
+//                     {
+//                         channel_name_record = os_strdup(channel_name->valuestring);
+//                         LOGI("real channel name:%s\r\n", channel_name_record);
+//                     }
+//                     else
+//                     {
+//                         LOGE("[Error] not find msg\n");
+//                     }
+//                     cJSON_Delete(json);
+//                     if (app_id_record && channel_name_record)
+//                     {
+//                         bk_genie_save_agent_info(app_id_record, channel_name_record);
+//                         LOGI("begin byte_auto_run\n");
+//                         byte_auto_run();
 
-                        if (!bk_genie_is_net_pan_mode())
-                        {
-                            app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
-                        }
-                    }
-					
-fail:
-					if (msg.param)
-						os_free((void *)(msg.param));
-					break;
-#else
-					LOGI("%s, begin beken_auto_run\n", __func__);
-					beken_auto_run();
-					if (!bk_genie_is_net_pan_configured())
-					{
-						app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
-					}
-#endif
-                    break;
-                }
+//                         if (!bk_genie_is_net_pan_configured())
+//                         {
+//                             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+//                         }
+//                     }
+// fail:
+//                     if (msg.param)
+//                         os_free((void *)(msg.param));
+//                     break;
+//                 }
                 break;
 
                 case DBEVT_WIFI_STATION_DISCONNECTED:
@@ -472,6 +457,30 @@ fail:
                 }
                 break;
 
+                case DBEVT_NFC_GOT_ID:
+                {
+                    uint8_t nfc_id[7];
+                    nfc_msg_t nfc_info;
+                    nfc_info.param = (uint8_t *)(msg.param);
+                    os_memcpy(nfc_id, nfc_info.param, 7);
+                    LOGI("DBEVT_NFC_GOT_ID: [%02x:%02x:%02x:%02x:%02x:%02x:%02x]\r\n", nfc_id[0], nfc_id[1], nfc_id[2],\
+                    nfc_id[3], nfc_id[4], nfc_id[5], nfc_id[6]);
+
+                    bk_genie_post_nfc_id(nfc_id);
+                }
+                break;
+
+#if CONFIG_BK_MODEM
+                case DBEVT_START_BK_MODEM:
+                {
+extern bk_err_t bk_modem_init(void);
+                    ret = bk_modem_init();
+			        if (ret) {
+                        bk_modem_init();
+			        }
+                }
+                    break;
+#endif
                 default:
                     break;
             }

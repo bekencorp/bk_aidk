@@ -18,6 +18,7 @@
 #include "countdown.h"
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "boarding_service.h"
+#include "bk_factory_config.h"
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 #include "aud_intf.h"
 #include "aud_intf_types.h"
@@ -46,6 +47,7 @@ typedef struct
 
 extern void lvgl_app_init(void);
 extern void lvgl_app_deinit(void);
+extern bk_err_t byte_stop(void);
 
 
 static app_evt_info_t app_evt_info;
@@ -127,26 +129,60 @@ static uint8_t battery_event_callback(evt_battery event_param)
     return 0;
 }
 
+#if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+extern bk_err_t audio_turn_on(void);
+bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
+{
+	int ret = BK_FAIL;
+	LOGI("%s ota_state :%d\n", __func__,ota_state);
+	if(audio_turn_on() != BK_OK)
+	{
+		LOGE("%s audion turn off :%d\n", __func__);
+		return ret;
+	}
+
+	switch (ota_state)
+	{
+		case APP_EVT_OTA_SUCCESS : //success
+			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_SUCCESS);
+			#endif
+		break;
+		case APP_EVT_OTA_FAIL : //fail
+			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_FAIL);
+			#endif
+		break;
+		default:
+			break;
+	}
+	LOGI("%s complete %x\n", __func__, ret);
+	return ret;
+}
+#endif
+
 //red:if high priority conflicts with low-priority, should stay at high priority states
 enum {
 	WARNING_PROVIOSION_FAIL,	//LED_FAST_BLINK_RED
 	WARNING_WIFI_FAIL,		//LED_FAST_BLINK_RED
 	WARNING_RTC_CONNECT_LOST,	//LED_FAST_BLINK_RED
 	WARNING_AGENT_OFFLINE,	//LED_FAST_BLINK_RED
+    WARNING_AGENT_AGENT_START_FAIL,  //LED_FAST_BLINK_RED
 
 	WARNING_LOW_BATTERY,	//LED_SLOW_BLINK_RED
 }warning_t;
-#define HIGH_PRIORITY_WARNING_MASK ((1<<WARNING_PROVIOSION_FAIL) | (1<<WARNING_WIFI_FAIL) | (1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE))
+#define HIGH_PRIORITY_WARNING_MASK ((1<<WARNING_PROVIOSION_FAIL) | (1<<WARNING_WIFI_FAIL) | (1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE) | (1<<WARNING_AGENT_AGENT_START_FAIL))
 #define LOW_PRIORITY_WARNING_MASK ((1<<WARNING_LOW_BATTERY))
 #define AI_RTC_CONNECT_LOST_FAIL   (1<<WARNING_RTC_CONNECT_LOST)
 #define AI_AGENT_OFFLINE_FAIL      (1<<WARNING_AGENT_OFFLINE)
+#define WIFI_FAIL  (1<<WARNING_WIFI_FAIL)
 //green led, or red/green alternate led
 enum {
 	INDICATES_WIFI_RECONNECT,	//LED_FAST_BLINK_GREEN
 	INDICATES_PROVISIONING,		//LED_REG_GREEN_ALTERNATE
 	INDICATES_POWER_ON,  		//LED_ON_GREEN  default at power-on state, so green is always on
 	INDICATES_STANDBY,			//LED_SLOW_BLINK_GREEN
-	INDICATES_AGENT_CONNECT,	//LED_SLOW_BLINK_GREEN if at standby states, else clear it
+	INDICATES_AGENT_CONNECT,	//LED_FAST_BLINK_GREEN at WIFI connection but no access to the AI AGENT
 }indicates_t;
 
 
@@ -200,7 +236,10 @@ static void update_countdown()
     if(selected_ticket != COUNTDOWN_TICKET_MAX) {
         const uint32_t max_duration = s_ticket_durations[selected_ticket];
 
-        if (selected_ticket != last_selected_ticket)
+        bool is_same_event = (selected_ticket == last_selected_ticket);
+        bool is_network_error = (selected_ticket == COUNTDOWN_TICKET_NETWORK_ERROR);
+
+        if (selected_ticket != last_selected_ticket || (is_same_event && !is_network_error))
         {
             const uint32_t duration = max_duration;
             start_countdown(duration);
@@ -229,10 +268,10 @@ static void led_blink(uint32_t* warning_state, uint32_t indicates_state)
     {
         led_app_set(LED_OFF_GREEN, 0);
     }else{
-        if(indicates_state & (1<<INDICATES_WIFI_RECONNECT))
+        if(indicates_state & ((1<<INDICATES_WIFI_RECONNECT) | (1<<INDICATES_AGENT_CONNECT)))
 		{
 			led_app_set(LED_FAST_BLINK_GREEN, LED_LAST_FOREVER);
-		}else if(indicates_state & ((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT)))
+		}else if(indicates_state & (1<<INDICATES_STANDBY))
 		{
 			led_app_set(LED_SLOW_BLINK_GREEN, LED_LAST_FOREVER);
 		}else
@@ -273,6 +312,7 @@ static void app_event_thread(beken_thread_arg_t data)
 	int ret = BK_OK;
 
     uint32_t is_standby = 1;
+    uint32_t is_joined_agent = 0;
 
     uint32_t warning_state = 0;
 	uint32_t indicates_state = (1<<INDICATES_POWER_ON);
@@ -295,11 +335,12 @@ static void app_event_thread(beken_thread_arg_t data)
 
         if (ret == BK_OK)
         {
+            bool skip_countdown_update = false;
             switch (msg.event)
             {
                 case APP_EVT_ASR_WAKEUP:	//hi armino
                     is_standby = 0;
-                    indicates_state &= ~((1<<INDICATES_STANDBY) | (1<<INDICATES_AGENT_CONNECT));
+                    indicates_state &= ~(1<<INDICATES_STANDBY);
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_WAKEUP\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
@@ -308,6 +349,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
                     lvgl_app_init();
+                    //TODO optimize
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
@@ -315,7 +357,6 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
                     indicates_state |= (1<<INDICATES_STANDBY);
-                    indicates_state &= ~(1<<INDICATES_POWER_ON);
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_STANDBY\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
@@ -339,8 +380,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_PROVISIONING);
                     indicates_state |= (1<<INDICATES_PROVISIONING);
-                    indicates_state &= ~(1<<INDICATES_POWER_ON);
-                    warning_state &= ~(1<<WARNING_PROVIOSION_FAIL);
+                    indicates_state &= ~((1<<INDICATES_AGENT_CONNECT) | (1<<INDICATES_POWER_ON) | (1<<INDICATES_WIFI_RECONNECT));
+                    warning_state &= ~ (HIGH_PRIORITY_WARNING_MASK);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION);
 #endif
@@ -348,6 +389,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
+                    indicates_state |= (1<<INDICATES_AGENT_CONNECT);
                     warning_state &= ~(1<<WARNING_PROVIOSION_FAIL);
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_PROVISIONING);
                     // s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
@@ -381,18 +423,22 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_RECONNECT_NETWORK_SUCCESS:
+                    LOGI("APP_EVT_RECONNECT_NETWORK_SUCCESS\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_PROVISIONING);
-					warning_state &= ~(1<<WARNING_WIFI_FAIL);
-                    indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
-
-                    if ((warning_state & AI_RTC_CONNECT_LOST_FAIL) == 0 && (warning_state & AI_AGENT_OFFLINE_FAIL) == 0)
+                    if (warning_state & WIFI_FAIL)
                     {
-                        if (is_standby)
+                        if (is_joined_agent && is_standby)
                         {
                             indicates_state |= (1<<INDICATES_STANDBY);
                         }
+
+                    }else{
+                        indicates_state |= (1<<INDICATES_AGENT_CONNECT);
                     }
-                    LOGI("APP_EVT_RECONNECT_NETWORK_SUCCESS\n");
+
+					warning_state &= ~(1<<WARNING_WIFI_FAIL);
+                    indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
+
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_SUCCESS);
 #endif
@@ -418,12 +464,23 @@ static void app_event_thread(beken_thread_arg_t data)
 #endif
                     break;
 
+
+                case APP_EVT_RTC_REJOIN_SUCCESS:
+                    LOGI("APP_EVT_RTC_REJOIN_SUCCESS\n");
+                    warning_state &= ~(1<<WARNING_RTC_CONNECT_LOST);
+                    if (is_joined_agent && is_standby)
+                    {
+                        indicates_state |= (1<<INDICATES_STANDBY);
+                    }
+                    break;
+
                 case APP_EVT_AGENT_JOINED:	//doesn't know whether restore from error
-                    //indicates_state |= 1<<INDICATES_AGENT_CONNECT;
+                    is_joined_agent = 1;
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_NETWORK_ERROR);
-                    indicates_state &= ~(1<<INDICATES_POWER_ON);
-                    warning_state &= ~((1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE) | (1<<WARNING_WIFI_FAIL));
+                    indicates_state &= ~(1<<INDICATES_AGENT_CONNECT);
+                    warning_state &= ~((1<<WARNING_RTC_CONNECT_LOST) | (1<<WARNING_AGENT_OFFLINE) | (1<<WARNING_WIFI_FAIL) | 1<<WARNING_AGENT_AGENT_START_FAIL);
                     LOGI("APP_EVT_AGENT_JOINED \n");
+                    //TODO optimize
                     is_network_provisioning = 0;
                     indicates_state &= ~(1<<INDICATES_PROVISIONING);
                     if(is_standby)  //mie
@@ -436,9 +493,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
                 case APP_EVT_AGENT_OFFLINE:
                     // network_err = 1;
+                    is_joined_agent = 0;
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
-                    indicates_state &= ~(1<<INDICATES_AGENT_CONNECT);
                     warning_state |= 1<<WARNING_AGENT_OFFLINE;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_OFFLINE);
@@ -446,7 +503,17 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_AGENT_START_FAIL:
+                    s_active_tickets |= (1 << COUNTDOWN_TICKET_NETWORK_ERROR);
                     LOGI("APP_EVT_AGENT_START_FAIL\n");
+                    warning_state |= 1<<WARNING_AGENT_AGENT_START_FAIL;
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_START_FAIL);
+#endif
+                    break;
+
+                case APP_EVT_AGENT_DEVICE_REMOVE:
+                    LOGI("APP_EVT_AGENT_DEVICE_REMOVE\n");
+                    byte_stop();
                     break;
 
 //-------------------network event end ------------------------------------------------------------------////
@@ -454,6 +521,7 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_LOW_VOLTAGE:
                     LOGI("APP_EVT_LOW_VOLTAGE\n");
+                    skip_countdown_update = true;
                     warning_state |= 1<<WARNING_LOW_BATTERY;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
@@ -462,12 +530,14 @@ static void app_event_thread(beken_thread_arg_t data)
 
                 case APP_EVT_CHARGING:
                     LOGI("APP_EVT_CHARGING\n");
+                    skip_countdown_update = true;
 					warning_state &= ~(1<<WARNING_LOW_BATTERY);
                     break;
 
                 case APP_EVT_SHUTDOWN_LOW_BATTERY:
                     LOGI("APP_EVT_SHUTDOWN_LOW_BATTERY\n");
-                    //todo
+                    skip_countdown_update = true;
+                    bk_config_sync_flash();
                     break;
 
                 case APP_EVT_CLOSE_BLUETOOTH:
@@ -485,17 +555,27 @@ static void app_event_thread(beken_thread_arg_t data)
                 case APP_EVT_OTA_SUCCESS:
                     LOGI("APP_EVT_OTA_SUCCESS\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    #if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+                    bk_ota_reponse_state_to_audio(msg.event);
+                    #endif
                     break;
 
                 case APP_EVT_OTA_FAIL:
                     LOGI("APP_EVT_OTA_FAIL\n");
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_OTA);
+                    #if CONFIG_OTA_DISPLAY_PICTURE_DEMO
+                    bk_ota_reponse_state_to_audio(msg.event);
+                    #endif
                     break;
 
                 default:
                     break;
             }
-            update_countdown();
+            if(!skip_countdown_update)
+            {
+                update_countdown();
+            }
+
 			//led blink by states
             led_blink(&warning_state, indicates_state);
         }
