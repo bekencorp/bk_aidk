@@ -62,6 +62,8 @@ static lv_obj_t *label1 = NULL;
 static lv_obj_t *label2 = NULL;
 static uint8_t lvgl_ui_index = 0;
 
+LV_FONT_DECLARE(lv_font);
+
 static void bk_avi_play_config_free(bk_avi_play_t *avi_play)
 {
     if (avi_play->avi)
@@ -280,25 +282,27 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 
     if (lvgl_ui_index == 1) {
         bk_avi_play_stop();
+    } else {
+        if (label1) {
+            lv_obj_del(label1);
+            label1 = NULL;
+        }
+
+        if (label2) {
+            lv_obj_del(label2);
+            label2 = NULL;
+        }
     }
 
-    if (label1) {
-        lv_obj_del(label1);
-        label1 = NULL;
-    }
-
-    if (label2) {
-        lv_obj_del(label2);
-        label2 = NULL;
-    }
     lv_vendor_disp_unlock();
 
-    lvgl_ui_index = 0;
-
     lv_vendor_stop();
+
     lcd_display_close();
 
-    bk_avi_play_close(&bk_avi_play);
+    if (lvgl_ui_index == 1) {
+        bk_avi_play_close(&bk_avi_play);
+    }
 
     return BK_OK;
 }
@@ -343,61 +347,58 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     drv_tp_open(ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi), TP_MIRROR_NONE);
 #endif
 
-    ret = bk_avi_play_open(&bk_avi_play, "/genie_eye.avi", 1);
-    if (ret != BK_OK)
-    {
-        LOGE("%s bk_avi_play_open failed\r\n", __func__);
-        lcd_display_close();
-        return ret;
-    }
+    if (lvgl_ui_index == 2) {
+        lv_vendor_disp_lock();
+
+        label1 = lv_label_create(lv_scr_act());
+        lv_label_set_text(label1, "图 像");
+        lv_obj_set_style_text_font(label1, &lv_font, 0);
+        lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+
+        label2 = lv_label_create(lv_scr_act());
+        lv_label_set_text(label2, "识 别");
+        lv_obj_set_style_text_font(label2, &lv_font, 0);
+        lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
+
+        lv_vendor_disp_unlock();
+    } else {
+        ret = bk_avi_play_open(&bk_avi_play, "/genie_eye.avi", 1);
+        if (ret != BK_OK) {
+            LOGE("%s bk_avi_play_open failed\r\n", __func__);
+            lcd_display_close();
+            return ret;
+        }
 
 #if (CONFIG_LCD_SPI_DEVICE_NUM > 1)
-    img_dsc.header.w = lv_vnd_config.lcd_hor_res;
-    img_dsc.header.h = lv_vnd_config.lcd_ver_res;
-    img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
+        img_dsc.header.w = lv_vnd_config.lcd_hor_res;
+        img_dsc.header.h = lv_vnd_config.lcd_ver_res;
+        img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
 #else
-    img_dsc.header.w = bk_avi_play.avi->width;
-    img_dsc.header.h = bk_avi_play.avi->height;
-    img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
+        img_dsc.header.w = bk_avi_play.avi->width;
+        img_dsc.header.h = bk_avi_play.avi->height;
+        img_dsc.data_size = img_dsc.header.w * img_dsc.header.h * 2;
 #endif
 
-    if (bk_avi_play.video_segment_flag == 1)
-    {
-        img_dsc.data = (const uint8_t *)bk_avi_play.segmentbuffer;
+        if (bk_avi_play.video_segment_flag == 1) {
+            img_dsc.data = (const uint8_t *)bk_avi_play.segmentbuffer;
+        } else {
+            img_dsc.data = (const uint8_t *)bk_avi_play.framebuffer;
+        }
+
+        ret = bk_avi_video_prase_to_rgb565(&bk_avi_play);
+        if (ret != BK_OK) {
+            LOGE("%s %d bk_avi_video_prase_to_rgb565 failed\r\n", __func__, __LINE__);
+            return ret;
+        }
+
+        lv_vendor_disp_lock();
+
+        bk_avi_play_start();
+
+        lvgl_ui_index = 1;
+
+        lv_vendor_disp_unlock();
     }
-    else
-    {
-        img_dsc.data = (const uint8_t *)bk_avi_play.framebuffer;
-    }
-
-    ret = bk_avi_video_prase_to_rgb565(&bk_avi_play);
-    if (ret != BK_OK)
-    {
-        LOGE("%s %d bk_avi_video_prase_to_rgb565 failed\r\n", __func__, __LINE__);
-        return ret;
-    }
-
-    LV_FONT_DECLARE(lv_font);
-
-    lv_vendor_disp_lock();
-
-    bk_avi_play_start();
-
-    label1 = lv_label_create(lv_scr_act());
-    lv_label_set_text(label1, "图 像");
-    lv_obj_set_style_text_font(label1, &lv_font, 0);
-    lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
-    lv_obj_add_flag(label1, LV_OBJ_FLAG_HIDDEN);
-
-    label2 = lv_label_create(lv_scr_act());
-    lv_label_set_text(label2, "识 别");
-    lv_obj_set_style_text_font(label2, &lv_font, 0);
-    lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
-    lv_obj_add_flag(label2, LV_OBJ_FLAG_HIDDEN);
-
-    lvgl_ui_index = 1;
-
-    lv_vendor_disp_unlock();
 
     lv_vendor_start();
 
@@ -410,19 +411,39 @@ bk_err_t lvgl_event_switch_ui_handle(media_mailbox_msg_t *msg)
 
     if (lvgl_ui_index == 1) {
         lv_vendor_disp_lock();
+
         bk_avi_play_stop();
 
-        lv_obj_clear_flag(label1, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(label2, LV_OBJ_FLAG_HIDDEN);
+        label1 = lv_label_create(lv_scr_act());
+        lv_label_set_text(label1, "图 像");
+        lv_obj_set_style_text_font(label1, &lv_font, 0);
+        lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+
+        label2 = lv_label_create(lv_scr_act());
+        lv_label_set_text(label2, "识 别");
+        lv_obj_set_style_text_font(label2, &lv_font, 0);
+        lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
+
         lvgl_ui_index = 2;
+
         lv_vendor_disp_unlock();
     } else if (lvgl_ui_index == 2) {
         lv_vendor_disp_lock();
-        lv_obj_add_flag(label1, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(label2, LV_OBJ_FLAG_HIDDEN);
+
+        if (label1) {
+            lv_obj_del(label1);
+            label1 = NULL;
+        }
+
+        if (label2) {
+            lv_obj_del(label2);
+            label2 = NULL;
+        }
 
         bk_avi_play_start();
+
         lvgl_ui_index = 1;
+
         lv_vendor_disp_unlock();
     } else {
         LOGE("%s index is invalid\r\n", __func__);
