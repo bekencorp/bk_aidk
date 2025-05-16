@@ -41,4 +41,15 @@ menu "Beken_Genie Project Configuration"
 			Use g722 codec in agora_iot_sdk
 	endchoice
 
+	choice AGORA_VIDEO_FORMAT
+		prompt "Select Agora video image format"
+		default AGORA_VIDEO_FORMAT_JPEG
+
+		config AGORA_VIDEO_FORMAT_JPEG
+		bool "Select JPEG format image send to agora"
+
+		config AGORA_VIDEO_FORMAT_H264
+		bool "Select H264 format image send to agora"
+	endchoice
+
 endmenu

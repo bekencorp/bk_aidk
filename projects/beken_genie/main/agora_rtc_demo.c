@@ -84,11 +84,17 @@ static media_camera_device_t camera_device =
 #elif defined(CONFIG_DVP_CAMERA)
     /* DVP Camera */
     .type = DVP_CAMERA,
-    .mode = H264_MODE,//JPEG_MODE
-    .fmt  = PIXEL_FMT_H264,//PIXEL_FMT_JPEG
+#if (CONFIG_AGORA_VIDEO_FORMAT_JPEG)
+    .mode = JPEG_MODE,//H264_MODE,//JPEG_MODE
+    .fmt  = PIXEL_FMT_JPEG,//PIXEL_FMT_H264,//PIXEL_FMT_JPEG
+#endif
+#if (CONFIG_AGORA_VIDEO_FORMAT_H264)
+        .mode = H264_MODE,//H264_MODE,//JPEG_MODE
+        .fmt  = PIXEL_FMT_H264,//PIXEL_FMT_H264,//PIXEL_FMT_JPEG
+#endif
     /* expect the width and length */
-    .info.resolution.width  = 640,//1280,//,
-    .info.resolution.height = 480,//720,//,
+    .info.resolution.width  = 1280,//,640,//1280,
+    .info.resolution.height = 720,//480,//720,
     .info.fps = FPS20,
 #endif
 };
