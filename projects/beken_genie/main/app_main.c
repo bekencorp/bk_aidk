@@ -110,9 +110,15 @@ static int agora_rtc_cli_init(void)
 #elif CONFIG_SYS_CPU1
 #define AGORA_RTC_CMD_CNT   (sizeof(s_agora_rtc_commands) / sizeof(struct cli_command))
 extern void cli_agora_rtc_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+extern void cli_agora_video_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 static const struct cli_command s_agora_rtc_commands[] =
 {
     {"agora_debug", "agora_debug ...", cli_agora_rtc_debug_cmd},
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+    {"agora_video_debug", "agora_video_debug ...", cli_agora_video_debug_cmd},
+#endif
 };
 
 static int agora_rtc_cli_init(void)

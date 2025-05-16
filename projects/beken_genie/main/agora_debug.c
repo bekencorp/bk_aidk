@@ -168,4 +168,47 @@ cmd_fail:
 #endif//CONFIG_DEBUG_DUMP
 }
 
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+extern bool image_debug_en;
+extern int transfer_major_storage_mount(void);
+extern int transfer_major_storage_unmount(void);
+void cli_agora_video_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    if (argc != 3)
+    {
+        goto cmd_fail;
+    }
+
+    if (os_strcmp(argv[1], "video_debug") == 0)
+    {
+        if (os_strtoul(argv[2], NULL, 10))
+        {
+            if (image_debug_en)
+            {
+                return;
+            }
+            image_debug_en = true;
+            transfer_major_storage_mount();
+        }
+        else
+        {
+            if (!image_debug_en)
+            {
+                return;
+            }
+            image_debug_en = false;
+            transfer_major_storage_unmount();
+        }
+    }
+    else
+    {
+        goto cmd_fail;
+    }
+
+    return;
+
+cmd_fail:
+    LOGI("agora_video_debug {interval}\n");
+}
+#endif
 

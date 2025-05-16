@@ -64,7 +64,6 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #endif
 #define AEC_ENABLE              (1)
 
-
 bool g_connected_flag = false;
 bool g_agent_offline = true;
 static char agora_appid[33] = {0};
@@ -111,6 +110,11 @@ bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
 #endif
+#endif
+
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+static uint32_t video_interval = 500;   //ms
+static bool video_lock = false;
 #endif
 
 #if CONFIG_WIFI_ENABLE
@@ -289,10 +293,22 @@ void app_media_read_frame_callback(frame_buffer_t *frame)
         LOGE("not support format: %d \r\n", frame->fmt);
     }
 
-    bk_agora_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+    do {
+#endif
+        bk_agora_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
 
-    /* send two frame images per second */
-    rtos_delay_milliseconds(500);
+        /* send two frame images per second */
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+        rtos_delay_milliseconds(video_interval);
+#else
+        rtos_delay_milliseconds(500);
+#endif
+
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+    } while (video_lock);
+#endif
+
 }
 
 static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const audio_frame_info_t *info_ptr)
@@ -800,6 +816,25 @@ void cli_agora_rtc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     {
         agora_stop();
     }
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+    else if (os_strcmp(argv[1], "video_interval") == 0)
+    {
+        video_interval = os_strtoul(argv[2], NULL, 10);
+    }
+    else if (os_strcmp(argv[1], "video_lock") == 0)
+    {
+        if (os_strtoul(argv[2], NULL, 10))
+        {
+            LOGI("video image lock\n");
+            video_lock = true;
+        }
+        else
+        {
+            LOGI("video image unlock\n");
+            video_lock = false;
+        }
+    }
+#endif
     else
     {
         goto cmd_fail;
