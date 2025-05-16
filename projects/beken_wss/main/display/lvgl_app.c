@@ -7,6 +7,8 @@
 #include "lvgl.h"
 #include "lv_img_utility.h"
 #include "bk_posix.h"
+#include "lv_comm_list.h"
+
 #endif
 #include "driver/drv_tp.h"
 #include <driver/lcd.h>
@@ -28,15 +30,20 @@ static lv_obj_t *label = NULL;
 static lv_timer_t *label_timer = NULL;
 static lv_ft_info_t info;
 static lv_style_t style;
-static int current_pos = 0; // current position
-static int text_length = 0; // text total length
-static char *text_data = NULL;
-static char *buffer = NULL;
 static uint32_t *file_content = NULL;
+static lv_comm_list_t *g_lv_font_list = NULL;
+
 typedef struct {
     uint8_t text_type;
     char *text_data;
 } lv_text_info_t;
+
+typedef struct {
+    char *text_data;
+    char *font_data;
+    uint32_t current_pos;    // current position
+    uint32_t text_length;    // text total length
+} lv_font_info_t;
 
 static int lv_get_utf8_char_length(const char *str)
 {
@@ -50,54 +57,65 @@ static int lv_get_utf8_char_length(const char *str)
 
 static void lvgl_label_timer_cb(lv_timer_t *timer)
 {
-    if (current_pos < text_length) {
-        int char_len = lv_get_utf8_char_length(&text_data[current_pos]);
-        os_strncpy(buffer, text_data, current_pos + char_len);
-        lv_label_set_text(label, buffer);
-        current_pos += char_len;
+    static uint16_t list_empty_count = 0;
+
+    if (!lv_comm_list_is_empty(g_lv_font_list)) {
+        lv_font_info_t *font_info = lv_comm_list_front(g_lv_font_list);
+
+        char font_buffer[1024] = {0};
+
+        if (font_info->current_pos < font_info->text_length) {
+            int char_len = lv_get_utf8_char_length(&font_info->text_data[font_info->current_pos]);
+            os_strncpy(font_buffer, font_info->text_data, font_info->current_pos + char_len);
+            lv_label_set_text(label, font_buffer);
+            font_info->current_pos += char_len;
+        } else {
+            list_empty_count = 0;
+            lv_comm_list_remove(g_lv_font_list, font_info);
+        }
     } else {
-        lv_timer_del(label_timer);
-        label_timer = NULL;
+        list_empty_count++;
+
+        if (list_empty_count == 20) {
+            lv_label_set_text(label, "");
+        }
     }
 }
 
 bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
 {
     lv_text_info_t *text_info = (lv_text_info_t *)msg->param;
-    current_pos = 0;
-    text_length = os_strlen(text_info->text_data);
+    uint32_t text_length = os_strlen(text_info->text_data);
     LOGI("text_length = %d\r\n", text_length);
 
-    if (label_timer) {
-        lv_timer_del(label_timer);
-        label_timer = NULL;
+    if (text_info->text_type == 0) {
+        lv_comm_list_clear(g_lv_font_list);
     }
 
-    if (text_data != NULL) {
-        psram_free(text_data);
-        text_data = NULL;
-        psram_free(buffer);
-        buffer = NULL;
-    }
-
-    buffer = psram_malloc(text_length + 1);
-    if (buffer == NULL) {
-        LOGE("%s %d buffer malloc failed\r\n", __func__, __LINE__);
+    lv_font_info_t *font = os_malloc(sizeof(lv_font_info_t));
+    if (font == NULL) {
+        LOGE("%s %d font malloc failed\r\n", __func__, __LINE__);
         return BK_FAIL;
     }
-    os_memset(buffer, 0x00, text_length + 1);
 
-    text_data = psram_malloc(text_length + 1);
+    char *text_data = psram_malloc(text_length);
     if (text_data == NULL) {
         LOGE("%s %d text_data malloc failed\r\n", __func__, __LINE__);
         return BK_FAIL;
     }
-    os_memset(text_data, 0x00, text_length + 1);
-    os_memcpy(text_data, text_info->text_data, text_length + 1);
+    os_memcpy(text_data, text_info->text_data, text_length);
 
-    lv_vendor_disp_lock();
-    label_timer = lv_timer_create(lvgl_label_timer_cb, 200, NULL);
-    lv_vendor_disp_unlock();
+    font->text_data = text_data;
+    font->current_pos = 0;
+    font->text_length = text_length;
+
+    lv_comm_list_append(g_lv_font_list, (void *)font);
+
+    if (label_timer == NULL) {
+        lv_vendor_disp_lock();
+        label_timer = lv_timer_create(lvgl_label_timer_cb, 180, NULL);
+        lv_vendor_disp_unlock();
+    }
 
     return BK_OK;
 }
@@ -121,6 +139,11 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 
     lv_ft_font_destroy(info.font);
 
+    if (g_lv_font_list) {
+        lv_comm_list_free(g_lv_font_list);
+        g_lv_font_list = NULL;
+    }
+
     lv_vendor_disp_unlock();
 
     lv_vendor_stop();
@@ -132,16 +155,6 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
         file_content = NULL;
     }
 
-    if (text_data) {
-        psram_free(text_data);
-        text_data = NULL;
-    }
-
-    if (buffer) {
-        psram_free(buffer);
-        buffer = NULL;
-    }
-
     return BK_OK;
 }
 
@@ -150,6 +163,12 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     LOGI("%s \n", __func__);
 
     lcd_open_t *lcd_open = (lcd_open_t *)msg->param;
+
+    g_lv_font_list = lv_comm_list_new();
+    if (!g_lv_font_list) {
+        LOGE("%s g_lv_font_list create failed\r\n", __func__);
+        return BK_FAIL;
+    }
 
     if (lv_vnd_config.draw_pixel_size == 0) {
 #ifdef CONFIG_LVGL_USE_PSRAM

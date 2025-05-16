@@ -25,6 +25,7 @@ list(APPEND srcs
    smart_config/bk_genie_smart_config.c
 )
 endif()
+
 if (CONFIG_NET_PAN)
 list(APPEND srcs
     bt_pan/bt_manager.c
@@ -44,6 +45,7 @@ endif()
 
 list(APPEND srcs
     display/lvgl_app.c
+    display/lv_comm_list.c
 )
 
 if (CONFIG_SYS_CPU2)
