@@ -12,15 +12,17 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/agora-iot-sdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty
     $ENV{ARMINO_PATH}/../components/multimedia
-	$ENV{ARMINO_PATH}/../components/avdk_utils
+    $ENV{ARMINO_PATH}/../components/avdk_utils
     $ENV{ARMINO_PATH}/../properties/modules 
     $ENV{ARMINO_PATH}/../properties/modules/video_codec
     $ENV{ARMINO_PATH}/../properties/modules/audio_codec
-	$ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
-	$ENV{ARMINO_PATH}/../components/bk_thirdparty/asr/wanson
-	$ENV{ARMINO_PATH}/../../components/bk_wanson_asr
-	$ENV{ARMINO_PATH}/../../components/bk_factory_config
-	$ENV{ARMINO_PATH}/../../properties/bk_aidk_private
+    $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
+    $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr/wanson
+    $ENV{ARMINO_PATH}/../../components/bk_wanson_asr
+    $ENV{ARMINO_PATH}/../../components/bk_factory_config
+    $ENV{ARMINO_PATH}/../../properties/bk_aidk_private
+    $ENV{ARMINO_PATH}/components/base64
+    $ENV{ARMINO_PATH}/components/bk_modem
     )
 
 include($ENV{ARMINO_PATH}/tools/build_tools/cmake/project.cmake)
