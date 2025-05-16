@@ -25,6 +25,8 @@ void CountdownCallback()
 void start_countdown(uint32_t time_ms)
 {
     bk_err_t result;
+    LOGI("%s no need countdown\n", __func__);
+    return;
 
 	if (g_countdown_timer.handle == NULL)
 	{
@@ -45,13 +47,14 @@ void start_countdown(uint32_t time_ms)
 		rtos_oneshot_reload_timer_ex(&g_countdown_timer,time_ms,CountdownCallback,NULL, NULL);
 		LOGI("rtos_oneshot_reload_timer_ex time is %d\r\n",time_ms);
 	}
-    
+
 }
 
 void stop_countdown()
 {
-    
 	bk_err_t ret;
+    LOGI("%s no need countdown\n", __func__);
+    return;
 
 	if (rtos_is_oneshot_timer_init(&g_countdown_timer)) {
 		if (rtos_is_oneshot_timer_running(&g_countdown_timer)) {
