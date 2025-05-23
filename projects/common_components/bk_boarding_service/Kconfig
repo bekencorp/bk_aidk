@@ -1,0 +1,6 @@
+menu "Beken Common Components Boarding Service"
+	config BK_BOARDING_SERVICE
+		bool "Enable Beken Smart Config"
+		depends on BK_SMART_CONFIG
+		default y
+endmenu

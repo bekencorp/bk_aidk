@@ -26,18 +26,6 @@ menu "Beken_Genie Project Configuration"
             0 - QSPI_ID_0
             1 - QSPI_ID_1
 
-    config NETWORK_AUTO_RECONNECT
-        bool "Enable auto reconnect Network"
-        default y
-
-    config ENABLE_AGORA_DATASTREAM
-        bool "Enable Agora Data Stream"
-        default n
-
-    config BK_AGORA_DEV_STARTUP_AGENT
-        bool "Enable start agent on device"
-        default n
-
     choice G722_CODEC_RUN_CPU
         prompt "Select G722 Codec run cpu"
         default G722_CODEC_RUN_ON_CPU1

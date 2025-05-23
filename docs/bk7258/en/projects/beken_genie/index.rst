@@ -215,7 +215,7 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     Please refer to the document: `Aud_Intf API User Guide <../../api-reference/bk_aud_intf.html>`_
 
-    The default path for the prompt tone file resources: ``<source code>/projects/beken_genie/main/resource/``
+    The default path for the prompt tone file resources: ``<source code>/projects/common_components/resource/``
 
 1.11 countdown
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

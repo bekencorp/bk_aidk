@@ -6,8 +6,8 @@ app,,2856k,code,TRUE,FALSE
 app1,,680k,code,TRUE,FALSE
 app2,,476k,code,TRUE,FALSE
 s_app,,4012k,data,TRUE,
-usr_config,,76K,data,TRUE,
-easyflash,0x7fb000,8K,data,TRUE,
+usr_config,,64K,data,TRUE,
+easyflash,0x7f9000,16K,data,TRUE,
 ota_fina_executive,0x7fd000,4K,data,TRUE,
 rf_firmware,0x7fe000,4k,data,TRUE,
 net_param,0x7ff000,4k,data,TRUE,

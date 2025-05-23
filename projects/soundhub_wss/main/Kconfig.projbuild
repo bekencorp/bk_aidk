@@ -9,6 +9,7 @@ menu "Beken_Genie Project Configuration"
         bool "hfp hf demo"
         depends on BT
         default n
+
     config LDO3V3_ENABLE
         bool "Enabel LDO_3V3"
         default n

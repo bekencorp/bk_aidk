@@ -1,4 +1,4 @@
-set(incs . main ../../beken_genie/main/ ../../beken_genie/main/include ../../beken_genie/main/asr ../../beken_genie/main/bt_pan)
+set(incs . main ../../beken_genie/main/ ../../beken_genie/main/include)
 set(srcs)
 
 list(APPEND srcs
@@ -7,56 +7,7 @@ list(APPEND srcs
 
 if (CONFIG_SYS_CPU0)
 list(APPEND srcs
-    ../../beken_genie/main/app_event.c
-    ../../beken_genie/main/agora_rtc_demo.c
-    ../../beken_genie/main/agora_sdk/agora_rtc.c
-    ../../beken_genie/main/audio/audio_transfer.c
-    ../../beken_genie/main/boarding_service/boarding_core.c
-    ../../beken_genie/main/boarding_service/boarding_service.c
-    ../../beken_genie/main/boarding_service/wifi_boarding_utils.c
-    ../../beken_genie/main/agora_debug.c
-    ../../beken_genie/main/led_blink.c
-    ../../beken_genie/main/countdown.c
-    ../../beken_genie/main/motor.c
    ../../beken_genie/main/audio_para.c
-)
-if (CONFIG_NETWORK_AUTO_RECONNECT)
-list(APPEND srcs
-   ../../beken_genie/main/smart_config/bk_genie_smart_config.c
-)
-endif()
-if (CONFIG_NET_PAN)
-list(APPEND srcs
-    ../../beken_genie/main/bt_pan/bt_manager.c
-    ../../beken_genie/main/bt_pan/pan_service.c
-    ../../beken_genie/main/bt_pan/pan_demo_cli.c
-    ../../beken_genie/main/bt_pan/storage/bluetooth_storage.c
-    ../../beken_genie/main/bt_pan/bt_comm_list.c
-    ../../beken_genie/main/bt_pan/hidd_service.c
-)
-endif()
-endif()
-
-if (CONFIG_SYS_CPU1)
-list(APPEND srcs
-    ../../beken_genie/main/agora_debug.c
-)
-endif()
-
-if (CONFIG_LVGL)
-list(APPEND srcs
-    ../../beken_genie/main/display/lv_font.c
-)
-endif()
-
-list(APPEND srcs
-    ../../beken_genie/main/display/avi_play.c
-    ../../beken_genie/main/display/ota_display.c
-)
-
-if (CONFIG_SYS_CPU2)
-list(APPEND srcs
-    ../../beken_genie/main/asr/armino_asr.c
 )
 endif()
 
@@ -66,5 +17,9 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
     )
 endif()
 
-
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service ota bk_nfc)
+armino_component_register(SRCS "${srcs}" 
+    INCLUDE_DIRS "${incs}" 
+    PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json wanson 
+    bk_wanson_asr bk_factory_config bk_nfc bk_app_event bk_countdown bk_led_blink bk_motor bk_boarding_service 
+    bk_smart_config bk_bt bk_key_app asr audio_engine video_engine network_transfer dual_screen_avi_play
+)

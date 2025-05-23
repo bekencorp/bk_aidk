@@ -6,39 +6,10 @@ list(APPEND srcs
 )
 
 if (CONFIG_SYS_CPU0)
-
-if (CONFIG_NETWORK_AUTO_RECONNECT)
 list(APPEND srcs
-    smart_config/bk_genie_smart_config.c
+    audio_para.c
 )
 endif()
-
-
-list(APPEND incs
-            volc_sdk
-)
-
-list(APPEND srcs
-    volc_sdk/volc_rtc_trigger.c
-    volc_sdk/volc_rtc.c
-)
-
-if (CONFIG_HTTP_REQUEST_AGENT)
-list(APPEND srcs
-    volc_sdk/RtcBotUtils.c
-    volc_sdk/RtcHttpUtils.c
-)
-endif()
-
-endif()
-
-if (CONFIG_SYS_CPU1)
-list(APPEND srcs
-
-)
-endif()
-
-
 
 if (CONFIG_OVERRIDE_FLASH_PARTITION)
     list(APPEND srcs
@@ -46,9 +17,9 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
     )
 endif()
 
-
 armino_component_register(SRCS "${srcs}" 
     INCLUDE_DIRS "${incs}" 
-    PRIV_REQUIRES bk_init lwip_intf_v2_1 VolcEngineRTCLite media_service multimedia avdk_utils bk_genie_core
-                  mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service ota bk_nfc)
-
+    PRIV_REQUIRES bk_init lwip_intf_v2_1 VolcEngineRTCLite media_service multimedia avdk_utils mbedtls json wanson 
+    bk_wanson_asr bk_factory_config bk_nfc bk_app_event bk_countdown bk_led_blink bk_motor bk_boarding_service 
+    bk_smart_config bk_bt bk_key_app asr audio_engine video_engine network_transfer
+)

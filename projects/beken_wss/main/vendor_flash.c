@@ -75,15 +75,15 @@ const bk_logic_partition_t bk_flash_partitions[BK_PARTITION_MAX_USER] = {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "ota",
         .partition_start_addr = 0x4c8000,
-        .partition_length = 0x77000,
+        .partition_length = 0x31f000,
         .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_USR_CONFIG_USER] = 
     {
         .partition_owner = BK_FLASH_EMBEDDED,
         .partition_description = "usr_config",
-        .partition_start_addr = 0x53f000,
-        .partition_length = 0x100000,
+        .partition_start_addr = 0x7e7000,
+        .partition_length = 0x15000,
         .partition_options = PAR_OPT_EXECUTE_DIS | PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
     [BK_PARTITION_EASYFLASH_USER] = 

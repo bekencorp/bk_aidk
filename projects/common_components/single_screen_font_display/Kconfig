@@ -1,0 +1,5 @@
+menu "Single_screen_font_display"
+    config SINGLE_SCREEN_FONT_DISPLAY
+    bool "Enable SINGLE_SCREEN_FONT_DISPLAY"
+    default n
+endmenu

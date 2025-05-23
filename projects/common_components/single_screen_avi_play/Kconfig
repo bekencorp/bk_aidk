@@ -1,0 +1,5 @@
+menu "Single_screen_avi_play"
+    config SINGLE_SCREEN_AVI_PLAY
+    bool "Enable SINGLE_SCREEN_AVI_PLAY"
+    default n
+endmenu

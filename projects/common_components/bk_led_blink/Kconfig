@@ -1,0 +1,5 @@
+menu "led_blink"
+	  config LED_BLINK
+        bool "Enable LED_BLINK"
+        default n
+endmenu

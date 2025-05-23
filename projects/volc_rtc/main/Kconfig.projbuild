@@ -1,19 +1,13 @@
 menu "volc_rtc Project Configuration"
-    config VOLC_RTC_DEMO_ENABLE
-        bool "Enable volc_rtc demo"
+    config LDO3V3_ENABLE
+        bool "Enabel LDO_3V3"
         default n
 
-    config HTTP_REQUEST_AGENT
-        bool "Start agent by http request"
-        default n
-
-	config ENABLE_AGORA_DATASTREAM
-		bool "Enable Agora Data Stream"
-		default n
-
-	config BK_AGORA_DEV_STARTUP_AGENT
-                bool "Enable start agent on device"
-                default n
+    config LDO3V3_CTRL_GPIO
+        depends on LDO3V3_ENABLE
+        int "Set LDO_3V3 Control Gpio"
+        range 0 100
+        default 52
 				
     config HARDWARE_SPEAKER_VER
         int "select HARDWARE_SPEAKER_VER"

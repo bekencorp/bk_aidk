@@ -1,0 +1,22 @@
+menu "audio engine"
+	config AUDIO_FRAME_DURATION_MS
+		int "default audio frame duration in ms"
+		range 20 60
+		default 20
+
+	config AUDIO_ADC_SAMP_RATE
+		int "ADC sample rate"
+		default 16000
+
+	config AUDIO_DAC_SAMP_RATE
+		int "DAC sample rate"
+		default 16000
+
+	config AUDIO_ENCODER_TYPE
+		string "DAC sample rate"
+		default "G722"
+
+	config AUDIO_DECODER_TYPE
+		string "DAC sample rate"
+		default "G722"
+endmenu

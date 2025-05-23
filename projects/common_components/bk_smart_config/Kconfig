@@ -1,0 +1,20 @@
+menu "Beken Common Components Smart Config"
+	config BK_SMART_CONFIG
+		bool "Enable Beken Smart Config"
+		depends on SYS_CPU0
+		default y
+
+	config NETWORK_AUTO_RECONNECT
+		bool "Enable auto reconnect Network"
+		depends on BK_SMART_CONFIG
+		default y
+		
+	config ENABLE_AGORA_DATASTREAM
+		bool "Enable Agora Data Stream"
+		depends on AGORA_IOT_SDK
+		default n
+		
+	config BK_DEV_STARTUP_AGENT
+        bool "Enable start agent on device"
+		default n
+endmenu

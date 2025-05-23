@@ -1,4 +1,4 @@
-set(incs . include asr bt_pan)
+set(incs . include)
 set(srcs)
 
 list(APPEND srcs
@@ -7,50 +7,7 @@ list(APPEND srcs
 
 if (CONFIG_SYS_CPU0)
 list(APPEND srcs
-    app_event.c
-    websocket_rtc_demo.c
-    beken_sdk/beken_rtc.c
-    audio/audio_transfer.c
-    boarding_service/boarding_core.c
-    boarding_service/boarding_service.c
-    boarding_service/wifi_boarding_utils.c
-    beken_debug.c
-    led_blink.c
-    countdown.c
-    motor.c
     audio_para.c
-)
-if (CONFIG_NETWORK_AUTO_RECONNECT)
-list(APPEND srcs
-   smart_config/bk_genie_smart_config.c
-)
-endif()
-
-if (CONFIG_NET_PAN)
-list(APPEND srcs
-    bt_pan/bt_manager.c
-    bt_pan/pan_service.c
-    bt_pan/pan_demo_cli.c
-    bt_pan/storage/bluetooth_storage.c
-    bt_pan/bt_comm_list.c
-)
-endif()
-endif()
-
-if (CONFIG_SYS_CPU1)
-list(APPEND srcs
-    beken_debug.c
-)
-endif()
-
-list(APPEND srcs
-    display/lvgl_app.c
-    display/lv_comm_list.c
-)
-
-if (CONFIG_SYS_CPU2)
-list(APPEND srcs
-    asr/armino_asr.c
 )
 endif()
 
@@ -60,5 +17,9 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
     )
 endif()
 
-
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service ota)
+armino_component_register(SRCS "${srcs}" 
+    INCLUDE_DIRS "${incs}" 
+    PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json wanson 
+    bk_wanson_asr bk_factory_config bk_nfc bk_app_event bk_countdown bk_led_blink bk_motor bk_boarding_service 
+    bk_smart_config bk_bt bk_key_app asr audio_engine video_engine network_transfer
+)

@@ -34,7 +34,7 @@ const struct factory_config_t s_platform_config[] = {
     {"sys_initialized", (void *)"1", 1, BK_FALSE, 1},   // first config used to check whether factory config initialized.
     {"volume", (void *)&s_factory_volume, 4, BK_TRUE, 4},
     {"d_network_id", (void *)"\0", 1, BK_TRUE, 198},
-    {"d_agent_info", (void *)"\0", 1, BK_TRUE, 162},
+    {"d_agent_info", (void *)"\0", 1, BK_TRUE, 460},
 };
 
 static const struct factory_config_t *s_user_reg_config = NULL;
@@ -354,7 +354,7 @@ void bk_config_sync_flash(void)
             (void *)s_factory_cache_map[i].ptr, s_factory_cache_map[i].valid_len)) {
             LOGI("update %s\r\n", s_factory_cache_map[i].key);
             bk_factory_write_flash(s_factory_cache_map[i].key, (void *)s_factory_cache_map[i].ptr,
-                                   s_factory_cache_map[i].size);
+                                   s_factory_cache_map[i].valid_len);
         }
     }
     if (buffer != NULL) {

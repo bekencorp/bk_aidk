@@ -18,7 +18,7 @@ function(set_local_library_compile_option input_target)
     target_compile_options(${input_target} PRIVATE ${local_compile_option})
 endfunction()
 
-set(incs . include asr)
+set(incs . include)
 set(srcs)
 
 list(APPEND srcs
@@ -27,102 +27,9 @@ list(APPEND srcs
 
 if (CONFIG_SYS_CPU0)
 	list(APPEND srcs
-	    app_event.c
 	    app_audio_arbiter.c
-	    agora_rtc_demo.c
-	    agora_sdk/agora_rtc.c
-	    audio/audio_transfer.c
-	    boarding_service/boarding_core.c
-	    boarding_service/boarding_service.c
-	    boarding_service/wifi_boarding_utils.c
-	    agora_debug.c
-	    led_blink.c
-	    countdown.c
-	    motor.c
-            audio_para.c
-	)
-
-if (CONFIG_NETWORK_AUTO_RECONNECT)
-    list(APPEND srcs
-       smart_config/bk_genie_smart_config.c
-    )
-endif()
-
-
-if (CONFIG_BT)
-
-    list(APPEND incs
-        bt
-    )
-
-	list(APPEND srcs
-	    bt/bt_manager.c
-	    bt/storage/bluetooth_storage.c
-	    bt/bt_comm_list.c
-	)
-
-
-if (CONFIG_NET_PAN)
-	list(APPEND srcs
-	    bt/pan_service.c
-	    bt/pan_demo_cli.c
-	)
-endif()
-
-if (CONFIG_A2DP_SINK_DEMO)
-
-    list(APPEND incs
-        bt/a2dp_sink
-    )
-
-    list(APPEND srcs
-        bt/a2dp_sink/a2dp_sink_demo.c
-        bt/a2dp_sink/ring_buffer_node.c
-        bt/a2dp_sink/mpeg4_latm_dec.c
-        bt/a2dp_sink_demo_cli.c
-    )
-endif()
-
-if (CONFIG_HFP_HF_DEMO)
-    list(APPEND incs
-        bt/hfp_hf
-    )
-
-    list(APPEND srcs
-        bt/hfp_hf/hfp_hf_demo.c
-        bt/hfp_hf/ring_buffer_particle.c
-    )
-endif()
-
-endif()
-
-if (CONFIG_BLE OR CONFIG_BT)
-    list(APPEND incs
-        bt/storage
-    )
-
-    list(APPEND srcs
-        bt/storage/bluetooth_storage.c
-    )
-endif()
-
-endif()
-
-
-if (CONFIG_SYS_CPU1)
-    list(APPEND srcs
-        agora_debug.c
-    )
-endif()
-
-list(APPEND srcs
-    display/avi_play.c
-    display/ota_display.c
-)
-
-if (CONFIG_SYS_CPU2)
-    list(APPEND srcs
-        asr/armino_asr.c
+        audio_para.c
+        app_evt_process.c
     )
 endif()
 
@@ -132,12 +39,15 @@ if (CONFIG_OVERRIDE_FLASH_PARTITION)
     )
 endif()
 
-armino_component_register(
-    SRCS "${srcs}"
+armino_component_register(SRCS "${srcs}"
     INCLUDE_DIRS "${incs}"
-    PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service audio_play audio_record ota
+    PRIV_REQUIRES bk_init lwip_intf_v2_1 agora-iot-sdk media_service multimedia avdk_utils mbedtls json lvgl bk_vfs wanson bk_wanson_asr bk_factory_config display_service audio_play audio_record ota bk_countdown bk_led_blink bk_motor
+    bk_wanson_asr bk_factory_config bk_nfc bk_app_event bk_countdown bk_led_blink bk_motor bk_boarding_service
+    bk_smart_config bk_bt bk_key_app asr audio_engine video_engine network_transfer
 )
 
-get_filename_component(config_component_name ${CMAKE_CURRENT_LIST_DIR} NAME)
-armino_component_get_target(target "${config_component_name}")
-set_local_library_compile_option(${target})
+message("zczczczc ${srcs}")
+
+#get_filename_component(config_component_name ${CMAKE_CURRENT_LIST_DIR} NAME)
+#armino_component_get_target(target "${config_component_name}")
+#set_local_library_compile_option(${target})

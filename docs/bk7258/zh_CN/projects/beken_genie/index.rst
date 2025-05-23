@@ -208,7 +208,7 @@ Beken Genie AI
 
     请参考文档：`音频组件开发指南 <../../api-reference/bk_aud_intf.html>`_
 
-    默认提示音文件资源路径：``<source code>/projects/beken_genie/main/resource/``
+    默认提示音文件资源路径：``<source code>/projects/common_components/resource/``
 
 1.11 倒计时
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

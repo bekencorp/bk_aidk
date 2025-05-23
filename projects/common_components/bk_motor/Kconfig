@@ -1,0 +1,6 @@
+menu "motor"
+    config MOTOR
+        depends on PWM
+        bool "Enable MOTOR"
+        default n
+endmenu

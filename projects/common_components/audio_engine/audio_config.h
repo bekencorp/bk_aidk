@@ -1,0 +1,60 @@
+#ifndef __AUDIO_CONFIG_H__
+#define __AUDIO_CONFIG_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+//#define CONFIG_AUDIO_ONLY
+//#define CONFIG_USE_G711U_CODEC
+//#define CONFIG_USE_G711A_CODEC
+
+//#define CONFIG_UVC_CAMERA  /* config CONFIG_USB_UVC in cp1 */
+//#define CONFIG_DVP_CAMERA
+
+#define SPK_GAIN_MAX        (0X15)
+#define SPK_VOLUME_LEVEL (11) //[0,10]
+
+#define BANDWIDTH_ESTIMATE_MIN_BITRATE   (500000)
+#define BANDWIDTH_ESTIMATE_MAX_BITRATE   (2000000)
+#define BANDWIDTH_ESTIMATE_START_BITRATE (800000)
+
+#if defined(CONFIG_USE_G711U_CODEC)   //G711U
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            320
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#elif defined(CONFIG_USE_G711A_CODEC) // G711A
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            320
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#elif CONFIG_AUD_INTF_SUPPORT_G722  // G722
+#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#endif
+#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_TYPE_G722
+#define CONFIG_PCM_FRAME_LEN            640
+#define CONFIG_PCM_SAMPLE_RATE          16000
+#define CONFIG_PCM_CHANNEL_NUM          1
+#define CONFIG_SEND_PCM_DATA
+#endif
+#else                                // DISABLE
+#define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
+#define CONFIG_PCM_FRAME_LEN            160
+#define CONFIG_PCM_SAMPLE_RATE          8000
+#define CONFIG_PCM_CHANNEL_NUM          1
+// #define CONFIG_SEND_PCM_DATA
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+#endif /* __AUDIO_CONFIG_H__ */

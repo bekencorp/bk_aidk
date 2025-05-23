@@ -1,0 +1,33 @@
+menu "video_engine"
+
+	choice VIDEO_ENGINE_USE_CAMERA_TYPE
+		prompt "Select video engine use camera type"
+		default VIDEO_ENGINE_USE_DVP_CAMERA
+
+		config VIDEO_ENGINE_USE_DVP_CAMERA
+		bool "Select DVP camera"
+		help
+			Select DVP camera
+
+		config VIDEO_ENGINE_USE_UVC_CAMERA
+		bool "Select UVC camera"
+		help
+			Select UVC camera
+	endchoice
+
+	choice VIDEO_ENGINE_IMAGE_FORMAT
+		prompt "Select video engine image format"
+		default VIDEO_ENGINE_JPEG_FORMAT
+
+		config VIDEO_ENGINE_JPEG_FORMAT
+		bool "Select JPEG image format"
+		help
+			Select JPEG image format
+
+		config VIDEO_ENGINE_H264_FORMAT
+		bool "Select H264 image format"
+		help
+			Select H264 image format
+	endchoice
+
+endmenu

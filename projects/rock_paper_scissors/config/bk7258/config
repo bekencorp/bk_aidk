@@ -1,117 +1,59 @@
-#@ Enable Override Flash Partition
 CONFIG_OVERRIDE_FLASH_PARTITION=y
-#@ Enable Memory Protect Unit Feature
 CONFIG_MPU=y
-#@ Enable Cache
 CONFIG_CACHE_ENABLE=n
-#@ When this option is enable, more memory will be consumed because
 CONFIG_MEM_DEBUG=n
-#@ Use an external 32k crystal
 CONFIG_EXTERN_32K=n
-#@ Enable LCD_ST7282 API
 CONFIG_LCD_ST7282=y
-#@ Enable LCD_HX8282 API
 CONFIG_LCD_HX8282=y
-#@ Enable LCD_ST7796S API
 CONFIG_LCD_ST7796S=y
-#@ Enable LCD_GC9503V API
 CONFIG_LCD_GC9503V=y
-#@ Enable LCD_NT35512 API
 CONFIG_LCD_NT35512=y
-#@ Enable LCD_NT35510 API
 CONFIG_LCD_NT35510=y
-#@ Enable LCD_NT35510_MCU API
 CONFIG_LCD_NT35510_MCU=y
-#@ Enable LCD_H050IWV API
 CONFIG_LCD_H050IWV=y
-#@ Enable LCD_MD0430R API
 CONFIG_LCD_MD0430R=y
-#@ Enable LCD_MD0700R API
 CONFIG_LCD_MD0700R=y
 CONFIG_LCD_ST7710S=y
-#@ Enable LCD_ST7701S API
 CONFIG_LCD_ST7701S=y
-#@ Enable LCD_ST7701S_LY API
 CONFIG_LCD_ST7701S_LY=y
-#@ Enable LCD_ST7789V API
 CONFIG_LCD_ST7789V=y
-#@ 32k use the 26m divide
 CONFIG_LPO_SRC_26M32K=y
-#@ Enable PSRAM write through
 CONFIG_PSRAM_WRITE_THROUGH=y
-#@ BT reuse media memory at beging of cpu1
 CONFIG_BT_REUSE_MEDIA_MEMORY=y
-#@ BT reuse media memory size
 CONFIG_BT_REUSE_MEDIA_MEM_SIZE=0x1B000
-#@ System tick count per second, can be 1-1000
 CONFIG_FREERTOS_TICK_RATE_HZ=1000
-#@ Set the size of the heap memory. The recommended value is 51200 .
 CONFIG_LWIP_MEM_SIZE=89600
-#@ Set the size of the max memory tx used. The recommended value is
 CONFIG_LWIP_MEM_MAX_TX_SIZE=40200
-#@ Set the size of the max memory rx used. The recommended value is
 CONFIG_LWIP_MEM_MAX_RX_SIZE=40600
-#@ use fast connect
 CONFIG_WIFI_FAST_CONNECT=y
-#@ Enable Wifi Default Connect
 CONFIG_ENABLE_WIFI_DEFAULT_CONNECT=y
-#@ use previous dhcp ip address
 CONFIG_WIFI_FAST_DHCP=y
-#@ Set transfer app task size
 CONFIG_TRANS_APP_TASK_SIZE=1024
-#@ Audio ring buff safe interval
 CONFIG_AUD_RING_BUFF_SAFE_INTERVAL=4
-#@ 0
 CONFIG_DMA_LOGIC_CHAN_ID_MIN=0
-#@ MENTOR_USB
 CONFIG_MENTOR_USB=n
-#@ CHERRY_USB
 CONFIG_CHERRY_USB=n
-#@ Enable AEC V2 Version
 CONFIG_AEC_VERSION_V2=y
-#@ Enable LDO_3V3
 CONFIG_LDO3V3_ENABLE=y
-#@ Set LDO_3V3 Control Gpio
 CONFIG_LDO3V3_CTRL_GPIO=52
-#@ CPU0 RAM size for SPE
 CONFIG_CPU0_SPE_RAM_SIZE=0X3C000
-#@ CPU1 app RAM size
 CONFIG_CPU1_APP_RAM_SIZE=0X64000
-#@ CPU2 app RAM size
 CONFIG_CPU2_APP_RAM_SIZE=0X0000
-#@ Enable Iperf Test
 CONFIG_IPERF_TEST=n
-#@ Enable touch demos
 CONFIG_TOUCH_TEST=n
-#@ Enable Aon Pmu Test
 CONFIG_AON_PMU_TEST=n
-#@ Enable Audio driver test
 CONFIG_AUDIO_TEST=n
-#@ Enable I2S Test
 CONFIG_I2S_TEST=n
-#@ Enable TOUCH
 CONFIG_TOUCH=n
-#@ Enable Psram Test
 CONFIG_PSRAM_TEST=n
-#@ Enable Interrupt Test
 CONFIG_INTERRUPT_TEST=n
-#@ Set psram_malloc base address
 CONFIG_PSRAM_HEAP_CPU0_BASE_ADDER=0x60700000
-#@ The psram address is from 0x60000000 to 0x60800000 for psram aps6408l_o
 CONFIG_PSRAM_HEAP_BASE=0x60700000
-#@ psram aps6408l-o
 CONFIG_PSRAM_HEAP_SIZE=0x10000
-#@ Enable LIN
 CONFIG_LIN=y #can't open dvp camera and lcd sametime if false
-#@ the gpio id control camera power
 CONFIG_CAMERA_CTRL_POWER_GPIO_ID=49
-#@ the gpio id control camera reset pin, -1 means not used
 CONFIG_CAMERA_CTRL_RESET_GPIO_CTRL=28
-#@ Simulate I2C SDA GPIO
 CONFIG_SIM_I2C_SDA_GPIO=43
-#@ Simulate I2C SCL GPIO
 CONFIG_SIM_I2C_SCL_GPIO=42
-#@ Create FreeRTOS Task stack in psram
 CONFIG_TASK_STACK_IN_PSRAM=n
-#@ Cpu1 core offset address default 0x2e0000
 CONFIG_SYS_CPU1_OFFSET=0x21d0000
