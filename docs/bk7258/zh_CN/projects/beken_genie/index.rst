@@ -288,79 +288,56 @@ Beken Genie AI
     +----------------------------------------+----------------+---------------+----------------+
     |Kconfig                                 |   CPU          |   Format      |      Value     |
     +----------------------------------------+----------------+---------------+----------------+
-    |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
+    |CONFIG_BK_SMART_CONFIG                  |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
 
 
-2.5 配网及agent定制指南
+2.5 BLE配网及agent定制指南
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
- 配网及agent相关代码主要分布在bk_genie_smart_config.c及boarding_core.c，客户可以参考如下说明定制自己的方案
+ BLE配网及agent相关代码主要分布在projects/common_components/bk_boarding_service目录及projects/common_components/bk_smart_config目录，客户可以参考如下说明定制自己的方案
 
-1、bk_genie_smart_config_init负责配网相关初始化及开机自动重连判定
-
-.. code::
-
-    int bk_genie_smart_config_init(void)
-    {
-        int flag;
-
-        event_handler_init();
-        flag = demo_network_auto_reconnect(false);   //判断是否保存过配网信息及发起重连
-
-        if (flag != 0x71l && flag != 0x73l
-    #if CONFIG_NET_PAN                               //CONFIG_NET_PAN配置PAN相关代码
-            && flag != 0x74l
-    #endif
-        ) {
-            bk_genie_prepare_for_smart_config();     //未保存过配网信息，自动进入配网模式
-        }
-        else
-        {
-    #if CONFIG_NET_PAN
-            if (flag != 0x74l)
-    #endif
-            {
-                bk_bluetooth_deinit();
-            }
-        }
-
-        return 0;
-    }
-
-
-2、bk_genie_prepare_for_smart_config 进入配网模式
+1、bk_sconf_prepare_for_smart_config 进入BLE配网模式
 
 .. code::
 
-    void bk_genie_prepare_for_smart_config(void)
+    void bk_sconf_prepare_for_smart_config(void)
     {
         smart_config_running = true;
+        first_time_for_network_reconnect = true;
     #if CONFIG_STA_AUTO_RECONNECT
         first_time_for_network_provisioning = true;
     #endif
-        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);    //进入配网模式红绿交替闪灯提示
-        network_reconnect_stop_timeout_check();                 //关闭重连超时检测
-        agora_stop();
-        bk_wifi_sta_stop();
-    #if !CONFIG_STA_AUTO_RECONNECT                              //CONFIG_STA_AUTO_RECONNECT默认关闭，使用beken重连策略
-        demo_erase_network_auto_reconnect_info();               //默认版本进入配网模式不会擦除配网信息
-        bk_genie_erase_agent_info();                            //默认版本进入配网模式不会擦除agent信息
+        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);//进入配网模式红绿交替闪灯提示
+        network_reconnect_stop_timeout_check();             //关闭重连超时检测
+        bk_sconf_trans_stop();                              //关闭设备端rtc及多媒体服务
+        bk_wifi_sta_stop();                                 //关闭wifi
+    #if CONFIG_BK_MODEM
+    extern bk_err_t bk_modem_deinit(void);
+      bk_modem_deinit();                                    //若使能4G模块，关闭4G模块
     #endif
-        bk_bt_enter_pairing_mode(0);                            //BT恢复到初始状态
+    #if !CONFIG_STA_AUTO_RECONNECT                          //CONFIG_STA_AUTO_RECONNECT默认关闭，使用beken重连策略
+        demo_erase_network_auto_reconnect_info();           //默认版本进入配网模式不会擦除配网信息
+        bk_sconf_erase_agent_info();                        //默认版本进入配网模式不会擦除agent信息
+    #endif
 
-        extern bool ate_is_enabled(void);
+    #if CONFIG_NET_PAN && !CONFIG_A2DP_SINK_DEMO && !CONFIG_HFP_HF_DEMO
+        bk_bt_enter_pairing_mode(0);                        //BT恢复到初始状态
+    #else
+        BK_LOGW(TAG, "%s pan disable !!!\n", __func__);
+    #endif
+    extern bool ate_is_enabled(void);
 
         if (!ate_is_enabled())
         {
-            bk_genie_boarding_init();                           //BLE配网初始化
-            wifi_boarding_adv_start();                          //BLE开启广播，进入配网模式
+            bk_genie_boarding_init();                       //BLE配网初始化
+            wifi_boarding_adv_start();                      //BLE开启广播，进入配网模式
         }
         ......
     }
 
 
-3、bk_genie_message_handle负责和手机app通过BLE交互配网信息，如下代码客户可disable，使用自己的方案
+2、bk_genie_message_handle负责和手机app通过BLE交互配网信息，如下代码客户可disable，使用自己的方案
 
 .. code::
 
@@ -369,29 +346,105 @@ Beken Genie AI
             ……
         case DBEVT_START_AGORA_AGENT_START:
         {
-            ……
-            //上传module uid，若客户自行搭建服务器，可以不用这段代码
-            ……
+            LOGI("DBEVT_START_AGORA_AGENT_START\n");
+            char payload[256] = {0};
+            __maybe_unused uint16_t len = 0;
+            //上传module uid等信息到beken服务器，若客户自行搭建服务器，可以不用这段代码，也可以参照本小节3修改bk_sconf_send_agent_info实现
+            len = bk_sconf_send_agent_info(payload, 256);
+            bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGENT_INFO, 0, payload, len);
         }
         break;
         case DBEVT_START_AGORA_AGENT_RSP:
         {
-            ……
-            //接收服务器分配的channel name，若客户自行搭建服务器，可以不用这段代码
-            ……
+            LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
+            //接收beken服务器服务器分配的channel name等信息，若客户自行搭建服务器，可以不用这段代码，也可以参照本小节4修改bk_sconf_prase_agent_info实现
+            bk_sconf_prase_agent_info((char *)msg.param, 1);
         }
         break;
             ……
     }
 
-4、bk_genie_wakeup_agent负责Agent启动，beken支持服务器端起agent（客户定制需要自己搭建服务器）以及在开发板起agent两种方案，默认使用在服务器起
+
+3、bk_sconf_send_agent_info负责在配网阶段将agent配置参数发送给APK
+  代码路径：projects/common_components/bk_smart_config/src/adapter/agora/bk_smart_config_agora_adapter.c
 
 .. code::
 
-    int bk_genie_wakeup_agent(void)
+    uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
     {
-    //使能这个宏在开发板起agent
-    #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+        unsigned char uid[32] = {0};
+        char uid_str[65] = {0};
+        uint16 len = 0;
+
+        bk_uid_get_data(uid);
+        for (int i = 0; i < 24; i++)
+        {
+            sprintf(uid_str + i * 2, "%02x", uid[i]);
+        }
+        //如下参数是beken服务器启动agent时，需要动态配置的，客户可以根据自己方案定制成自己的
+        len = os_snprintf(payload, max_len, "{\"channel\":\"%s\",\"agent_param\": {", uid_str);
+    #if CONFIG_AUDIO_FRAME_DURATION_MS
+        len += os_snprintf(payload+len, max_len, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
+    #endif
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+        len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"OPUS\"");
+    #else
+        len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"G722\"");
+    #endif
+        len += os_snprintf(payload+len, max_len, "}}");
+        BK_LOGI(TAG, "ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
+        return len;
+    }
+
+
+4、bk_sconf_prase_agent_info负责在配网阶段解析服务器启动agent后的返回参数（如app_id, channel_name等），用于启动设备端RTC
+  代码路径：projects/common_components/bk_smart_config/src/adapter/agora/bk_smart_config_agora_adapter.c
+
+.. code::
+
+    void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
+    {
+        ......
+        //解析app_id及channel_name
+        cJSON *app_id = cJSON_GetObjectItem(json, "app_id");
+        if (app_id && ((app_id->type & 0xFF) == cJSON_String))
+        {
+           app_id_record = os_strdup(app_id->valuestring);
+        }
+        else
+        {
+            BK_LOGE(TAG, "[Error] not find msg\n");
+        }
+
+        cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
+        if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
+        {
+            channel_name_record = os_strdup(channel_name->valuestring);
+            BK_LOGI(TAG, "real channel name:%s\r\n", channel_name_record);
+        }
+        ......
+        if (app_id_record && channel_name_record)
+        {
+            //保存到easy flash缓存
+            bk_sconf_save_agent_info(app_id_record, channel_name_record);
+            BK_LOGI(TAG, "begin agora_auto_run\n");
+            //强制更新到easy flash
+            ret = bk_config_sync_flash_safely();
+            if (ret)
+                BK_LOGE(TAG, "sync flash fail!!!\r\n");
+            //启动声网agent及设备端rtc等
+            agora_auto_run(reset);
+            ......
+    }
+
+
+5、bk_sconf_wakeup_agent负责Agent启动，beken支持服务器端起agent（客户定制需要自己搭建服务器）以及在开发板起agent两种方案，默认使用在服务器起
+
+.. code::
+
+    int bk_sconf_wakeup_agent(void)
+    {
+    #if CONFIG_BK_DEV_STARTUP_AGENT
         agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
         __maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
         unsigned char uid[32] = {0};
@@ -410,18 +463,18 @@ Beken Genie AI
             chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
         agent_conf.channel = os_zalloc(chan_len+1);
         os_strcpy(agent_conf.channel, chan_name);
-
         //客户需要在CUSTOM_LLM_DEFAULT_OPENAI_TOKEN/CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN填写自己的token
         agent_conf.custom_llm = custom_llm_default_conf(agent_type);
         //客户需要在AGORA_DEBUG_APPID填写自己的声网APPID，在AGORA_DEBUG_AUTH填写自己的声网restful key，声网token按需填写
         //在tts_str_openai/tts_str_doubao填写自己的tts key
         bk_agora_ai_agent_start(&agent_conf, agent_type);
         ......
-    #else     //在服务器端agent
+    #else
         struct webclient_session *session = NULL;
         char *buffer = NULL, *post_data = NULL;
         char generate_url[256] = {0};
         int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+        uint32_t rand_flag = 0;
 
         /* create webclient session and set header response size */
         session = webclient_session_create(SEND_HEADER_SIZE);
@@ -430,11 +483,10 @@ Beken Genie AI
             ret = -1;
             goto __exit;
         }
-
         //客户若使用自己的服务器，需要将bk_get_bk_server_url()替换成自己的服务器URL字符串
         //定义#define BK_CUSTOMER_SERVER_URL "xxx"
         //例如url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BK_CUSTOMER_SERVER_URL);
-        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
         if ((url_len < 0) || (url_len >= MAX_URL_LEN))
         {
             BK_LOGE(TAG, "URL len overflow\r\n");
@@ -443,16 +495,85 @@ Beken Genie AI
         }
         ......
         //生成post请求，客户可以定义自己的json消息格式
-        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":%u,\"agent_param\": {", reset);
+    #if CONFIG_AUDIO_FRAME_DURATION_MS
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
+    #endif
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"OPUS\"");
+    #else
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"G722\"");
+    #endif
+        rand_flag = bk_rand();
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
+        BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
         ......
         //客户若使用自己的服务器，需要自行实现这个函数或者注释掉
-        ret = bk_genie_rsp_parse_update(buffer);
-        ......
+        ret = bk_sconf_rsp_parse_update(buffer);
     }
 
-5、bk_genie_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户可替换成自己方案
 
-6、bk_genie_erase_agent_info、bk_genie_save_agent_info、bk_genie_get_agent_info均是beken agent后台维护方案，客户可替换成自己方案
+5、bk_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户可替换成自己方案
+
+
+6、bk_sconf_erase_agent_info、bk_sconf_save_agent_info、bk_sconf_get_agent_info均是beken agent后台维护方案，客户可替换成自己方案
+
+
+7、ir_mode_switch_main负责切换多模态，客户定制需要自行实现bk_sconf_upate_agent_info函数，或者参考beken方案，将服务器连接bk_get_bk_server_url()替换成自己的服务器地址
+
+.. code::
+
+    void ir_mode_switch_main(void)
+    {
+        if (!agora_runing) {
+            BK_LOGW(TAG, "Please Run AgoraRTC First!");
+            goto exit;
+        }
+
+        ir_mode_switching = 1;
+
+        if (!video_started) {
+            //切换到图像识别大模型
+            bk_sconf_upate_agent_info("text_and_image");
+            while (g_agent_offline)
+            {
+                if (!agora_runing)
+                {
+                    goto exit;
+                }
+                rtos_delay_milliseconds(100);
+            }
+            //打开摄像头
+            video_turn_on();
+
+    #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
+            if (lvgl_app_init_flag == 1) {
+                media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT_AND_IMAGE);
+            }
+    #endif
+        } else {
+            //关闭摄像头
+            video_turn_off();
+            //切换回大语言模型
+            bk_sconf_upate_agent_info("text");
+
+    #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
+            if (lvgl_app_init_flag == 1) {
+                media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT);
+            }
+    #endif
+        }
+
+    exit:
+        config_ir_mode_switch_thread_handle = NULL;
+        ir_mode_switching = 0;
+        rtos_delete_thread(NULL);
+    }
+
+
+8、bk_sconf_start_agora_rtc负责启动声网agent及设备端rtc，reset参数用来通知beken服务器是否强制切回初始agent配置
+
 
 
 3.1 代码下载及编译
