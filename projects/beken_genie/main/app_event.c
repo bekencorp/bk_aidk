@@ -338,13 +338,17 @@ void ir_mode_switch_main(void)
             rtos_delay_milliseconds(100);
         }
         video_turn_on();
+
+        if (lvgl_app_init_flag == 1) {
+            media_app_lvgl_switch_ui(2);
+        }
     } else {
         video_turn_off();
         bk_genie_upate_agent_info("text");
-    }
 
-    if (lvgl_app_init_flag == 1) {
-        media_app_lvgl_switch_ui();
+        if (lvgl_app_init_flag == 1) {
+            media_app_lvgl_switch_ui(1);
+        }
     }
 
 exit:

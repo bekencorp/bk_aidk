@@ -60,7 +60,7 @@ static lv_img_dsc_t img_dsc =
 
 static lv_obj_t *label1 = NULL;
 static lv_obj_t *label2 = NULL;
-static uint8_t lvgl_ui_index = 0;
+static uint8_t lvgl_ui_index = LVGL_UI_DISP_IN_INIT;
 
 LV_FONT_DECLARE(lv_font);
 
@@ -280,7 +280,7 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 
     lv_vendor_disp_lock();
 
-    if (lvgl_ui_index == 1) {
+    if (lvgl_ui_index == LVGL_UI_DISP_IN_TEXT) {
         bk_avi_play_stop();
     } else {
         if (label1) {
@@ -300,7 +300,7 @@ bk_err_t lvgl_event_close_handle(media_mailbox_msg_t *msg)
 
     lcd_display_close();
 
-    if (lvgl_ui_index == 1) {
+    if (lvgl_ui_index == LVGL_UI_DISP_IN_TEXT) {
         bk_avi_play_close(&bk_avi_play);
     }
 
@@ -347,7 +347,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     drv_tp_open(ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi), TP_MIRROR_NONE);
 #endif
 
-    if (lvgl_ui_index == 2) {
+    if (lvgl_ui_index == LVGL_UI_DISP_IN_TEXT_AND_IMAGE) {
         lv_vendor_disp_lock();
 
         label1 = lv_label_create(lv_scr_act());
@@ -395,7 +395,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
 
         bk_avi_play_start();
 
-        lvgl_ui_index = 1;
+        lvgl_ui_index = LVGL_UI_DISP_IN_TEXT;
 
         lv_vendor_disp_unlock();
     }
@@ -409,42 +409,45 @@ bk_err_t lvgl_event_switch_ui_handle(media_mailbox_msg_t *msg)
 {
     LOGI("%s \r\n", __func__);
 
-    if (lvgl_ui_index == 1) {
-        lv_vendor_disp_lock();
+    lvgl_ui_index_t ui_index = msg->param;
 
-        bk_avi_play_stop();
+    if (ui_index == LVGL_UI_DISP_IN_TEXT) {
+        if (lvgl_ui_index == LVGL_UI_DISP_IN_TEXT_AND_IMAGE) {
+            lv_vendor_disp_lock();
+            if (label1) {
+                lv_obj_del(label1);
+                label1 = NULL;
+            }
 
-        label1 = lv_label_create(lv_scr_act());
-        lv_label_set_text(label1, "图 像");
-        lv_obj_set_style_text_font(label1, &lv_font, 0);
-        lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+            if (label2) {
+                lv_obj_del(label2);
+                label2 = NULL;
+            }
 
-        label2 = lv_label_create(lv_scr_act());
-        lv_label_set_text(label2, "识 别");
-        lv_obj_set_style_text_font(label2, &lv_font, 0);
-        lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
-
-        lvgl_ui_index = 2;
-
-        lv_vendor_disp_unlock();
-    } else if (lvgl_ui_index == 2) {
-        lv_vendor_disp_lock();
-
-        if (label1) {
-            lv_obj_del(label1);
-            label1 = NULL;
+            bk_avi_play_start();
+            lvgl_ui_index = LVGL_UI_DISP_IN_TEXT;
+            lv_vendor_disp_unlock();
         }
+    } else if (ui_index == LVGL_UI_DISP_IN_TEXT_AND_IMAGE) {
+        if (lvgl_ui_index == LVGL_UI_DISP_IN_TEXT) {
+            lv_vendor_disp_lock();
+            bk_avi_play_stop();
 
-        if (label2) {
-            lv_obj_del(label2);
-            label2 = NULL;
+            label1 = lv_label_create(lv_scr_act());
+            lv_label_set_text(label1, "图 像");
+            lv_obj_set_style_text_font(label1, &lv_font, 0);
+            lv_obj_align(label1, LV_ALIGN_TOP_MID, 0, 60);
+
+            label2 = lv_label_create(lv_scr_act());
+            lv_label_set_text(label2, "识 别");
+            lv_obj_set_style_text_font(label2, &lv_font, 0);
+            lv_obj_align(label2, LV_ALIGN_BOTTOM_MID, 0, -60);
+
+            lvgl_ui_index = LVGL_UI_DISP_IN_TEXT_AND_IMAGE;
+            lv_vendor_disp_unlock();
         }
-
-        bk_avi_play_start();
-
-        lvgl_ui_index = 1;
-
-        lv_vendor_disp_unlock();
+    } else if (ui_index == LVGL_UI_DISP_IN_INIT) {
+        lvgl_ui_index = LVGL_UI_DISP_IN_INIT;
     } else {
         LOGE("%s index is invalid\r\n", __func__);
     }
