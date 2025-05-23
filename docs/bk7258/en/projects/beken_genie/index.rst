@@ -83,14 +83,14 @@ There are three button on the lower right side of the board, corresponding to th
 1.3.2 Guide to Button Development
 ++++++++++++++++++++++++++++++++++++
     1.GPIO Button
-        - Button Function Configuration, Refer to key_config, the developer can fill in the corresponding IO pins and the callback function events for the buttons in the table.
+        - Button Function Configuration, Refer to projects/common_components/bk_key_app/key_app_config.h and key_app_service.c, the developer can fill in the corresponding IO pins and the callback function events for the buttons in the table.
         - The configuration for the long button press duration should refer to the LONG_TICKS macro defined in the multi_button.h header file.
         - All button events are moved to be executed in a task. If the program executing the button event is blocked or takes too long, it will affect the button response speed.
 
     2.Precautions for GPIO buttons
         - Ensure that GPIO pins are exclusively used for button functions; otherwise, conflicting functions on the same GPIO pin may result in ineffective button operation.
         - If the developer's board is different from the bekan_genie development board, please reconfigure the GPIOs according to the hardware design of your development board.
-          For details on GPIO usage, refer to the documents on the official website.
+          For details on GPIO usage, refer to the documents in the bk_avdk/bk_idk/docs/bk7258/zh_CN/api-reference/peripheral/bk_gpio.rst.
 
 
 1.4 LED
@@ -222,7 +222,7 @@ and special reminders are signaled by alternating red and green light blinking. 
         - 1.The network configuration countdown is 5 minutes. If the network is not configured within 5 minutes, the chip will enter deep sleep mode(Shutdown).
         - 2.The network error countdown is 5 minutes. If a network error occurs and the network is not restored within 5 minutes, the chip will enter deep sleep mode.
         - 3.The standby state countdown is 3 minutes. After the system powers on, it defaults to standby mode. When you say ``byebye armino``, the system will also enter standby mode. If no other events occur, the chip will enter deep sleep mode after 3 minutes.
-        - 4.You can modify the countdown time in the s_ticket_durations[COUNTDOWN_TICKET_MAX] array in app_event.c.
+        - 4.You can modify the countdown time in the s_ticket_durations[COUNTDOWN_TICKET_MAX] array in countdown_app.c.
 
 2. Development Guide
 ---------------------------------

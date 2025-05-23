@@ -83,12 +83,12 @@ Beken Genie AI
 1.3.2 按键开发说明
 +++++++++++++++++++++++++++++++++
     1.GPIO按键
-        - 按键功能配置，参考key_config，开发者在该表中填写对应的IO管脚和按键对应的回调函数事件即可
+        - 按键功能配置，参考projects/common_components/bk_key_app/key_app_config.h和key_app_service.c，开发者在该表中填写对应的IO管脚和按键对应的回调函数事件即可
         - 长按键时长配置参考multi_button.h中的LONG_TICKS宏定义
         - 当前所有的按键事件转到任务中执行，如果按键事件执行程序被阻塞或执行时间过长，会影响按键响应速度
     2.GPIO按键注意事项
         - 请确认GPIO管脚只供按键使用，否则同一个GPIO管脚功能冲突，会引起按键无效问题
-        - 如果开发者开发板与beken_genie开发板不同，请根据开发板硬件设计重新配置GPIO。关于GPIO使用方法，请参考：
+        - 如果开发者开发板与beken_genie开发板不同，请根据开发板硬件设计重新配置GPIO。关于GPIO使用方法，请参考bk_avdk/bk_idk/docs/bk7258/zh_CN/api-reference/peripheral/bk_gpio.rst。
 
 1.4 灯效
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -208,14 +208,14 @@ Beken Genie AI
 
     请参考文档：`音频组件开发指南 <../../api-reference/bk_aud_intf.html>`_
 
-    默认提示音文件资源路径：``<source code>/projects/common_components/resource/``
+    默认提示音文件资源路径：``<source code>/projects/beken_genie/main/resource/``
 
 1.11 倒计时
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
         - 1.配网事件倒计时为五分钟，五分钟未配网，则芯片会进入深度睡眠(类似于关机)。
         - 2.网络错误倒计时为五分钟，若发生网络错误，五分钟内网络未恢复，则芯片会进入深度睡眠。
         - 3.待机状态倒计时为三分钟，系统上电后默认状态为待机状态，当您喊 ``byebye armino`` 或 ``拜拜阿米诺`` 之后，系统也会处于待机状态，若无其他事件发生，三分钟后芯片会进入深度睡眠。
-        - 4.您可以在app_evevt.c的s_ticket_durations[COUNTDOWN_TICKET_MAX]数组里修改倒计时时间。
+        - 4.您可以在countdown_app.c的s_ticket_durations[COUNTDOWN_TICKET_MAX]数组里修改倒计时时间。
 
 2. 开发指南
 ---------------------------------
