@@ -139,6 +139,7 @@ extern uint8_t first_time_for_network_provisioning;
             if (*data)
                 first_time_for_network_provisioning = false;
         }
+        break;
 #endif
 
         case BOARDING_OP_SERVICE_UDP_START:
