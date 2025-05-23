@@ -46,7 +46,7 @@ CONFIG_AUD_INTF_SUPPORT_G722=n
 #@ Enable Aud intf support OPUS data type
 CONFIG_AUD_INTF_SUPPORT_OPUS=y
 #@ Support prompt tone resample
-CONFIG_AUD_INTF_SUPPORT_OPUS_PROMPT_TONE_RESAMPLE=y
+CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE_RESAMPLE=y
 #@ default audio frame duration in ms
 CONFIG_AUDIO_FRAME_DURATION_MS=60
 #@ ADC sample rate

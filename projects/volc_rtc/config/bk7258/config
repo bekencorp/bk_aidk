@@ -57,7 +57,7 @@ CONFIG_AUD_INTF_SUPPORT_G722=n
 #@ Enable Aud intf support OPUS data type
 CONFIG_AUD_INTF_SUPPORT_OPUS=y
 #@ Support prompt tone resample
-CONFIG_AUD_INTF_SUPPORT_OPUS_PROMPT_TONE_RESAMPLE=n
+CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE_RESAMPLE=y
 #@ Enable AEC V2 Version
 CONFIG_AEC_VERSION_V2=y
 #@ need connect speaker to mic2

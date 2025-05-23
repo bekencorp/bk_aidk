@@ -70,7 +70,7 @@ uint32_t audio_codec_type_mapping_str2int(char *codec_type)
 {
     uint8_t aud_codec_type = AUD_INTF_VOC_DATA_TYPE_MAX;
 
-    if(0 == os_strcmp("G711A", codec_type))
+    if(0 == os_strcmp("PCMA", codec_type))
     {
         aud_codec_type = AUD_INTF_VOC_DATA_TYPE_G711A;
     }
@@ -78,7 +78,7 @@ uint32_t audio_codec_type_mapping_str2int(char *codec_type)
     {
         aud_codec_type = AUD_INTF_VOC_DATA_TYPE_PCM;
     }
-    else if(0 == os_strcmp("G711U", codec_type))
+    else if(0 == os_strcmp("PCMU", codec_type))
     {
         aud_codec_type = AUD_INTF_VOC_DATA_TYPE_G711U;
     }
