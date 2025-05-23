@@ -7,7 +7,7 @@ AI Dashboard
 1. Overview
 ---------------------------------
 
-This project is based on the beken_genie project and inplements a single-screen display project. The functions included in this project are the same as those of the beken_genie project. The difference is that the beken_genie project is a dual-screen display, while this project is a single-screen display. This project uses a 360X360 resolution QSPI LCD, and the IC model is GC9C01.
+This project is based on the beken_genie project and inplements a single-screen display project. The functions included in this project are the same as those of the beken_genie project. The difference is that the beken_genie project is a dual-screen display, while this project is a single-screen display. This project uses a 360X360 resolution QSPI LCD, and the IC model is ST77916.
 
 For detailed instructions and introductions, please refre to `Beken Genie AI Project <../../projects/beken_genie/index.html>`_
 
@@ -19,7 +19,7 @@ For detailed instructions and introductions, please refre to `Beken Genie AI Pro
     +----------------------------------------+----------------+---------------+----------------+
     |Kconfig                                 |   CPU          |   Format      |      Value     |
     +----------------------------------------+----------------+---------------+----------------+
-    |CONFIG_LCD_QSPI_GC9C01                  |   CPU1         |   bool        |        y       |
+    |CONFIG_LCD_QSPI_ST77916                 |   CPU1         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
     |CONFIG_LCD_BACKLIGHT_GPIO               |   CPU1         |   int         |        25      |
     +----------------------------------------+----------------+---------------+----------------+
@@ -27,7 +27,11 @@ For detailed instructions and introductions, please refre to `Beken Genie AI Pro
     +----------------------------------------+----------------+---------------+----------------+
     |CONFIG_LCD_QSPI_ID                      |   CPU1         |   int         |        1       |
     +----------------------------------------+----------------+---------------+----------------+
-    |CONFIG_LCD_SPI_DEVICE_NUM               |   CPU1         |   int         |        2       |
+    |CONFIG_LCD_QSPI_DEVICE_NUM              |   CPU1         |   int         |        1       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_SINGLE_SCREEN_AVI_PLAY           |   CPU0 & CPU1  |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_DUAL_SCREEN_AVI_PLAY             |   CPU0 & CPU1  |   bool        |        n       |
     +----------------------------------------+----------------+---------------+----------------+
 
     Among them, the three macros ``CONFIG_LCD_BACKLIGHT_GPIO`` , ``CONFIG_LCD_QSPI_RESET_PIN`` and ``CONFIG_LCD_QSPI_ID`` need to be defined in the Kconfig.projbuild file to take effect.

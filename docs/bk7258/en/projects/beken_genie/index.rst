@@ -314,6 +314,28 @@ and special reminders are signaled by alternating red and green light blinking. 
     |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
 
+    To enable dual screen display and avi play function, the following configurations need to be enabled:
+
+    +----------------------------------------+----------------+---------------+----------------+
+    |Kconfig                                 |   CPU          |   Format      |      Value     |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LCD_SPI_GC9D01                   |   CPU1         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LCD_SPI_DEVICE_NUM               |   CPU1         |   int         |        2       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_AVI_PLAY                         |   CPU1         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_DUAL_SCREEN_AVI_PLAY             |   CPU0 & CPU1  |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LVGL                             |   CPU1         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LV_IMG_UTILITY_CUSTOMIZE         |   CPU1         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LV_COLOR_DEPTH                   |   CPU1         |   int         |        16      |
+    +----------------------------------------+----------------+---------------+----------------+
+    |CONFIG_LV_COLOR_16_SWAP                 |   CPU1         |   bool        |        y       |
+    +----------------------------------------+----------------+---------------+----------------+
+
 
 2.5 Netowkr Provisioning and Agent Policy Customization Guide
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -505,7 +527,7 @@ customers may need to adapter their own solution
 
     - 2. Place the converted files back into the SD NAND and rename them to contain only English letters or numbers.
 
-    - 3. Modify the file name passed to the function ``bk_avi_play_open()`` in the file ``<bk_aidk source code path>/project/beken_genie/main/display/avi_play.c``.
+    - 3. Modify the file name passed to the function ``bk_avi_play_open()`` in the file ``<bk_aidk source code path>/project/common_components/dual_screen_avi_play/lvgl_ui.c``.
 
 3.3 UI Resource Switching
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -516,7 +538,7 @@ customers may need to adapter their own solution
 
     - 3. Call function ``bk_avi_play_open()`` to open new avi file.
     
-    - 4. Call function ``bk_avi_video_parse_to_rgb565()`` and function ``bk_avi_play_start()`` to start playing the new avi file.
+    - 4. Call function ``bk_avi_play_start()`` to start playing the new avi file.
 
 3.4 APP Registration and Download
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
