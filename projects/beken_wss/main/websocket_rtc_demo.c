@@ -41,6 +41,16 @@
 extern bool agoora_rx_spk_data_flag;
 #endif//CONFIG_DEBUG_DUMP
 
+//supported configrations,keep one of them valid
+#define ENC_OPUS_DEC_OPUS_FRMAE_60MS_DAC_SAPM_RATE_24000        1
+#define ENC_G722_DEC_G722_FRMAE_20MS                            0
+#define ENC_G722_DEC_G722_FRMAE_60MS                            0
+#define ENC_OPUS_DEC_G722_FRMAE_60MS                            0
+#define ENC_G722_DEC_OPUS_FRMAE_60MS                            0
+#define ENC_PCM_DEC_OPUS_FRAME_20MS                             0
+#define ENC_OPUS_DEC_PCM_FRAME_20MS                             0
+#define ENC_PCM_DEC_PCM_FRAME_20MS                              0
+
 
 //#define AGORA_RX_SPK_DATA_DUMP
 
@@ -59,11 +69,6 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AGORA_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif
 
-#if CONFIG_USE_G722_CODEC || CONFIG_USE_OPUS_CODEC
-#define AUDIO_SAMP_RATE         (16000)
-#else
-#define AUDIO_SAMP_RATE         (8000)
-#endif
 #define AEC_ENABLE              (1)
 
 bool g_connected_flag = false;
@@ -355,31 +360,132 @@ bk_err_t audio_turn_off(void)
     return BK_OK;
 }
 
+char * get_name_by_codec_type(uint32_t codec_type)
+{
+    switch(codec_type)
+    {
+        case AUD_INTF_VOC_DATA_TYPE_G711A:
+        {
+            return "g711a";
+        }
+        case AUD_INTF_VOC_DATA_TYPE_PCM:
+        {
+            return "pcm";
+        }
+        case AUD_INTF_VOC_DATA_TYPE_G711U:
+        {
+            return "g711u";
+        }
+        case AUD_INTF_VOC_DATA_TYPE_G722:
+        {
+            return "g722";
+        }
+        case AUD_INTF_VOC_DATA_TYPE_OPUS:
+        {
+            return "opus";
+        }
+        default:
+        {
+            LOGE("%s invalid codec type:%d \r\n", __func__,codec_type);
+            return NULL;
+        }
+    }
+}
+
 bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
     LOGI("%s\n", __func__);
+    char * encoder_name;
+    char * decoder_name;
 
     AGORA_RX_SPK_DATA_DUMP_OPEN();
 
     aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
     aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = aud_intf_voc_setup.data_type;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = aud_intf_voc_setup.data_type;
 
-    
-#if CONFIG_USE_G722_CODEC
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
-#elif CONFIG_USE_OPUS_CODEC
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+#if ENC_OPUS_DEC_OPUS_FRMAE_60MS_DAC_SAPM_RATE_24000
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_bitrate = 16000;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.dec_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 24000;
     aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
     aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
-    aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate = 24000;//16000;
+    #else
+    LOGE("%s, %d, OPUS codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_G722_DEC_G722_FRMAE_20MS
+    #if CONFIG_AUD_INTF_SUPPORT_G722
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    #else
+    LOGE("%s, %d, G722 codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_G722_DEC_G722_FRMAE_60MS
+    #if CONFIG_AUD_INTF_SUPPORT_G722
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
+    #else
+    LOGE("%s, %d, G722 codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_OPUS_DEC_G722_FRMAE_60MS
+    #if CONFIG_AUD_INTF_SUPPORT_G722 && CONFIG_AUD_INTF_SUPPORT_OPUS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_bitrate = 16000;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
+    #else
+    LOGE("%s, %d, G722 and OPUS codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_G722_DEC_OPUS_FRMAE_60MS
+    #if CONFIG_AUD_INTF_SUPPORT_G722 && CONFIG_AUD_INTF_SUPPORT_OPUS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.dec_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms = 60;//60ms frame
+    aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms = 60;//60ms frame
+    #else
+    LOGE("%s, %d, G722 and OPUS codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_PCM_DEC_OPUS_FRAME_20MS
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.dec_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_bitrate = 256000;
+    #else
+    LOGE("%s, %d, OPUS codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_OPUS_DEC_PCM_FRAME_20MS
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_OPUS;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_bitrate = 16000;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_vbr_en = 1;
+    aud_intf_voc_setup.aud_codec_setup_input.dec_bitrate = 256000;
+    #else
+    LOGE("%s, %d, OPUS codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#elif ENC_PCM_DEC_PCM_FRAME_20MS
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+    aud_intf_voc_setup.aud_codec_setup_input.enc_bitrate = 256000;
+    aud_intf_voc_setup.aud_codec_setup_input.dec_bitrate = 256000;
 #else
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
 #endif
+
     aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_DIFFEN;
     aud_intf_voc_setup.aec_enable = AEC_ENABLE;
-    aud_intf_voc_setup.samp_rate  = AUDIO_SAMP_RATE;
 #if CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE
     aud_intf_voc_setup.mic_gain   = 0x30;
 #else
@@ -412,17 +518,13 @@ bk_err_t audio_turn_on(void)
         LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
 
-#if CONFIG_USE_G722_CODEC
-	rtc_fill_audio_info(&audio_info, "g722", aud_intf_voc_setup.aud_codec_setup_input.adc_samp_rate,
-		aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate,
-		aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms, aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms,
-		bk_aud_get_dec_input_size_in_byte());
-#elif CONFIG_USE_OPUS_CODEC
-    rtc_fill_audio_info(&audio_info, "opus", aud_intf_voc_setup.aud_codec_setup_input.adc_samp_rate,
-		aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate,
-		aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms, aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms,
-		bk_aud_get_dec_input_size_in_byte());
-#endif
+    encoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.encoder_type);
+    decoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.decoder_type);
+
+    rtc_fill_audio_info(&audio_info, encoder_name, decoder_name, aud_intf_voc_setup.aud_codec_setup_input.adc_samp_rate,
+                        aud_intf_voc_setup.aud_codec_setup_input.dac_samp_rate,
+                        aud_intf_voc_setup.aud_codec_setup_input.enc_frame_len_in_ms, aud_intf_voc_setup.aud_codec_setup_input.dec_frame_len_in_ms,
+                        bk_aud_get_enc_output_size_in_byte(), bk_aud_get_dec_input_size_in_byte());
 
     ret = bk_aud_intf_voc_start();
     if (ret != BK_ERR_AUD_INTF_OK)
@@ -523,12 +625,14 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
 			if (data->op_code == WS_TRANSPORT_OPCODES_BINARY) {
-				#if CONFIG_USE_G722_CODEC
-				rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
-				#elif CONFIG_USE_OPUS_CODEC
-				rtc_websocket_audio_receive_data_opus(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
-				#else
-				#endif
+				if(0 == os_strcmp(audio_info.decoding_type,"opus"))
+				{
+					rtc_websocket_audio_receive_data_opus(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
+				}
+				else
+				{
+					rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
+				}
 			}
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
@@ -545,7 +649,8 @@ void beken_rtc_main(void)
     memory_free_show();
 
 	websocket_client_input_t websocket_cfg = {0};
-	websocket_cfg.uri = "wss://ai.aclsemi.com:9015/xiaozhi/v1/";
+	//websocket_cfg.uri = "wss://ai.aclsemi.com:9015/xiaozhi/v1/";
+	websocket_cfg.uri = "wss://ai.aclsemi.com:9016/xiaozhi/v1/";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
 	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);
     if (rtc_session == NULL)

@@ -61,29 +61,12 @@ static uint8_t *mic_data_buffer = NULL;
 static uint8_t *mic_drop_data = NULL;
 #endif
 
-#if defined(CONFIG_USE_G722_CODEC)
-#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
-#define MIC_FRAME_20MS_ENC_SIZE (64000*20/1000/8) //64k bitrate/20ms frame
-#define MIC_FRAME_SIZE (MIC_FRAME_20MS_ENC_SIZE * (CONFIG_AUDIO_FRAME_DURATION_MS / 20))
-#define AGORA_SEND_FRAME_SIZE (MIC_FRAME_SIZE)
-#endif
-#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-#define MIC_FRAME_SIZE   (640)
-#define AGORA_SEND_FRAME_SIZE   (MIC_FRAME_SIZE * (CONFIG_AUDIO_FRAME_DURATION_MS / 20))
-#endif
-//#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
-//#define MIC_FRAME_SIZE     160
-#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
-#define MIC_FRAME_SIZE   320
-#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
-static RingBufferContext mic_data_len_rb;
-static uint8_t *mic_data_len_buffer = NULL;
-#else
-#define MIC_FRAME_SIZE   160
-#define AGORA_SEND_FRAME_SIZE   MIC_FRAME_SIZE
-#endif
 #define MIC_FRAME_NUM 4
 #define PRE_VAD_START_FRAME_NUM 2 
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+static RingBufferContext mic_data_len_rb;
+static uint8_t *mic_data_len_buffer = NULL;
+#endif
 static uint16_t mic_tx_buf_frame_num = MIC_FRAME_NUM;
 
 extern bool agoora_tx_mic_data_flag;
@@ -96,6 +79,41 @@ enum vad_state
     VAD_SPEECH_END        = (0x02),
 };
 
+uint8_t agora_aud_type_mapping(uint8_t codec_type)
+{
+    uint8_t aud_data_type = AUDIO_DATA_TYPE_GENERIC;
+    switch(codec_type)
+    {
+        case AUD_INTF_VOC_DATA_TYPE_G711A:
+        case AUD_INTF_VOC_DATA_TYPE_G711U:
+        {
+            LOGE("%s unsupported codec type:%d \r\n", __func__,codec_type);
+            break;
+        }
+        case AUD_INTF_VOC_DATA_TYPE_PCM:
+        {
+            break;
+        }
+        case AUD_INTF_VOC_DATA_TYPE_G722:
+        {
+            aud_data_type = AUDIO_DATA_TYPE_G722;
+            break;
+        }
+        case AUD_INTF_VOC_DATA_TYPE_OPUS:
+        {
+            aud_data_type = AUDIO_DATA_TYPE_OPUS;
+            break;
+        }
+        default:
+        {
+            LOGE("%s unknown codec type:%d \r\n", __func__,codec_type);
+            break;
+        }
+    }
+
+    return aud_data_type;
+}
+
 static int send_agora_audio_frame(uint8_t *data, unsigned int len)
 {
     audio_frame_info_t info = { 0 };
@@ -105,18 +123,8 @@ static int send_agora_audio_frame(uint8_t *data, unsigned int len)
         return 0;
     }
 
-#ifdef CONFIG_USE_G722_CODEC
-    #if (CONFIG_G722_CODEC_RUN_ON_CPU1)
-    info.data_type = AUDIO_DATA_TYPE_G722;
-    #endif
-    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-    info.data_type = AUDIO_DATA_TYPE_PCM;
-    #endif
-#elif CONFIG_USE_OPUS_CODEC
-    info.data_type = AUDIO_DATA_TYPE_OPUS;
-#else
-    info.data_type = AUDIO_DATA_TYPE_PCMA;
-#endif
+    info.data_type = agora_aud_type_mapping(bk_aud_get_encoder_type());
+
 
     #if CONFIG_DEBUG_DUMP
     if (agoora_tx_mic_data_flag)
@@ -202,7 +210,7 @@ int send_audio_data_to_agora(uint8_t *data, unsigned int len)
     app_aud_para_t * aud_para = get_app_aud_cust_para();
 #endif
 
-#if CONFIG_USE_OPUS_CODEC
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
     uint16_t pkt_len = len;
 
     if ((ring_buffer_get_free_size(&mic_data_rb) >= len) && (ring_buffer_get_free_size(&mic_data_len_rb) >= sizeof(uint16_t)))
@@ -301,7 +309,7 @@ static void agora_aud_tras_main(void)
     #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     buf_fill_th = bk_aud_get_enc_input_size_in_byte();
     #endif
-    #if CONFIG_USE_OPUS_CODEC
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
     uint16_t pkt_len = 0;
     int32_t len_buf_size = 0;
     #endif
@@ -332,7 +340,7 @@ static void agora_aud_tras_main(void)
             switch (msg.op)
             {
                 case AUD_TRAS_TX_DATA:
-                    #if CONFIG_USE_OPUS_CODEC
+                    #if CONFIG_AUD_INTF_SUPPORT_OPUS
                     len_buf_size = ring_buffer_get_fill_size(&mic_data_len_rb);
                     
                     while(sizeof(uint16_t) <= len_buf_size)
@@ -428,7 +436,7 @@ aud_tras_exit:
         mic_data_buffer = NULL;
     }
 
-    #if CONFIG_USE_OPUS_CODEC
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
     if (mic_data_len_buffer)
     {
         ring_buffer_clear(&mic_data_len_rb);
@@ -486,7 +494,7 @@ bk_err_t audio_tras_init(void)
     }
     ring_buffer_init(&mic_data_rb, mic_data_buffer, tx_trans_buf_size, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
-    #if CONFIG_USE_OPUS_CODEC
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
     mic_data_len_buffer = psram_malloc(sizeof(uint16_t)*(buf_frame_num));
     if (mic_data_len_buffer == NULL)
     {
@@ -554,7 +562,7 @@ fail:
         mic_data_buffer = NULL;
     }
 
-    #if CONFIG_USE_OPUS_CODEC
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
     if (mic_data_len_buffer)
     {
         ring_buffer_clear(&mic_data_len_rb);

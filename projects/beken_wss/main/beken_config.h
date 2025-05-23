@@ -26,14 +26,9 @@
 #define CONFIG_AGORA_UID        (123)
 
 //#define CONFIG_AUDIO_ONLY
-#if CONFIG_AUD_INTF_SUPPORT_G722
-#define CONFIG_USE_G722_CODEC 1
-#elif CONFIG_AUD_INTF_SUPPORT_OPUS
-#define CONFIG_USE_OPUS_CODEC 1
-#else
 //#define CONFIG_USE_G711U_CODEC
 //#define CONFIG_USE_G711A_CODEC
-#endif
+
 
 //#define CONFIG_UVC_CAMERA  /* config CONFIG_USB_UVC in cp1 */
 #define CONFIG_DVP_CAMERA
@@ -57,13 +52,13 @@
 #define CONFIG_PCM_SAMPLE_RATE          8000
 #define CONFIG_PCM_CHANNEL_NUM          1
 #define CONFIG_SEND_PCM_DATA
-#elif defined(CONFIG_USE_G722_CODEC)  // G722
+#elif CONFIG_AUD_INTF_SUPPORT_G722  // G722
 #define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
 #define CONFIG_PCM_FRAME_LEN            640
 #define CONFIG_PCM_SAMPLE_RATE          16000
 #define CONFIG_PCM_CHANNEL_NUM          1
 #define CONFIG_SEND_PCM_DATA
-#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
+#elif CONFIG_AUD_INTF_SUPPORT_OPUS  // OPUS
 #define CONFIG_AUDIO_CODEC_TYPE         AUDIO_CODEC_DISABLED
 #define CONFIG_PCM_FRAME_LEN            640
 #define CONFIG_PCM_SAMPLE_RATE          16000
@@ -76,7 +71,8 @@
 #define CONFIG_PCM_CHANNEL_NUM          1
 // #define CONFIG_SEND_PCM_DATA
 #endif
-#define CONFIG_AUDIO_FRAME_DURATION_MS     20  // except OPUS
+extern uint8_t aud_codec_frame_duration_in_ms;
+#define CONFIG_AUDIO_FRAME_DURATION_MS aud_codec_frame_duration_in_ms
 // (CONFIG_PCM_FRAME_LEN * 1000 / CONFIG_PCM_SAMPLE_RATE / CONFIG_PCM_CHANNEL_NUM /sizeof(int16_t))
 
 #define DEFAULT_SDK_LOG_PATH "io.agora.rtc_sdk"

@@ -60,11 +60,7 @@ static const uint8 crc8_table[256] =
 	0xF4, 0x03, 0x4D, 0xBA, 0xD1, 0x26, 0x68, 0x9F
 };
 
-#if CONFIG_AUD_INTF_SUPPORT_OPUS
 #define WSS_AUDIO_BUFFER_SIZE (680*1024)
-#else
-#define WSS_AUDIO_BUFFER_SIZE (680*1024)
-#endif
 
 void rtc_client_hex_dump(uint8_t *data, uint32_t length)
 {
@@ -177,12 +173,12 @@ void fixed_data_check(void *param)
 		return;
 	}
 	uint8_t *packet = NULL;
-	packet = os_zalloc(session->audio_info.node_size + HEAD_SIZE_TOTAL);
+	packet = os_zalloc(session->audio_info.dec_node_size + HEAD_SIZE_TOTAL);
 	if (packet != NULL)
 	{
 		rtos_lock_mutex(&session->rtc_mutex);
-		if (session->ab_buffer && fixed_data_buffer_read(session->ab_buffer, packet, (session->audio_info.node_size + HEAD_SIZE_TOTAL)) && session) {
-			_rtc_websocket_audio_receive_data(session, packet, (session->audio_info.node_size + HEAD_SIZE_TOTAL), session->rtc_channel_t->cb);
+		if (session->ab_buffer && fixed_data_buffer_read(session->ab_buffer, packet, (session->audio_info.dec_node_size + HEAD_SIZE_TOTAL)) && session) {
+			_rtc_websocket_audio_receive_data(session, packet, (session->audio_info.dec_node_size + HEAD_SIZE_TOTAL), session->rtc_channel_t->cb);
 			BK_LOGD(TAG, "data coming...\n");
 		} else {
 			BK_LOGD(TAG, "Buffer empty, waiting for data...\n");
@@ -327,7 +323,7 @@ void data_check(void *param)
 		return;
 	}
 	uint8_t *packet = NULL;
-	packet = os_zalloc(session->audio_info.node_size + HEAD_SIZE_TOTAL);
+	packet = os_zalloc(session->audio_info.dec_node_size + HEAD_SIZE_TOTAL);
 	int size = 0;
 	if (packet != NULL)
 	{
@@ -351,12 +347,12 @@ void data_start_timeout_check(uint32_t timeout, void *param)
 		BK_LOGE(TAG, "client null...\n");
 		return;
 	}
-	BK_LOGI(TAG,"ring_data status timer start!!!\n");
-#if CONFIG_AUD_INTF_SUPPORT_OPUS
-	err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)data_check, param);
-#else
-	err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)fixed_data_check, param);
-#endif
+	BK_LOGI(TAG,"ring_data status timer start!!! dectype:%s\n", session->audio_info.decoding_type);
+    if (session->audio_info.decoding_type && os_strcmp(session->audio_info.decoding_type, "opus") == 0)
+	    err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)data_check, param);
+    else
+	    err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)fixed_data_check, param);
+
 	BK_ASSERT(kNoErr == err);
 	err = rtos_start_timer(&session->data_read_tmr);
 	BK_ASSERT(kNoErr == err);
@@ -771,8 +767,8 @@ void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uin
 
 void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
-	if (len > rtc_session->audio_info.node_size) {
-		BK_LOGE(TAG, "data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.node_size);
+	if (len > rtc_session->audio_info.dec_node_size) {
+		BK_LOGE(TAG, "data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.dec_node_size);
 		return;
 	}
 	if (rtc_session->opus_buffer) {
@@ -809,7 +805,7 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
 						"{\"type\":\"hello\",\"config\":{\"version\": 2,\"audio\":{\"to_server\":{\"format\":\"%s\", \"sample_rate\":%d, \"channels\":1, \"frame_duration\":%d}, \"from_server\":{\"format\":\"%s\", \"sample_rate\":%d, \"channels\":1, \"frame_duration\":%d}}}}",
 						((audio_info_t *)str)->encoding_type, ((audio_info_t *)str)->adc_samp_rate, ((audio_info_t *)str)->enc_samp_interval,
-						((audio_info_t *)str)->encoding_type, ((audio_info_t *)str)->dac_samp_rate, ((audio_info_t *)str)->dec_samp_interval);
+						((audio_info_t *)str)->decoding_type, ((audio_info_t *)str)->dac_samp_rate, ((audio_info_t *)str)->dec_samp_interval);
             BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
@@ -849,15 +845,17 @@ void rtc_websocket_parse_text(text_info_t *info, cJSON *root) {
     info->text_data = text->valuestring;
 }
 
-void rtc_fill_audio_info(audio_info_t *info, char *type, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t size)
+void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size)
 {
 	memset(info, 0, sizeof(audio_info_t));
-	os_strcpy(info->encoding_type, type);
+	os_strcpy(info->encoding_type, enctype);
+    os_strcpy(info->decoding_type, dectype);
 	info->adc_samp_rate = adc_rate;
 	info->dac_samp_rate = dac_rate;
 	info->enc_samp_interval = enc_ms;
 	info->dec_samp_interval = dec_ms;
-	info->node_size = size;
+	info->enc_node_size = enc_size;
+    info->dec_node_size = dec_size;
 }
 
 rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb, audio_info_t *info)
@@ -872,19 +870,19 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
 		goto fail;
 	}
 
-	rtc_fill_audio_info(&rtc_sess->audio_info, info->encoding_type, info->adc_samp_rate, info->dac_samp_rate,
-		info->enc_samp_interval, info->dec_samp_interval, info->node_size);
-	if (rtc_sess->audio_info.node_size) {
-		max_count = WSS_AUDIO_BUFFER_SIZE / (rtc_sess->audio_info.node_size + HEAD_SIZE_TOTAL);
-		LOGI("rtc ws create successfully. audio type:%s adc_rate:%d dac_rate:%d enc:%d dec:%d size:%d max_count:%d\n", info->encoding_type,
-			rtc_sess->audio_info.adc_samp_rate, rtc_sess->audio_info.dac_samp_rate, rtc_sess->audio_info.enc_samp_interval,
-			rtc_sess->audio_info.dec_samp_interval, rtc_sess->audio_info.node_size, max_count);
+	rtc_fill_audio_info(&rtc_sess->audio_info, info->encoding_type, info->decoding_type, info->adc_samp_rate, info->dac_samp_rate,
+		info->enc_samp_interval, info->dec_samp_interval, info->enc_node_size, info->dec_node_size);
+	if (rtc_sess->audio_info.dec_node_size) {
+		max_count = WSS_AUDIO_BUFFER_SIZE / (rtc_sess->audio_info.dec_node_size + HEAD_SIZE_TOTAL);
+		LOGI("rtc ws create successfully. audio enctype:%s dectype:%s adc_rate:%d dac_rate:%d enc:%d dec:%d size:%d max_count:%d\n", info->encoding_type,
+			info->decoding_type, rtc_sess->audio_info.adc_samp_rate, rtc_sess->audio_info.dac_samp_rate, rtc_sess->audio_info.enc_samp_interval,
+			rtc_sess->audio_info.dec_samp_interval, rtc_sess->audio_info.enc_node_size, rtc_sess->audio_info.dec_node_size, max_count);
 	} else {
 		LOGE("audio info error\n");
 		goto fail;
 	}
 
-	rtc_sess->rtc_channel_t = rtc_client_transmission_malloc(rtc_sess->audio_info.node_size, rtc_sess->audio_info.node_size);
+	rtc_sess->rtc_channel_t = rtc_client_transmission_malloc(rtc_sess->audio_info.dec_node_size, rtc_sess->audio_info.enc_node_size);
 	if (rtc_sess->rtc_channel_t == NULL)
 	{
 		LOGE("rtc_channel_t malloc failed\n");
@@ -899,21 +897,22 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
 		goto fail;
 	}
 
-#if CONFIG_AUD_INTF_SUPPORT_OPUS
-	rtc_sess->opus_buffer = data_buffer_init(((rtc_sess->audio_info.node_size + HEAD_SIZE_TOTAL) * max_count), max_count);
-	if (rtc_sess->opus_buffer == NULL)
-	{
-		BK_LOGE(TAG, "%s, %d, data_buffer_init fail\n", __func__, __LINE__);
-		goto fail;
-	}
-#else
-	rtc_sess->ab_buffer = fixed_data_buffer_init(((rtc_sess->audio_info.node_size + HEAD_SIZE_TOTAL) * max_count));
-	if (rtc_sess->ab_buffer == NULL)
-	{
-		BK_LOGE(TAG, "%s, %d, fixed_data_buffer_init fail\n", __func__, __LINE__);
-		goto fail;
-	}
-#endif
+    if (info->decoding_type && strcmp(info->decoding_type, "opus") == 0) {
+        	rtc_sess->opus_buffer = data_buffer_init(((rtc_sess->audio_info.dec_node_size + HEAD_SIZE_TOTAL) * max_count), max_count);
+        	if (rtc_sess->opus_buffer == NULL)
+        	{
+        		BK_LOGE(TAG, "%s, %d, data_buffer_init fail\n", __func__, __LINE__);
+        		goto fail;
+        	}
+    }
+    else {
+	    rtc_sess->ab_buffer = fixed_data_buffer_init(((rtc_sess->audio_info.dec_node_size + HEAD_SIZE_TOTAL) * max_count));
+    	if (rtc_sess->ab_buffer == NULL)
+    	{
+    		BK_LOGE(TAG, "%s, %d, fixed_data_buffer_init fail\n", __func__, __LINE__);
+    		goto fail;
+    	}
+    }
 	data_start_timeout_check(rtc_sess->audio_info.dec_samp_interval, (void *)rtc_sess);
     return rtc_sess;
 
@@ -948,13 +947,11 @@ bk_err_t rtc_websocket_stop(rtc_session *rtc_session)
 
 	data_stop_timeout_check(&rtc_session->data_read_tmr);
 
-#if CONFIG_AUD_INTF_SUPPORT_OPUS
 	data_buffer_deinit(rtc_session->opus_buffer);
 	rtc_session->opus_buffer = NULL;
-#else
+
 	fixed_data_buffer_deinit(rtc_session->ab_buffer);
 	rtc_session->ab_buffer = NULL;
-#endif
 
 	if(rtc_session->bk_rtc_client) {
 		LOGE("%s stop websocket client\r\n", __func__);

@@ -96,11 +96,13 @@ typedef struct {
 
 typedef struct {
 	char encoding_type[20];
+    char decoding_type[20];
 	uint32_t adc_samp_rate;
 	uint32_t dac_samp_rate;
 	uint32_t enc_samp_interval;
 	uint32_t dec_samp_interval;
-	uint32_t node_size;
+	uint32_t enc_node_size;
+    uint32_t dec_node_size;
 } audio_info_t;
 
 typedef struct {
@@ -126,7 +128,7 @@ void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data
 int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype);
 int rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
-void rtc_fill_audio_info(audio_info_t *info, char *type, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t size);
+void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size);
 int bk_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const video_frame_info_t *info_ptr);
 bk_err_t bk_rtc_register_video_rx_handle(rtc_video_rx_data_handle video_rx_handle);
 #ifdef __cplusplus

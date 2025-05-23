@@ -134,7 +134,7 @@ int bk_parse_agent_conf(agora_ai_agent_start_conf_t *agent_conf, char *post_data
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"agent_rtc_uid\": \"1234\",\r\n");
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"remote_rtc_uids\": [\"123\"],\r\n");
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"advanced_features\": {\"enable_bhvs\": true,\"enable_aivad\": false},\r\n");
-#if CONFIG_USE_OPUS_CODEC
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"parameters\": {\"enable_dump\": true,\"output_audio_codec\": \"OPUS\"},\r\n");
 #else
 	len += os_snprintf(post_data + len, POST_DATA_MAX_SIZE, "\"parameters\": {\"enable_dump\": true,\"output_audio_codec\": \"G722\"},\r\n");
@@ -1072,9 +1072,7 @@ extern char *channel_name_record;
 
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":\"%u\",\"agent_param\": {", reset);
-#if CONFIG_AUDIO_FRAME_DURATION_MS
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
-#endif
 #if CONFIG_AUD_INTF_SUPPORT_OPUS
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"OPUS\"");
 #else

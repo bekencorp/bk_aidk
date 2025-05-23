@@ -57,15 +57,6 @@ static beken_queue_t aud_msg_que = NULL;
 static beken_semaphore_t aud_sem = NULL;
 static RingBufferContext mic_data_rb;
 static uint8_t *mic_data_buffer = NULL;
-#if defined(CONFIG_USE_G722_CODEC)
-#define MIC_FRAME_SIZE   (160)
-//#elif defined(CONFIG_USE_G711U_CODEC) || defined(CONFIG_USE_G711A_CODEC)
-//#define MIC_FRAME_SIZE     160
-#elif defined(CONFIG_USE_OPUS_CODEC)  // OPUS
-#define MIC_FRAME_SIZE   320
-#else
-#define MIC_FRAME_SIZE   160
-#endif
 #define MIC_FRAME_NUM 4
 
 extern bool agoora_tx_mic_data_flag;
@@ -81,13 +72,8 @@ static int send_audio_frame(uint8_t *data, unsigned int len)
         return 0;
     }
 
-#if CONFIG_USE_G722_CODEC
-    info.data_type = AUDIO_DATA_TYPE_G722;
-#elif CONFIG_USE_OPUS_CODEC
-    info.data_type = AUDIO_DATA_TYPE_OPUS;
-#else
-    info.data_type = AUDIO_DATA_TYPE_PCMA;
-#endif
+    info.data_type = bk_aud_get_encoder_type();
+
 
     #if CONFIG_DEBUG_DUMP
     if (agoora_tx_mic_data_flag)
@@ -119,7 +105,6 @@ static int send_audio_frame(uint8_t *data, unsigned int len)
     return len;
 }
 
-#if CONFIG_USE_OPUS_CODEC
 static bk_err_t send_audio_msg(uint16_t len)
 {
     bk_err_t ret;
@@ -145,70 +130,51 @@ static bk_err_t send_audio_msg(uint16_t len)
     }
     return kNoResourcesErr;
 }
-#else
-static bk_err_t send_audio_msg(void)
-{
-    bk_err_t ret;
-    aud_tras_msg_t msg;
-
-    msg.op = AUD_TRAS_TX_DATA;
-
-    if (aud_msg_que)
-    {
-        ret = rtos_push_to_queue(&aud_msg_que, &msg, BEKEN_NO_WAIT);
-        if (kNoErr != ret)
-        {
-            LOGE("audio send msg: AUD_TRAS_TX_DATA fail\n");
-            return kOverrunErr;
-        }
-
-        return ret;
-    }
-    return kNoResourcesErr;
-}
-#endif
 
 
 int send_audio_data_to_trans(uint8_t *data, unsigned int len)
 {
-    #if CONFIG_USE_OPUS_CODEC
-    if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+    if(AUD_INTF_VOC_DATA_TYPE_OPUS == bk_aud_get_encoder_type())
     {
-        ring_buffer_write(&mic_data_rb, data, len);
-        send_audio_msg(len);
+        if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+        {
+            ring_buffer_write(&mic_data_rb, data, len);
+            send_audio_msg(len);
 
-        uint32_t fill_size = ring_buffer_get_fill_size(&mic_data_rb);
-        LOGD("len:%d,mic_data_rb:fill size:%d\n",len,fill_size);
+            uint32_t fill_size = ring_buffer_get_fill_size(&mic_data_rb);
+            LOGD("len:%d,mic_data_rb:fill size:%d\n",len,fill_size);
 
-        //BK_ASSERT(len == fill_size);
+            //BK_ASSERT(len == fill_size);
+        }
+        else
+        {
+            LOGE("len:%d,mic_data_rb fill size:%d,free size:%d,not enough\n",
+                len,
+                ring_buffer_get_fill_size(&mic_data_rb),
+                ring_buffer_get_free_size(&mic_data_rb));
+            return 0;
+        }
     }
     else
     {
-        LOGE("len:%d,mic_data_rb fill size:%d,free size:%d,not enough\n",
-            len,
-            ring_buffer_get_fill_size(&mic_data_rb),
-            ring_buffer_get_free_size(&mic_data_rb));
-        return 0;
-    }
-    #else
-    uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
-    #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-    buf_fill_th = bk_aud_get_enc_input_size_in_byte();
-    #endif
-    if (ring_buffer_get_free_size(&mic_data_rb) >= len)
-    {
-        ring_buffer_write(&mic_data_rb, data, len);
-    }
-    else
-    {
-        return 0;
-    }
+        uint32_t buf_fill_th = bk_aud_get_enc_output_size_in_byte();
+        #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
+        buf_fill_th = bk_aud_get_enc_input_size_in_byte();
+        #endif
+        if (ring_buffer_get_free_size(&mic_data_rb) >= len)
+        {
+            ring_buffer_write(&mic_data_rb, data, len);
+        }
+        else
+        {
+            return 0;
+        }
 
-    if (ring_buffer_get_fill_size(&mic_data_rb) >= buf_fill_th)
-    {
-        send_audio_msg();
+        if (ring_buffer_get_fill_size(&mic_data_rb) >= buf_fill_th)
+        {
+            send_audio_msg(buf_fill_th);
+        }
     }
-    #endif
 
     return len;
 }
@@ -253,45 +219,47 @@ static void audio_tras_main(void)
             {
                 case AUD_TRAS_TX_DATA:
                 {
-                    #if CONFIG_USE_OPUS_CODEC
-                    size = ring_buffer_get_fill_size(&mic_data_rb);
-                    //LOGI("atm:msg len:%d,md_rb fill size:%d\n",msg.len,size);
-                    if (size >= msg.len)
+                    if(AUD_INTF_VOC_DATA_TYPE_OPUS == bk_aud_get_encoder_type())
                     {
-                        GLOBAL_INT_DISABLE();
-                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
-                        GLOBAL_INT_RESTORE();
+                        size = ring_buffer_get_fill_size(&mic_data_rb);
+                        if (size >= msg.len)
+                        {
+                            GLOBAL_INT_DISABLE();
+                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, msg.len);
+                            GLOBAL_INT_RESTORE();
 
-                        if (count == msg.len)
-                        {
-                            send_audio_frame(mic_temp_buff, count);
-                        }
-                        else
-                        {
-                            LOGE("ring_buffer_read count(%d) != msg.len(%d)\n", count, msg.len);
+                            if (count == msg.len)
+                            {
+                                send_audio_frame(mic_temp_buff, count);
+                            }
+                            else
+                            {
+                                LOGE("ring_buffer_read count(%d) != msg.len(%d)\n", count, msg.len);
+                            }
                         }
                     }
-                    #else
-                    size = ring_buffer_get_fill_size(&mic_data_rb);
-                    if (size >= buf_fill_th)
+                    else
                     {
-                        GLOBAL_INT_DISABLE();
-                        count = ring_buffer_read(&mic_data_rb, mic_temp_buff, buf_fill_th);
-                        GLOBAL_INT_RESTORE();
-
-                        if (count == buf_fill_th)
+                        size = ring_buffer_get_fill_size(&mic_data_rb);
+                        if (size >= buf_fill_th)
                         {
-                            send_audio_frame(mic_temp_buff, count);
-                        }
-                        else
-                        {
-                            LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, buf_fill_th);
-                        }
+                            GLOBAL_INT_DISABLE();
+                            count = ring_buffer_read(&mic_data_rb, mic_temp_buff, buf_fill_th);
+                            GLOBAL_INT_RESTORE();
 
-                        rtos_delay_milliseconds(2);
-                        send_audio_msg();
+                            if (count == buf_fill_th)
+                            {
+                                send_audio_frame(mic_temp_buff, count);
+                            }
+                            else
+                            {
+                                LOGD("ring_buffer_read count(%d) != AGORA_SEND_FRAME_SIZE(%d)\n", count, buf_fill_th);
+                            }
+
+                            rtos_delay_milliseconds(2);
+                            send_audio_msg(buf_fill_th);
+                        }
                     }
-                    #endif
                     break;
                 }
                 case AUD_TRAS_EXIT:

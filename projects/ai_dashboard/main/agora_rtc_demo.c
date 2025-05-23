@@ -25,6 +25,7 @@
 #include "bk_genie_smart_config.h"
 #endif
 #include "app_event.h"
+#include "audio_process.h"
 
 
 #define TAG "agora_main"
@@ -38,6 +39,8 @@
 extern bool agoora_rx_spk_data_flag;
 #endif//CONFIG_DEBUG_DUMP
 
+//supported configrations,keep one of them valid
+#define ENC_G722_DEC_G722_FRMAE_20MS                            1
 
 //#define AGORA_RX_SPK_DATA_DUMP
 
@@ -56,13 +59,7 @@ static uart_util_t g_agora_spk_uart_util = {0};
 #define AGORA_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif  //AGORA_RX_SPK_DATA_DUMP
 
-#ifdef CONFIG_USE_G722_CODEC
-#define AUDIO_SAMP_RATE         (16000)
-#else
-#define AUDIO_SAMP_RATE         (8000)
-#endif
 #define AEC_ENABLE              (1)
-
 
 bool g_connected_flag = false;
 bool g_agent_offline = true;
@@ -104,6 +101,8 @@ static uint32_t g_target_bps = BANDWIDTH_ESTIMATE_MIN_BITRATE;
 extern bool smart_config_running;
 extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
+extern app_aud_para_t app_aud_cust_para;
+uint8_t aud_codec_frame_duration_in_ms = 20;
 #if 0
 bool agoora_tx_mic_data_flag = false;
 #if CONFIG_SYS_CPU1
@@ -466,20 +465,20 @@ bk_err_t audio_turn_on(void)
     aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
     aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 
-#ifdef CONFIG_USE_G722_CODEC
-#if (CONFIG_G722_CODEC_RUN_ON_CPU1)
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = aud_intf_voc_setup.data_type;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = aud_intf_voc_setup.data_type;
+#if ENC_G722_DEC_G722_FRMAE_20MS
+    #if CONFIG_AUD_INTF_SUPPORT_G722
+    aud_intf_voc_setup.aud_codec_setup_input.encoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    aud_intf_voc_setup.aud_codec_setup_input.decoder_type  = AUD_INTF_VOC_DATA_TYPE_G722;
+    #else
+    LOGE("%s, %d, G722 codec need be enabled!\n", __func__, __LINE__, ret);
+    #endif
+#else
 #endif
 
-#if (CONFIG_G722_CODEC_RUN_ON_CPU0)
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
-#endif
-#else
-    aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711A;
-#endif
     aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_DIFFEN;
     aud_intf_voc_setup.aec_enable = AEC_ENABLE;
-    aud_intf_voc_setup.samp_rate  = AUDIO_SAMP_RATE;
 #if CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE
     aud_intf_voc_setup.mic_gain   = 0x30;
 #else
@@ -505,6 +504,8 @@ bk_err_t audio_turn_on(void)
     {
         LOGE("%s, %d, aud_intf set_mode fail, ret:%d\n", __func__, __LINE__, ret);
     }
+
+    bk_aud_intf_audio_para_set((app_aud_para_t *)&app_aud_cust_para);
     ret = bk_aud_intf_voc_init(aud_intf_voc_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
     {
