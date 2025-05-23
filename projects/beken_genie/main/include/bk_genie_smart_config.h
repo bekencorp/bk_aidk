@@ -80,7 +80,7 @@ void bk_genie_erase_agent_info(void);
 int bk_genie_save_agent_info(char *appid, char *channel_name);
 int bk_genie_get_agent_info(bk_genie_agent_info_t *info);
 void bk_genie_prepare_for_smart_config(void);
-int bk_genie_wakeup_agent(void);
+int bk_genie_wakeup_agent(uint8_t reset);
 int bk_genie_upate_agent_info(char *update_info);
 int bk_genie_is_net_pan_configured(void);
 int bk_genie_post_nfc_id(uint8_t *nfc_id);

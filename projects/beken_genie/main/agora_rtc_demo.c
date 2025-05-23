@@ -899,7 +899,7 @@ cmd_fail:
 /* call this api when wifi autoconnect */
 extern char *app_id_record;
 extern char *channel_name_record;
-void agora_auto_run(void)
+void agora_auto_run(uint8_t reset)
 {
 #if !CONFIG_BK_AGORA_DEV_STARTUP_AGENT
     if (!channel_name_record || !app_id_record)
@@ -907,7 +907,7 @@ void agora_auto_run(void)
         return;
     }
 #endif
-    if (bk_genie_wakeup_agent()) {
+    if (bk_genie_wakeup_agent(reset)) {
         LOGE("%s, wake up agent fail!\n", __func__);
         app_event_send_msg(APP_EVT_AGENT_START_FAIL, 0);
         return;

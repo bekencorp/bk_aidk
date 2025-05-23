@@ -160,7 +160,7 @@ exit:
     return BK_OK;
 }
 
-extern void agora_auto_run(void);
+extern void agora_auto_run(uint8_t reset);
 #include "agora_config.h"
 static void bk_genie_message_handle(void)
 {
@@ -297,7 +297,7 @@ static void bk_genie_message_handle(void)
                         ret = bk_config_sync_flash_safely();
                         if (ret)
                             LOGE("sync flash fail!!!\r\n");
-                        agora_auto_run();
+                        agora_auto_run(0);
 
                         if (!bk_genie_is_net_pan_configured())
                         {

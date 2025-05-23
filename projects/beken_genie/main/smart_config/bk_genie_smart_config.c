@@ -34,6 +34,7 @@
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "bk_factory_config.h"
 #include "driver/trng.h"
+#include "agora_config.h"
 
 #define TAG "bk_sconf"
 #define RCV_BUF_SIZE            256
@@ -48,6 +49,7 @@ static beken2_timer_t network_reconnect_tmr = {0};
 extern bool agora_runing;
 uint8_t network_disc_evt_posted = 0;
 bool first_time_for_network_provisioning = true;
+bool first_time_for_network_reconnect = true;
 
 #if  CONFIG_BK_AGORA_DEV_STARTUP_AGENT
 #include <stdio.h>
@@ -650,7 +652,7 @@ static int bk_genie_reselect_pan(void)
 }
 #endif
 
-extern void agora_auto_run(void);
+extern void agora_auto_run(uint8_t reset);
 static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
 {
     netif_event_got_ip4_t *got_ip;
@@ -702,7 +704,11 @@ static int bk_genie_sconf_netif_event_cb(void *arg, event_module_t event_module,
 skip_agent_request:
 #endif
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
-                agora_auto_run();
+                if (first_time_for_network_reconnect) {
+                        first_time_for_network_reconnect = false;
+                        agora_auto_run(1);
+                    } else
+                        agora_auto_run(0);
 #else
                 if (bk_genie_get_agent_info(&info) == 0)
                 {
@@ -721,7 +727,11 @@ skip_agent_request:
                     app_id_record = os_strdup(info.appid);
                     channel_name_record = os_strdup(info.channel_name);
                     BK_LOGI(TAG, "%s, %s\r\n", app_id_record, channel_name_record);
-                    agora_auto_run();
+                    if (first_time_for_network_reconnect) {
+                        first_time_for_network_reconnect = false;
+                        agora_auto_run(1);
+                    } else
+                        agora_auto_run(0);
                 }
 #endif
             }
@@ -799,6 +809,7 @@ extern bk_err_t agora_stop(void);
 void bk_genie_prepare_for_smart_config(void)
 {
     smart_config_running = true;
+    first_time_for_network_reconnect = true;
 #if CONFIG_STA_AUTO_RECONNECT
     first_time_for_network_provisioning = true;
 #endif
@@ -985,7 +996,7 @@ int bk_genie_rsp_parse_update(char *buffer)
 }
 
 extern char *bk_get_bk_server_url(void);
-int bk_genie_wakeup_agent(void)
+int bk_genie_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
 	agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
@@ -1060,8 +1071,17 @@ extern char *channel_name_record;
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
 
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":\"%u\",\"agent_param\": {", reset);
+#if CONFIG_AUDIO_FRAME_DURATION_MS
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
+#endif
+#if CONFIG_AUD_INTF_SUPPORT_OPUS
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"OPUS\"");
+#else
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"G722\"");
+#endif
     rand_flag = bk_rand();
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"rand_flag\":\"%u\"}", rand_flag);
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
 
     webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
