@@ -213,37 +213,7 @@ and special reminders are signaled by alternating red and green light blinking. 
 1.10.2 Prompt Tone Development Guide
 +++++++++++++++++++++++++++++++++++++++++
 
-    Source Code Path: ``<source code>/bk_avdk/components/multimedia/prompt_tone_play/``
-
-    As shown in the following figure:
-    The prompt tone development framework use modular design, mainly consisting of the following three modules:
-
-    1.Prompt Tone Play Module (prompt_tone_play)
-        - This module is an App module provided for upper-layer users. It integrates the prompt tone reading module and the prompt tone decoding module, and is responsible for the configuration and control of the entire prompt tone playback process.
-
-    2.Prompt Tone Reading Module (audio_source)
-        - To improve scalability, a class is abstracted based on functionality, and different functional instances are developed based on this class.
-        - Currently, it supports instances for reading prompt tones from an array( ``audio_array.c`` ) and from the VFS file system( ``audio_vfs.c`` ). Customers with other requirements can refer to these instances for self-adaptation.
-        - Default use of SD NAND storage supporting the VFS file system for prompt tones, and a macro can be used to select a specific instance.
-
-    3.Prompt Tone Decoding Module (audio_codec)
-        - To improve scalability, a class is abstracted based on functionality, and different functional instances are developed based on this class.
-        - Currently, it supports instances for decoding PCM format( ``pcm_codec.c`` ) and WAV format( ``wav_codec.c`` ). Customers with other requirements can refer to these instances for self-adaptation.
-        - Default use of WAV format prompt tones, a macro can be used to select a specific instance.
-
-.. figure:: ../../../_static/prompt_tone.png
-    :align: center
-    :alt: Prompt Tone Development Framework
-    :figclass: align-center
-
-    Figure 2. Prompt Tone Development Framework
-
-.. note::
-
-    The prompt tone file format must meet the following requirements:
-        - Mono
-        - 16-bit bit depth
-        - 16 kHz sampling rate
+    Please refer to the document: `Aud_Intf API User Guide <../../api-reference/bk_aud_intf.html>`_
 
     The default path for the prompt tone file resources: ``<source code>/projects/beken_genie/main/resource/``
 

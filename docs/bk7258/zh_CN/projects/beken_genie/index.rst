@@ -206,37 +206,7 @@ Beken Genie AI
 1.10.2 提示音开发指南
 +++++++++++++++++++++++++++++++++
 
-    源码路径： ``<source code>/bk_avdk/components/multimedia/prompt_tone_play/``
-
-    如下图所示:
-    提示音开发框架采用模块化的设计方案。主要分为三个模块，提示音播放模块（prompt_tone_play）、提示音读取模块(audio_source)和提示音解码模块（audio_codec）.
-
-    1.提示音播放模块
-        - 提示音播放模块是提供给上层用户使用的app模块，负责集成提示音读取模块和提示音解码模块，完成整个提示音播放的配置和控制。
-
-    2.提示音读取模块
-        - 为了可扩展性，根据功能抽象为一个类，再基于该类开发不同功能实例。
-        - 目前已经支持从数组读取提示音的实例 ``audio_array.c`` 和从vfs文件系统读取提示音的实例 ``audio_vfs.c`` ，客户有其他需求可以参考其他实例自行适配。
-        - 默认使用支持vfs文件系统的sd nand存储提示音，可使用宏选择指定的实例。
-
-    3.提示音解码模块
-        - 为了可扩展性，根据功能抽象为一个类，再基于该类开发不同功能实例。
-        - 目前已经支持pcm格式解码的实例 ``pcm_codec.c`` 和wav格式解码的实例 ``wav_codec.c`` ，客户有其他需求可以参考其他实例自行适配。
-        - 默认使用wav格式的提示音，可使用宏选择指定的实例。
-
-.. figure:: ../../../_static/prompt_tone.png
-    :align: center
-    :alt: Prompt Tone Development Framework
-    :figclass: align-center
-
-    Figure 2. Prompt Tone Development Framework
-
-.. note::
-
-    提示音文件格式必须满足下述要求：
-        - 单声道
-        - 16bit位宽
-        - 16K采样率
+    请参考文档：`音频组件开发指南 <../../api-reference/bk_aud_intf.html>`_
 
     默认提示音文件资源路径：``<source code>/projects/beken_genie/main/resource/``
 
