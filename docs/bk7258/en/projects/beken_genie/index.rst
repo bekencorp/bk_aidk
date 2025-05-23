@@ -31,7 +31,7 @@ The design includes reference solutions and demos for common peripherals, such a
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
     * Hardware:
-        * SPI LCD X2 (GC9D01)
+        * SPI LCD X2 (GC9D01 160x160)
         * MIC
         * Speaker
         * SD NAND 128MB
@@ -704,3 +704,8 @@ customers may need to adapter their own solution
 Q: Why doesn't the application layer report mic data?
 
 A: Currently, beken_genie defaults to supporting command word-based voice wake-up functionality. Only after wake-up will it report the mic-collected data to the application layer, which then sends the data to AI for conversation. If the customer does not need voice wake-up functionality, they can disable this feature by defining the macro "CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE".
+
+
+Q: Why UI resource display abnormally?
+
+A: In this project, the UI resource used must be in AVI format, with a resolution of 320x160, and must be converted using an AVI conversion tool before they can be used. Please check if the UI resource meet the above requirements first.
