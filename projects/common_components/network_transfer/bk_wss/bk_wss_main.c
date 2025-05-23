@@ -300,9 +300,11 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
 			g_connected_flag = false;
-			__get_beken_rtc()->disconnecting_state++;
-			if (__get_beken_rtc()->disconnecting_state == 1)
-				app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
+			if(__get_beken_rtc()) {
+				__get_beken_rtc()->disconnecting_state++;
+				if (__get_beken_rtc()->disconnecting_state == 1)
+					app_event_send_msg(APP_EVT_RTC_CONNECTION_LOST, 0);
+			}
 			break;
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
@@ -319,6 +321,9 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
 			}
+			break;
+		case WEBSOCKET_EVENT_CLOSED:
+			LOGE("WEBSOCKET_EVENT_CLOSED\r\n");
 			break;
 		default:
 			break;

@@ -978,6 +978,7 @@ bk_err_t rtc_websocket_stop(rtc_session *rtc_session)
 
 	if(rtc_session->bk_rtc_client) {
 		LOGE("%s stop websocket client\r\n", __func__);
+		rtc_session->bk_rtc_client->ws_event_handler = NULL;
 		websocket_client_destroy((transport)rtc_session->bk_rtc_client);
 		rtc_session->bk_rtc_client = NULL;
 	} else {
