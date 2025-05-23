@@ -1,102 +1,202 @@
+#@ Enable Override Flash Partition
 CONFIG_OVERRIDE_FLASH_PARTITION=y
+#@ Enable Beken Websocket Transmit for AI
 CONFIG_BK_WSS_TRANS=y
+#@ Enable FreeRTOS Posix
 CONFIG_FREERTOS_POSIX=y
+#@ Use an external 32k crystal
 CONFIG_EXTERN_32K=n
+#@ 32k use the 26m divide
 CONFIG_LPO_SRC_26M32K=y
+#@ Enable FreeRTOS Queue_Sets
 CONFIG_FREERTOS_USE_QUEUE_SETS=y
+#@ CPU frequency
 CONFIG_CPU_FREQ_HZ=240000000
+#@ Task Watchdog Period(ms)
 CONFIG_TASK_WDT_PERIOD_MS=60000
+#@ Set transfer app task size
 CONFIG_TRANS_APP_TASK_SIZE=10240
+#@ CPU0 RAM size for SPE
 CONFIG_CPU0_SPE_RAM_SIZE=0X3D000
+#@ CPU1 app RAM size
 CONFIG_CPU1_APP_RAM_SIZE=0X53000
+#@ CPU2 app RAM size
 CONFIG_CPU2_APP_RAM_SIZE=0X10000
+#@ 0
 CONFIG_DMA_LOGIC_CHAN_ID_MIN=0
+#@ Enable PSRAM write through
 CONFIG_PSRAM_WRITE_THROUGH=y
+#@ The psram address is from 0x60000000 to 0x60800000 for psram aps6408l_o
 CONFIG_PSRAM_HEAP_BASE=0x60700000
+#@ psram aps6408l-o
 CONFIG_PSRAM_HEAP_SIZE=0x200000
+#@ Set psram_malloc base address
 CONFIG_PSRAM_HEAP_CPU0_BASE_ADDER=0x60700000
+#@ Enable USB
 CONFIG_USB=n
+#@ CHERRY_USB
 CONFIG_CHERRY_USB=n
+#@ Enable USB Device Mode
 CONFIG_USB_DEVICE=n
+#@ Udisk Device specific macro switch,unable to coexist with Host
 CONFIG_USBD_MSC=n
+#@ This macro needs to be opened on cp0 and cp1 when USB in cp1.
 CONFIG_USB_CDC_MODEM=y
+#@ Enable Webclient
 CONFIG_WEBCLIENT=y
+#@ Enable Mbedtls
 CONFIG_MBEDTLS=y
+#@ Enable Webclient
 CONFIG_WEBCLIENT_TLS=y
+#@ Enable CJSON
 CONFIG_CJSON_USE=y
+#@ Enable Wifi Fast DHCP with easy flash
 CONFIG_EASY_FLASH_FAST_DHCP=n
+#@ Enable sta use static ip
 CONFIG_STA_USE_STATIC_IP=n
+#@ Enable Aud intf support G722 data type
 CONFIG_AUD_INTF_SUPPORT_G722=n
+#@ Enable Aud intf support OPUS data type
 CONFIG_AUD_INTF_SUPPORT_OPUS=y
+#@ Support prompt tone resample
 CONFIG_AUD_INTF_SUPPORT_OPUS_PROMPT_TONE_RESAMPLE=y
+#@ Enable AEC V2 Version
 CONFIG_AEC_VERSION_V2=y
+#@ need connect speaker to mic2
 CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE=y
+#@ Enable Aud intf support ai_dialog_free
 CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE=y
+#@ Enable supoort multiple speaker sources, for example prompt tone, a2dp music
 CONFIG_AUD_INTF_SUPPORT_MULTIPLE_SPK_SOURCE_TYPE=y
+#@ Enable supoort prompt tone
 CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE=y
+#@ default audio frame duration in ms
 CONFIG_AUDIO_FRAME_DURATION_MS=60
+#@ ADC sample rate
 CONFIG_AUDIO_ADC_SAMP_RATE=16000
+#@ DAC sample rate
 CONFIG_AUDIO_DAC_SAMP_RATE=24000
+#@ DAC sample rate
 CONFIG_AUDIO_ENCODER_TYPE="OPUS"
+#@ DAC sample rate
 CONFIG_AUDIO_DECODER_TYPE="OPUS"
 CONFIG_LDO3V3_ENABLE=y
 CONFIG_LDO3V3_CTRL_GPIO=52
+#@ Enable Button
 CONFIG_BUTTON=y
+#@ Enable Ble
 CONFIG_BLE=y
+#@ Enable Bt
 CONFIG_BT=y
+#@ Enable user-defined GPIO config for each project
 CONFIG_USR_GPIO_CFG_EN=y
+#@ BT reuse media memory at beging of cpu1
 CONFIG_BT_REUSE_MEDIA_MEMORY=y
+#@ BT reuse media memory size
 CONFIG_BT_REUSE_MEDIA_MEM_SIZE=0x1B000
+#@ dump debug data
 CONFIG_DEBUG_DUMP=y
+#@ Enable SDCARD
 CONFIG_SDCARD=n
+#@ sd card default clock freq
 CONFIG_SDCARD_DEFAULT_CLOCK_FREQ=11
+#@ Support SDCARD 4 Data Wires
 CONFIG_SDCARD_BUSWIDTH_4LINE=n
+#@ Enable SDcard power gpio ctrl
 CONFIG_SDCARD_POWER_GPIO_CTRL=n
+#@ Support FATFS
 CONFIG_FATFS=n
+#@ Support SDCARD FATFS
 CONFIG_FATFS_SDCARD=n
+#@ enable SDCARD debug, it will dump write and read data with SDCARD
 CONFIG_SDCARD_DEBUG_SUPPORT=n
+#@ Enable SDIO
 CONFIG_SDIO=n
+#@ SDIO Version V1P0
 CONFIG_SDIO_V1P0=n
+#@ SDIO Version V2P0
 CONFIG_SDIO_V2P0=n
+#@ Enable sdio host
 CONFIG_SDIO_HOST=n
+#@ SDIO Uses 4 Lines Transfer Data
 CONFIG_SDIO_4LINES_EN=n
+#@ SDIO Test Program Enable
 CONFIG_SDIO_TEST_EN=n
+#@ SDIO Debug Program Enable
 CONFIG_SDIO_DEBUG_EN=n
+#@ SDIO Host default clock freq
 CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ=7
+#@ SDIO PM Support
 CONFIG_SDIO_PM_CB_SUPPORT=n
+#@ Enable gsensor
 CONFIG_GSENSOR_ENABLE=y
+#@ Enable gsensor demo
 CONFIG_GSENSOR_DEMO_EN=y
+#@ Enable gsensor demo
 CONFIG_GSENSOR_ARITHEMTIC_DEMO_EN=y
+#@ Enable gsensor test
 CONFIG_GSENSOR_TEST_EN=n
+#@ Enable gsensor IP
 CONFIG_GSENSOR_SC7A20_ENABLE=y
+#@ GPIO_10 as default wakeup source
 CONFIG_DEFAULT_WAKEUP_SOURCE=n
+#@ Enable OTP_V1
 CONFIG_OTP_V1=y
+#@ Enable ATE
 CONFIG_ATE=n
+#@ disable wifi ps if need.
 CONFIG_WIFI_PS_DISABLE=n
+#@ Enable BT Personal Area Networking
 CONFIG_NET_PAN=y
+#@ Enable STA auto reconnect feature.
 CONFIG_STA_AUTO_RECONNECT=y
+#@ Enable start agent on device
 CONFIG_BK_DEV_STARTUP_AGENT=n
+#@ Enable BAT_MONITOR
 CONFIG_BAT_MONITOR=y
+#@ Enable Battery Test
 CONFIG_BATTERY_TEST=y
+#@ Enable nfc
 CONFIG_NFC_ENABLE=n
+#@ Enable nfc test
 CONFIG_NFC_TEST_EN=y
+#@ Enable nfc IP
 CONFIG_NFC_MFRC522_ENABLE=y
+#@ Default 1 mean use UART1
 CONFIG_NFC_MFRC522_COMM_SERIAL_PORT=1
+#@ Enable pwm
 CONFIG_PWM=y
+#@ PWM PM Support
 CONFIG_PWM_PM_CB_SUPPORT=y
+#@ Enable Beken Modem
 CONFIG_BK_MODEM=y
+#@ Enable Ppp Protocol
 CONFIG_LWIP_PPP_SUPPORT=y
+#@ Enable IP NAPT
 CONFIG_IP_NAPT=n
+#@ Enable IP FORWARD
 CONFIG_IP_FORWARD=n
+#@ nfc polling time Period(ms)
 CONFIG_NFC_POLLING_PERIOD_MS=1000
+#@ the gpio id control camera power
 CONFIG_CAMERA_CTRL_POWER_GPIO_ID=49
+#@ the gpio id control camera reset pin, -1 means not used
 CONFIG_CAMERA_CTRL_RESET_GPIO_CTRL=28
+#@ Simulate I2C SDA GPIO
 CONFIG_SIM_I2C_SDA_GPIO=43
+#@ Simulate I2C SCL GPIO
 CONFIG_SIM_I2C_SCL_GPIO=42
+#@ Enable MOTOR
 CONFIG_MOTOR=y
+#@ Enable Websocket
 CONFIG_WEBSOCKET=y
+#@ Enable Websocket
 CONFIG_WEBSOCKET_TLS=y
+#@ Enable LED_BLINK
 CONFIG_LED_BLINK=y
+#@ Enable COUNTDOWN
 CONFIG_COUNTDOWN=y
+#@ Enable SINGLE_SCREEN_FONT_DISPLAY
 CONFIG_SINGLE_SCREEN_FONT_DISPLAY=y
+#@ Cpu1 core offset address default 0x2e0000
 CONFIG_SYS_CPU1_OFFSET=0x22b0000
