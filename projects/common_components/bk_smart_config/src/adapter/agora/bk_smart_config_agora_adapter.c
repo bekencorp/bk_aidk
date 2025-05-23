@@ -667,7 +667,7 @@ extern char *channel_name_record;
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
 
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":\"%u\",\"agent_param\": {", reset);
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":%u,\"agent_param\": {", reset);
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
     rand_flag = bk_rand();
