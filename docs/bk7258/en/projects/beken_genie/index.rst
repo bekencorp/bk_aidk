@@ -311,7 +311,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     +----------------------------------------+----------------+---------------+----------------+
     |Kconfig                                 |   CPU          |   Format      |      Value     |
     +----------------------------------------+----------------+---------------+----------------+
-    |CONFIG_NETWORK_AUTO_RECONNECT           |   CPU0         |   bool        |        y       |
+    |CONFIG_BK_SMART_CONFIG                  |   CPU0         |   bool        |        y       |
     +----------------------------------------+----------------+---------------+----------------+
 
     To enable dual screen display and avi play function, the following configurations need to be enabled:
@@ -337,75 +337,52 @@ and special reminders are signaled by alternating red and green light blinking. 
     +----------------------------------------+----------------+---------------+----------------+
 
 
-2.5 Netowkr Provisioning and Agent Policy Customization Guide
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2.5 BLE Netowkr Provisioning and Agent Policy Customization Guide
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
- The Wi-Fi provisioning-related code is mainly located in bk_genie_smart_config.c and boarding_core.c, customers can customize their own solutions by referring to the following guide.
+ The BLE Netowkr Provisioning and Agent-Startup code are mainly distributed in the directory:"projects/common_components/bk_boarding_service" and "projects/common_components/bk_smart_config". Customers can refer to the following instructions to customize their own solutions.
 
-1. bk_genie_smart_config_init: for the initialization of Network Provisioning and auto reconnect.
-
-.. code::
-
-    int bk_genie_smart_config_init(void)
-    {
-        int flag;
-
-        event_handler_init();
-        flag = demo_network_auto_reconnect(false);   //judge whether to reconnect
-
-        if (flag != 0x71l && flag != 0x73l
-    #if CONFIG_NET_PAN                               //CONFIG_NET_PAN for PAN
-            && flag != 0x74l
-    #endif
-        ) {
-            bk_genie_prepare_for_smart_config();     //begin to do Network Provisioning
-        }
-        else
-        {
-    #if CONFIG_NET_PAN
-            if (flag != 0x74l)
-    #endif
-            {
-                bk_bluetooth_deinit();
-            }
-        }
-
-        return 0;
-    }
-
-
-2. bk_genie_prepare_for_smart_config: begin to do Network Provisioning
+1.bk_sconf_prepare_for_smart_config: Entering BLE Netowkr Provisioning mode
 
 .. code::
 
-    void bk_genie_prepare_for_smart_config(void)
+    void bk_sconf_prepare_for_smart_config(void)
     {
         smart_config_running = true;
+        first_time_for_network_reconnect = true;
     #if CONFIG_STA_AUTO_RECONNECT
         first_time_for_network_provisioning = true;
     #endif
-        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);
-        network_reconnect_stop_timeout_check();
-        agora_stop();
-        bk_wifi_sta_stop();
-    #if !CONFIG_STA_AUTO_RECONNECT                              //CONFIG_STA_AUTO_RECONNECT default disable, use beken policy
-        demo_erase_network_auto_reconnect_info();
-        bk_genie_erase_agent_info();
+        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);//Enter Netowkr Provisioning – indicated by alternating red and green lights.
+        network_reconnect_stop_timeout_check();             //Disable reconnect timeout check
+        bk_sconf_trans_stop();                              //Close Rtc on device and Multimedia Services
+        bk_wifi_sta_stop();                                 //Stop wifi
+    #if CONFIG_BK_MODEM
+    extern bk_err_t bk_modem_deinit(void);
+      bk_modem_deinit();                                    //If support 4G, disable 4G
     #endif
-        bk_bt_enter_pairing_mode(0);                            //BT reset to initial state
+    #if !CONFIG_STA_AUTO_RECONNECT                          //CONFIG_STA_AUTO_RECONNECT default n, use beken reconnect policy
+        demo_erase_network_auto_reconnect_info();
+        bk_sconf_erase_agent_info();
+    #endif
 
-        extern bool ate_is_enabled(void);
+    #if CONFIG_NET_PAN && !CONFIG_A2DP_SINK_DEMO && !CONFIG_HFP_HF_DEMO
+        bk_bt_enter_pairing_mode(0);                        //Reset BT to initial state
+    #else
+        BK_LOGW(TAG, "%s pan disable !!!\n", __func__);
+    #endif
+    extern bool ate_is_enabled(void);
 
         if (!ate_is_enabled())
         {
-            bk_genie_boarding_init();                           //BLE Network Provisioning init
-            wifi_boarding_adv_start();                          //BLE Advertising
+            bk_genie_boarding_init();                       //BLE Netowkr Provisioning init
+            wifi_boarding_adv_start();                      //BLE broadcasting enabled
         }
         ......
     }
 
 
-3. bk_genie_message_handle:switch agent info with Smart phone, customers may need to adapter their own solution
+2.bk_genie_message_handle: Responsible for BLE interaction with mobile app during network provisioning. Customer can disable below code to implement their own solutions.
 
 .. code::
 
@@ -414,36 +391,118 @@ and special reminders are signaled by alternating red and green light blinking. 
             ……
         case DBEVT_START_AGORA_AGENT_START:
         {
-            ……
-            //upload uid to beken server, to generate channel_name
-            ……
+            LOGI("DBEVT_START_AGORA_AGENT_START\n");
+            char payload[256] = {0};
+            __maybe_unused uint16_t len = 0;
+            //Uploads module UID and related information to Beken's server. Customers who have deployed their own servers may:
+            //1.Remove this code section entirely
+            //2.Modify the implementation by referring to Section 3's bk_sconf_send_agent_info as a reference.
+            len = bk_sconf_send_agent_info(payload, 256);
+            bk_genie_boarding_event_notify_with_data(BOARDING_OP_SET_AGENT_INFO, 0, payload, len);
         }
         break;
         case DBEVT_START_AGORA_AGENT_RSP:
         {
-            ……
-            //receive channel_name
-            ……
+            LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
+            //Receives channel name and other configuration data from Beken's server. For customers operating their own servers, they may:
+            //1.Disable this code section entirely
+            //2.Modify the implementation by referring to Section 4's bk_sconf_prase_agent_info function
+            bk_sconf_prase_agent_info((char *)msg.param, 1);
         }
         break;
             ……
     }
 
-4. bk_genie_wakeup_agent: Responsible for Agent startup. Beken supports two solutions: starting the agent on the server (customers need to build their own server) and starting the agent on the development board. The default method is to start the agent on the server.
+
+3.bk_sconf_send_agent_info: Responsible for transmitting agent configuration parameters to the mobile app (APK) during network provisioning.
+
+  code directory: projects/common_components/bk_smart_config/src/adapter/agora/bk_smart_config_agora_adapter.c
 
 .. code::
 
-    int bk_genie_wakeup_agent(void)
+    uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
     {
-    //Enable this macro to start the agent on the development board
-    #if CONFIG_BK_AGORA_DEV_STARTUP_AGENT
+        unsigned char uid[32] = {0};
+        char uid_str[65] = {0};
+        uint16 len = 0;
+
+        bk_uid_get_data(uid);
+        for (int i = 0; i < 24; i++)
+        {
+            sprintf(uid_str + i * 2, "%02x", uid[i]);
+        }
+        //The following parameters require configuration when the Beken server initializes the agent. Customers may customize these according to their own solution requirements.
+        len = os_snprintf(payload, max_len, "{\"channel\":\"%s\",\"agent_param\": {", uid_str);
+    #if CONFIG_AUDIO_FRAME_DURATION_MS
+        len += os_snprintf(payload+len, max_len, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
+    #endif
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+        len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"OPUS\"");
+    #else
+        len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"G722\"");
+    #endif
+        len += os_snprintf(payload+len, max_len, "}}");
+        BK_LOGI(TAG, "ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
+        return len;
+    }
+
+
+4.bk_sconf_prase_agent_info: Responsible for parsing server response parameters (e.g., app_id, channel_name) after agent initialization during provisioning, and activating device-side RTC accordingly.
+
+  code directory: projects/common_components/bk_smart_config/src/adapter/agora/bk_smart_config_agora_adapter.c
+
+.. code::
+
+    void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
+    {
+        ......
+        //parse app_id and channel_name
+        cJSON *app_id = cJSON_GetObjectItem(json, "app_id");
+        if (app_id && ((app_id->type & 0xFF) == cJSON_String))
+        {
+           app_id_record = os_strdup(app_id->valuestring);
+        }
+        else
+        {
+            BK_LOGE(TAG, "[Error] not find msg\n");
+        }
+
+        cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
+        if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
+        {
+            channel_name_record = os_strdup(channel_name->valuestring);
+            BK_LOGI(TAG, "real channel name:%s\r\n", channel_name_record);
+        }
+        ......
+        if (app_id_record && channel_name_record)
+        {
+            //save agent info to easy flash
+            bk_sconf_save_agent_info(app_id_record, channel_name_record);
+            BK_LOGI(TAG, "begin agora_auto_run\n");
+            //sync agent info to easy flash
+            ret = bk_config_sync_flash_safely();
+            if (ret)
+                BK_LOGE(TAG, "sync flash fail!!!\r\n");
+            //start agora agent and RTC
+            agora_auto_run(reset);
+            ......
+    }
+
+
+5.bk_sconf_wakeup_agent: Manages Agent initialization, supporting two deployment models:Server-Startup Agent (default, requires customer-hosted server for customization) and Device-Startup Agent.(Beken's default implementation uses server-side initialization)
+
+.. code::
+
+    int bk_sconf_wakeup_agent(void)
+    {
+    #if CONFIG_BK_DEV_STARTUP_AGENT
         agora_ai_agent_start_conf_t agent_conf = BK_AGORA_AGENT_DEFAULT_CONFIG();
         __maybe_unused agent_type_t agent_type = DOUBAO_AGENT;
         unsigned char uid[32] = {0};
         char uid_str[65] = {0}, chan_name[65] = {0};
         int chan_len;
 
-        //The agent channel name of the beken solution is generated based on the name of the AI model and the device uid. Customers can choose to replace it to their own solution
+        //The Beken solution generates agent channel names based on the large model name and device UID. Customers may choose to modify this and implement their own naming scheme.
         bk_uid_get_data(uid);
         for (int i = 0; i < 24; i++)
         {
@@ -455,18 +514,18 @@ and special reminders are signaled by alternating red and green light blinking. 
             chan_len = os_snprintf(chan_name, 65, "Doubao_%s", uid_str);
         agent_conf.channel = os_zalloc(chan_len+1);
         os_strcpy(agent_conf.channel, chan_name);
-
-        //Customers need to fill in their own token in CUSTOM_LLM_DEFAULT_OPENAI_TOKEN/CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN
+        //Customers must enter their own authentication tokens in:CUSTOM_LLM_DEFAULT_OPENAI_TOKEN and CUSTOM_LLM_DEFAULT_DOUBAO_TOKEN
         agent_conf.custom_llm = custom_llm_default_conf(agent_type);
-        //Customers need to fill in their own Agora APPID in AGORA_DEBUG_APPID, fill in their own Agora restful key in AGORA_DEBUG_AUTH, and fill in Agora token as needed
-        //Fill in their own tts key in tts_str_openai/tts_str_doubao
+        //Customers must configure their own Agora credentials:AGORA_DEBUG_APPID[Your Agora App ID], AGORA_DEBUG_AUTH: [Your Agora RESTful Key], Agora Token: [Optional, configure as needed]
+        //Enter your TTS service keys in:tts_str_openai (for OpenAI TTS),tts_str_doubao (for Doubao TTS)
         bk_agora_ai_agent_start(&agent_conf, agent_type);
         ......
-    #else     //startup agent on the server
+    #else
         struct webclient_session *session = NULL;
         char *buffer = NULL, *post_data = NULL;
         char generate_url[256] = {0};
         int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+        uint32_t rand_flag = 0;
 
         /* create webclient session and set header response size */
         session = webclient_session_create(SEND_HEADER_SIZE);
@@ -475,11 +534,10 @@ and special reminders are signaled by alternating red and green light blinking. 
             ret = -1;
             goto __exit;
         }
-
-        //if customers use their own server, they need to replace bk_get_bk_server_url() with their own server URL
-        //for example: #define BK_CUSTOMER_SERVER_URL "xxx"
-        //for example: url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BK_CUSTOMER_SERVER_URL);
-        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", bk_get_bk_server_url());
+        //Customers using private servers must replace bk_get_bk_server_url() with their own server URL string.
+        //#define BK_CUSTOMER_SERVER_URL "xxx"
+        //eg:url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s", BK_CUSTOMER_SERVER_URL);
+        url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
         if ((url_len < 0) || (url_len >= MAX_URL_LEN))
         {
             BK_LOGE(TAG, "URL len overflow\r\n");
@@ -487,18 +545,85 @@ and special reminders are signaled by alternating red and green light blinking. 
             return ret;
         }
         ......
-        //Generate a post request, customers can define their own json message format
-        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\"}", channel_name_record);
+        //Generates POST requests while allowing customers to define their own JSON message format.
+        data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":%u,\"agent_param\": {", reset);
+    #if CONFIG_AUDIO_FRAME_DURATION_MS
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
+    #endif
+    #if CONFIG_AUD_INTF_SUPPORT_OPUS
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"OPUS\"");
+    #else
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"G722\"");
+    #endif
+        rand_flag = bk_rand();
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
+        BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
         ......
-        //If the customer uses his own server, they need to implement this function himself or comment it out.
-        ret = bk_genie_rsp_parse_update(buffer);
-        ......
+        //Customers using private servers must either implement this function themselves or comment it out.
+        ret = bk_sconf_rsp_parse_update(buffer);
     }
 
-5. bk_genie_sconf_netif_event_cb: wakeup agent after wifi connected, save network and agent info
 
-6. bk_genie_erase_agent_info, bk_genie_save_agent_info, bk_genie_get_agent_info: all for beken agent solution,
-customers may need to adapter their own solution
+5.bk_sconf_netif_event_cb: Manages post-WiFi connection processes including:Agent initialization, WiFi/agent information storage, Post-provisioning agent wakeup,(Customizable - customers may replace with their own implementation)
+
+
+6.bk_sconf_erase_agent_info,bk_sconf_save_agent_info,bk_sconf_get_agent_info: These are all Beken agent background maintenance solutions. Customers may replace them with their own implementations.
+
+
+7.ir_mode_switch_main: Handles multimodal switching. For custom implementations, customers must either: Implement their own bk_sconf_update_agent_info function, or Adapt Beken's solution by replacing bk_get_bk_server_url() with their private server endpoint
+
+.. code::
+
+    void ir_mode_switch_main(void)
+    {
+        if (!agora_runing) {
+            BK_LOGW(TAG, "Please Run AgoraRTC First!");
+            goto exit;
+        }
+
+        ir_mode_switching = 1;
+
+        if (!video_started) {
+            //Switch to image recognition large model
+            bk_sconf_upate_agent_info("text_and_image");
+            while (g_agent_offline)
+            {
+                if (!agora_runing)
+                {
+                    goto exit;
+                }
+                rtos_delay_milliseconds(100);
+            }
+            //open camera
+            video_turn_on();
+
+    #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
+            if (lvgl_app_init_flag == 1) {
+                media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT_AND_IMAGE);
+            }
+    #endif
+        } else {
+            //close camera
+            video_turn_off();
+            //Switch to large language model
+            bk_sconf_upate_agent_info("text");
+
+    #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
+            if (lvgl_app_init_flag == 1) {
+                media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT);
+            }
+    #endif
+        }
+
+    exit:
+        config_ir_mode_switch_thread_handle = NULL;
+        ir_mode_switching = 0;
+        rtos_delete_thread(NULL);
+    }
+
+
+8.bk_sconf_start_agora_rtc: Manages initialization of both the Agora agent and device-side RTC. The 'reset' parameter determines whether to force revert to initial agent configuration on Beken's server.
 
 
 3. Demonstration instructions
