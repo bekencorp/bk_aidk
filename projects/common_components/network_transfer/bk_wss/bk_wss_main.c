@@ -91,6 +91,10 @@ extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 extern app_aud_para_t app_aud_cust_para;
 
+#if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
+extern uint8_t lvgl_app_init_flag;
+#endif
+
 #if CONFIG_WIFI_ENABLE
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
 #else
@@ -272,7 +276,12 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
         info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
         rtc_websocket_parse_text(&info, root);
         LOGE("text: type:%s data:%s\n", info.text_type ? "reply":"request", info.text_data);
-        media_app_lvgl_send_data(&info);
+
+#if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
+        if (lvgl_app_init_flag == 1) {
+            media_app_lvgl_send_data(&info);
+        }
+#endif
     } else {
         LOGE("Warning: Unknown type: %s\n", type->valuestring);
     }
