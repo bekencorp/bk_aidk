@@ -1,34 +1,60 @@
-
 #
+#@ Enable Cache
 CONFIG_CACHE_ENABLE=n
 #
+#@ video data in dtcm
 CONFIG_VIDEO_DTCM=y
 #
+#@ Enable media service
 CONFIG_MEDIA=y
+#@ Enable Media
 CONFIG_MEDIA_MINOR=y
 #
+#@ 4
 CONFIG_DMA_LOGIC_CHAN_CNT=7
+#@ 0
 CONFIG_DMA_LOGIC_CHAN_ID_MIN=9
 #
+#@ Enable USB
 CONFIG_USB=y
+#@ USB VBAT CONTROL GPIO ID
 CONFIG_USB_VBAT_CONTROL_GPIO_ID=0x1C
+#@ MENTOR_USB
 CONFIG_MENTOR_USB=n
+#@ CHERRY_USB
 CONFIG_CHERRY_USB=y
+#@ Enable USB Host Mode
 CONFIG_USB_HOST=y
+#@ Enable USB Device Mode
 CONFIG_USB_DEVICE=n
+#@ Priority of USB task
 CONFIG_TASK_USB_PRIO=2
+#@ Enable Usb Uvc
 CONFIG_USB_UVC=y
+#@ Enable Usb Uac
 CONFIG_USB_UAC=y
+#@ Udisk Host specific macro switch,unable to coexist with Device
 CONFIG_USB_MSD=n
+#@ Enable Usb Uac Mic
 CONFIG_USB_UAC_MIC=y
+#@ Enable Usb Uac Speaker
 CONFIG_USB_UAC_SPEAKER=y
+#@ Enable fusion device video and audio
 CONFIG_UVC_UAC_DEMO=y
+#@ Enable Usb Uvc_Uac Debug
 CONFIG_UVC_UAC_DEMO_DEBUG=n
+#@ Enable Multi-core operation USB
 CONFIG_USB_MAILBOX=y
+#@ Enable USB mailbox master
 CONFIG_USB_MAILBOX_MASTER=n
+#@ Enable USB mailbox slave
 CONFIG_USB_MAILBOX_SLAVE=y
+#@ Enable USB mailbox slave cpu2 to cpu1
 CONFIG_USB_MAILBOX_SLAVE_CPU2_TO_CPU1=y
 
+#@ CPU0 RAM size for SPE
 CONFIG_CPU0_SPE_RAM_SIZE=0X40000
+#@ CPU1 app RAM size
 CONFIG_CPU1_APP_RAM_SIZE=0X52000
+#@ CPU2 app RAM size
 CONFIG_CPU2_APP_RAM_SIZE=0XE000
