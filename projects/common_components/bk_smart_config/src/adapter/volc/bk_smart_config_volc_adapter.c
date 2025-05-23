@@ -620,8 +620,8 @@ void bk_sconf_trans_start(void)
     } else
         bk_sconf_start_volc_rtc(0);
 }
-
+extern bk_err_t byte_stop(void);
 void bk_sconf_trans_stop(void)
 {
-
+	byte_stop();
 }
