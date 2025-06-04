@@ -462,7 +462,9 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_CLOSE_BLUETOOTH no need to close !!!\n");
 #else
                     LOGI("APP_EVT_CLOSE_BLUETOOTH\n");
+#if CONFIG_BK_BOARDING_SERVICE
                     bk_genie_boarding_deinit();
+#endif
                     bk_bluetooth_deinit();
 #endif
                     break;

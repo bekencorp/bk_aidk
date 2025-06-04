@@ -18,9 +18,15 @@ typedef enum
     BOARDING_OP_SET_AGENT_INFO = 13,
     BOARDING_OP_NET_PAN_START = 14,
     BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME = 15,
-    BOARDING_OP_START_AGENT_FROM_DEV = 16,
+    BOARDING_OP_RESERVED = 16,
     BOARDING_OP_START_BK_MODEM = 23,
-    BOARDING_OP_START_WIFI_SCAN=24,
+    BOARDING_OP_START_WIFI_SCAN = 24,
+    BOARDING_OP_SYNC_SUPPORTED_ENGINE = 25,
+    BOARDING_OP_SYNC_SUPPORTED_NETWORK = 26,
+
+    //device reserved opcode
+    BOARDING_OP_NFC_GOT_ID = 150,
+    BOARDING_OP_MAX
 } boarding_opcode_t;
 
 typedef void (*ble_boarding_op_cb_t)(uint16_t opcode, uint16_t length, uint8_t *data);

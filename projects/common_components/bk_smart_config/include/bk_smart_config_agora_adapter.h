@@ -65,7 +65,6 @@ int bk_sconf_save_agent_info(char *appid, char *channel_name);
 int bk_sconf_get_agent_info(bk_sconf_agent_info_t *info);
 int bk_sconf_wakeup_agent(uint8_t reset);
 int bk_sconf_upate_agent_info(char *update_info);
-void bk_sconf_config_agent(void);
 void bk_sconf_begin_to_switch_ir_mode(void);
 int bk_sconf_post_nfc_id(uint8_t *nfc_id);
 #if CONFIG_ENABLE_AGORA_DATASTREAM

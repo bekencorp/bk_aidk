@@ -30,6 +30,7 @@
 #include "media_app.h"
 #include "volc_config.h"
 #include "volc_rtc.h"
+#include "wifi_boarding_utils.h"
 
 #define TAG "bk_sconf_volc"
 #define RCV_BUF_SIZE            256
@@ -74,23 +75,6 @@ int bk_volc_dev_start_agent(rtc_room_info_t *volc_room_info)
 }
 
 #endif
-
-void bk_sconf_config_agent(void)
-{
-    bk_genie_msg_t msg;
-
-#if CONFIG_BK_DEV_STARTUP_AGENT
-    /*temp workaround, will be changed later*/
-
-    //msg.event = DBEVT_START_AGENT_ON_DEV;
-    //bk_genie_send_msg(&msg);
-    msg.event = DBEVT_START_AGENT_START;
-    bk_genie_send_msg(&msg);
-#else
-    msg.event = DBEVT_START_AGENT_START;
-    bk_genie_send_msg(&msg);
-#endif
-}
 
 extern void byte_auto_run(uint8_t reset);
 static void bk_sconf_start_volc_rtc(uint8_t reset)

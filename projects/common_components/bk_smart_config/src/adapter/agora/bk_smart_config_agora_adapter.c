@@ -29,6 +29,7 @@
 #include "media_app.h"
 #include "agora_config.h"
 #include "video_engine.h"
+#include "wifi_boarding_utils.h"
 
 #define TAG "bk_sconf_agora"
 #define RCV_BUF_SIZE            256
@@ -431,19 +432,6 @@ void custom_llm_default_conf_free(agora_custom_llm_t *custom_llm)
 	}
 }
 #endif
-
-void bk_sconf_config_agent(void)
-{
-    bk_genie_msg_t msg;
-
-#if CONFIG_BK_DEV_STARTUP_AGENT
-    msg.event = DBEVT_START_AGENT_ON_DEV;
-    bk_genie_send_msg(&msg);
-#else
-    msg.event = DBEVT_START_AGENT_START;
-    bk_genie_send_msg(&msg);
-#endif
-}
 
 extern void agora_auto_run(uint8_t reset);
 static void bk_sconf_start_agora_rtc(uint8_t reset)

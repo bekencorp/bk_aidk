@@ -8,7 +8,7 @@ typedef struct
     uint16_t channel;
 } bk_genie_boarding_info_t;
 
-
+bk_genie_boarding_info_t * bk_genie_get_boarding_info(void);
 int bk_genie_boarding_init(void);
 int bk_genie_boarding_deinit(void);
 void bk_genie_boarding_event_notify(uint16_t opcode, int status);

@@ -122,7 +122,7 @@ uint8_t nfc_callback(uint8_t event_param, void*card_id)
     {
         case NFC_GOT_ID:
         {
-            msg.event = DBEVT_NFC_GOT_ID;
+            msg.event = BOARDING_OP_NFC_GOT_ID;
             msg.param = (uint8_t*)(card_id);
             bk_genie_send_msg((bk_genie_msg_t *)&msg);
         }
@@ -182,53 +182,43 @@ static void bk_genie_message_handle(void)
         {
             switch (msg.event)
             {
-                case DBEVT_WIFI_STATION_CONNECT:
+                case BOARDING_OP_STATION_START:
                 {
-                    LOGI("DBEVT_WIFI_STATION_CONNECT\n");
-                    bk_genie_boarding_info_t *bk_genie_boarding_info = (bk_genie_boarding_info_t *) msg.param;
-                    bk_genie_wifi_sta_connect(bk_genie_boarding_info->boarding_info.ssid_value,
-                                              bk_genie_boarding_info->boarding_info.password_value);
-                    bk_event_unregister_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
-                                                               bk_genie_wlan_scan_done_handler);
+                    //for BOARDING_OP_STATION_START,msg.param:
+                    //0 means start sta connect
+                    //low 16bit non-zero means got ip and need to notify apk, high 16bit store netif_index
+                    LOGI("BOARDING_OP_STATION_START, param:%d\n", msg.param);
+			if (!msg.param) {
+                        bk_genie_boarding_info_t *bk_genie_boarding_info = bk_genie_get_boarding_info();
+                        bk_genie_wifi_sta_connect(bk_genie_boarding_info->boarding_info.ssid_value,
+                                                  bk_genie_boarding_info->boarding_info.password_value);
+                        bk_event_unregister_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
+                                                                   bk_genie_wlan_scan_done_handler);
+			} else {
+                        netif_ip4_config_t ip4_config;
+                        netif_if_t netif_idx;
+
+                        netif_idx = (msg.param >> 16) & 0xffff;
+                        os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
+                        bk_netif_get_ip4_config(netif_idx, &ip4_config);
+                        LOGI("ip: %s\n", ip4_config.ip);
+                        bk_genie_boarding_event_notify_with_data(BOARDING_OP_STATION_START, BK_OK, ip4_config.ip, strlen(ip4_config.ip));
+                    }
                 }
                 break;
 
-                case DBEVT_START_WIFI_SCAN:
+                case BOARDING_OP_START_WIFI_SCAN:
                 {
-                    LOGI("DBEVT_START_WIFI_SCAN\n");
+                    LOGI("BOARDING_OP_START_WIFI_SCAN\n");
                     bk_event_register_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
                     						   bk_genie_wlan_scan_done_handler, NULL);
                     BK_LOG_ON_ERR(bk_wifi_scan_start(NULL));
                 }
                 break;
 
-                case DBEVT_NETWORK_CONNECTED:
+                case BOARDING_OP_SET_AGENT_INFO:
                 {
-                    LOGI("DBEVT_NETWORK_CONNECTED\n");
-                    netif_ip4_config_t ip4_config;
-			netif_if_t netif_idx;
-
-			netif_idx = msg.param;
-                    os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
-                    bk_netif_get_ip4_config(netif_idx, &ip4_config);
-
-                    LOGI("ip: %s\n", ip4_config.ip);
-
-                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_STATION_START, BK_OK, ip4_config.ip, strlen(ip4_config.ip));
-                }
-                break;
-#if CONFIG_BK_DEV_STARTUP_AGENT
-                case DBEVT_START_AGENT_ON_DEV:
-                {
-                    LOGI("DBEVT_START_AGORA_AGENT_ON_DEV\n");
-                    unsigned char payload = 'a';
-                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_AGENT_FROM_DEV, 0, (char *)(&payload), 1);
-                }
-                break;
-#endif
-                case DBEVT_START_AGENT_START:
-                {
-                    LOGI("DBEVT_START_AGORA_AGENT_START\n");
+                    LOGI("BOARDING_OP_SET_AGENT_INFO\n");
                     char payload[256] = {0};
                     __maybe_unused uint16_t len = 0;
                     len = bk_sconf_send_agent_info(payload, 256);
@@ -236,136 +226,14 @@ static void bk_genie_message_handle(void)
                 }
                 break;
 
-                case DBEVT_START_AGENT_RSP:
+                case BOARDING_OP_AGENT_RSP:
                 {
-                    LOGI("DBEVT_START_AGORA_AGENT_RSP\n");
+                    LOGI("BOARDING_OP_AGENT_RSP\n");
                     bk_sconf_prase_agent_info((char *)msg.param, 1);
                 }
                 break;
 
-                case DBEVT_WIFI_STATION_DISCONNECTED:
-                {
-                    LOGI("DBEVT_WIFI_STATION_DISCONNECTED\n");
-                }
-                break;
-
-                case DBEVT_WIFI_SOFT_AP_TURNING_ON:
-                {
-                    LOGI("DBEVT_WIFI_SOFT_AP_TURNING_ON\n");
-#if 0
-                    bk_genie_boarding_info_t *bk_genie_boarding_info = (bk_genie_boarding_info_t *) msg.param;
-                    int ret = bk_genie_wifi_soft_ap_start(bk_genie_boarding_info->boarding_info.ssid_value,
-                                                          bk_genie_boarding_info->boarding_info.password_value,
-                                                          bk_genie_boarding_info->channel);
-
-                    if (ret == BK_OK)
-                    {
-                        bk_genie_boarding_event_notify(BOARDING_OP_SOFT_AP_START, EVT_STATUS_OK);
-                    }
-                    else
-                    {
-                        bk_genie_boarding_event_notify(BOARDING_OP_SOFT_AP_START, EVT_STATUS_ERROR);
-                    }
-
-#endif
-                }
-                break;
-
-#if 0
-
-                case DBEVT_LAN_UDP_SERVICE_START_REQUEST:
-                {
-                    LOGI("DBEVT_LAN_UDP_SERVICE_START_REQUEST\n");
-
-                    if (db_info->service != bk_genie_SERVICE_NONE)
-                    {
-                        LOGW("DBEVT_LAN_UDP_SERVICE_START_REQUEST service: %d already start up\n", db_info->service);
-                        break;
-                    }
-
-                    db_info->service = bk_genie_SERVICE_LAN_UDP;
-
-                    bk_genie_cmd_server_init();
-                    bk_genie_udp_service_init();
-
-                }
-                break;
-
-                case DBEVT_LAN_UDP_SERVICE_START_RESPONSE:
-                {
-                    LOGI("DBEVT_LAN_UDP_SERVICE_START_RESPONSE\n");
-
-                    bk_genie_sdp_start("doorbell-udp", bk_genie_CMD_PORT, bk_genie_UDP_IMG_PORT, bk_genie_UDP_AUD_PORT);
-
-                    bk_genie_boarding_event_notify(BOARDING_OP_SERVICE_UDP_START, BK_OK);
-                }
-                break;
-
-                case DBEVT_LAN_TCP_SERVICE_START_REQUEST:
-                {
-                    LOGI("DBEVT_LAN_TCP_SERVICE_START_REQUEST\n");
-
-                    if (db_info->service != bk_genie_SERVICE_NONE)
-                    {
-                        LOGW("DBEVT_LAN_TCP_SERVICE_START_REQUEST service: %d already start up\n", db_info->service);
-                        break;
-                    }
-
-                    db_info->service = bk_genie_SERVICE_LAN_TCP;
-
-                    bk_genie_cmd_server_init();
-                    bk_genie_tcp_service_init();
-
-                }
-                break;
-
-                case DBEVT_LAN_TCP_SERVICE_START_RESPONSE:
-                {
-                    LOGI("DBEVT_LAN_TCP_SERVICE_START_RESPONSE\n");
-
-                    bk_genie_sdp_start("doorbell-tcp", bk_genie_CMD_PORT, bk_genie_TCP_IMG_PORT, bk_genie_TCP_AUD_PORT);
-
-                    bk_genie_boarding_event_notify(BOARDING_OP_SERVICE_TCP_START, BK_OK);
-                }
-                break;
-
-                case DBEVT_P2P_CS2_SERVICE_START_REQUEST:
-                {
-#ifdef CONFIG_INTEGRATION_bk_genie_CS2
-                    LOGI("DBEVT_P2P_CS2_SERVICE_START_REQUEST\n");
-
-                    if (db_info->service != bk_genie_SERVICE_NONE)
-                    {
-                        LOGW("DBEVT_P2P_CS2_SERVICE_START_REQUEST service: %d already start up\n", db_info->service);
-                        break;
-                    }
-
-                    db_info->service = bk_genie_SERVICE_P2P_CS2;
-
-                    p2p_cs2_key_t *key = (p2p_cs2_key_t *)msg.param;
-
-                    bk_genie_current_service = get_bk_genie_cs2_service_interface();
-                    bk_genie_current_service->init(key);
-#endif
-                }
-                break;
-
-                case DBEVT_P2P_CS2_SERVICE_START_RESPONSE:
-                {
-                    bk_genie_boarding_event_notify(BOARDING_OP_SRRVICE_CS2_START, BK_OK);
-                }
-                break;
-
-                case DBEVT_START_BOARDING_EVENT:
-                {
-                    uint16_t opcode = msg.param & 0xFFFF;
-                    int status = msg.param >> 16;
-                    bk_genie_boarding_event_notify(opcode, status);
-                }
-                break;
-#endif
-
-                case DBEVT_BLE_DISABLE:
+                case BOARDING_OP_BLE_DISABLE:
                 {
                     LOGI("close bluetooth ing\n");
 #if CONFIG_BLUETOOTH
@@ -375,59 +243,8 @@ static void bk_genie_message_handle(void)
 #endif
                 }
                 break;
-#if 0
 
-                case DBEVT_REMOTE_DEVICE_CONNECTED:
-                {
-                    if (db_info->service == bk_genie_SERVICE_LAN_UDP)
-                    {
-                        bk_genie_udp_update_remote_address((in_addr_t)msg.param);
-                        bk_genie_sdp_reload();
-                    }
-                    else if (db_info->service == bk_genie_SERVICE_LAN_TCP)
-                    {
-                        bk_genie_sdp_reload();
-                    }
-                }
-                break;
-
-                case DBEVT_REMOTE_DEVICE_DISCONNECTED:
-                {
-                    bk_genie_video_transfer_turn_off();
-                    bk_genie_audio_turn_off();
-
-                    if (db_info->service == bk_genie_SERVICE_LAN_UDP)
-                    {
-                        bk_genie_sdp_start("doorbell-udp", bk_genie_CMD_PORT, bk_genie_UDP_IMG_PORT, bk_genie_UDP_AUD_PORT);
-                    }
-                    else if (db_info->service == bk_genie_SERVICE_LAN_TCP)
-                    {
-                        bk_genie_sdp_start("doorbell-tcp", bk_genie_CMD_PORT, bk_genie_TCP_IMG_PORT, bk_genie_TCP_AUD_PORT);
-                    }
-                }
-                break;
-
-                case DBEVT_IMAGE_TCP_SERVICE_DISCONNECTED:
-                {
-                    bk_genie_video_transfer_turn_off();
-
-                    if (db_info->service == bk_genie_SERVICE_LAN_UDP)
-                    {
-                        bk_genie_sdp_start("doorbell-udp", bk_genie_CMD_PORT, bk_genie_UDP_IMG_PORT, bk_genie_UDP_AUD_PORT);
-                    }
-                    else if (db_info->service == bk_genie_SERVICE_LAN_TCP)
-                    {
-                        bk_genie_sdp_start("doorbell-tcp", bk_genie_CMD_PORT, bk_genie_TCP_IMG_PORT, bk_genie_TCP_AUD_PORT);
-                    }
-                }
-                break;
-#endif
-
-                case DBEVT_EXIT:
-                    goto exit;
-                    break;
-
-                case DBEVT_NET_PAN_REQUEST:
+                case BOARDING_OP_NET_PAN_START:
                 {
                     LOGI("DBEVT_NET_PAN_REQUEST\n");
                     int status = 1;
@@ -441,7 +258,18 @@ static void bk_genie_message_handle(void)
                 }
                 break;
 
-                case DBEVT_NFC_GOT_ID:
+#if CONFIG_STA_AUTO_RECONNECT
+                case BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME:
+                {
+                extern uint8_t first_time_for_network_provisioning;
+                    LOGI("BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME, %d\r\n", *(uint8_t *)(msg.param));
+                    if (*(uint8_t *)(msg.param))
+                        first_time_for_network_provisioning = false;
+                }
+                break;
+#endif
+
+                case BOARDING_OP_NFC_GOT_ID:
                 {
                     uint8_t nfc_id[7];
                     nfc_msg_t nfc_info;
@@ -452,10 +280,10 @@ static void bk_genie_message_handle(void)
 
                     bk_sconf_post_nfc_id(nfc_id);
                 }
-                    break;
+                break;
 
 #if CONFIG_BK_MODEM
-                case DBEVT_START_BK_MODEM:
+                case BOARDING_OP_START_BK_MODEM:
                 {
 extern bk_err_t bk_modem_init(void);
                     ret = bk_modem_init();
@@ -465,23 +293,30 @@ extern bk_err_t bk_modem_init(void);
                 }
                     break;
 #endif
+                case BOARDING_OP_SYNC_SUPPORTED_ENGINE:
+                {
+                    uint8_t val = bk_sconf_get_supported_engine();
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_SYNC_SUPPORTED_ENGINE, 0, (char *)&val, 1);
+                }
+                break;
+
+                case BOARDING_OP_SYNC_SUPPORTED_NETWORK:
+                {
+			uint8_t val[3] = {0};
+                    bk_sconf_get_supported_network(val);
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_SYNC_SUPPORTED_NETWORK, 0, (char *)val, 3);
+                }
+                break;
+
                 default:
                 {
-                    LOGI("UNSUPPORT OP CODE\n");
-                    unsigned char payload = 'a';
-                    //100 is beken private definition, means unsupport status code
-                    bk_genie_boarding_event_notify_with_data(msg.event, 100, (char *)(&payload), 1);
+                    LOGI("%s %d, do nothing\r\n", __func__, msg.event);
                 }
-                    break;
+                break;
             }
         }
     }
 
-exit:
-
-#if 0
-    bk_genie_sdp_stop();
-#endif
     /* delate msg queue */
     ret = rtos_deinit_queue(&db_info->queue);
 

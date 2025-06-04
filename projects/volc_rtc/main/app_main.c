@@ -251,13 +251,11 @@ int main(void)
 #if (CONFIG_SYS_CPU0)
         bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_ON);
 
-#if CONFIG_BK_SMART_CONFIG
+#if CONFIG_BK_BOARDING_SERVICE
         bk_genie_core_init();
-        bk_smart_config_init();
 #endif
-
-#if CONFIG_ENABLE_AGORA_DATASTREAM
-        bk_sconf_init_datastream_resource();
+#if CONFIG_BK_SMART_CONFIG
+        bk_smart_config_init();
 #endif
 
 #if CONFIG_BUTTON

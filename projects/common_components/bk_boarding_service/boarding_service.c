@@ -40,6 +40,10 @@
 static bk_genie_boarding_info_t *bk_genie_boarding_info = NULL;
 //static p2p_cs2_key_t *p2p_cs2_key = NULL;
 
+bk_genie_boarding_info_t * bk_genie_get_boarding_info(void)
+{
+    return bk_genie_boarding_info;
+}
 
 void bk_genie_boarding_event_notify(uint16_t opcode, int status)
 {
@@ -87,290 +91,51 @@ void bk_genie_boarding_event_message(uint16_t opcode, int status)
 
 static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length, uint8_t *data)
 {
+    bk_genie_msg_t msg;
     LOGW("%s, opcode: %04X, length: %u\n", __func__, opcode, length);
 
+    msg.event = opcode;
     switch (opcode)
     {
         case BOARDING_OP_STATION_START:
-        {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_WIFI_STATION_CONNECT;
-            msg.param = (uint32_t)bk_genie_boarding_info;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
-        case BOARDING_OP_START_WIFI_SCAN:
-        {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_START_WIFI_SCAN;
-            msg.param = (uint32_t)bk_genie_boarding_info;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
         case BOARDING_OP_SOFT_AP_START:
+        case BOARDING_OP_START_WIFI_SCAN:
+        case BOARDING_OP_SERVICE_UDP_START:
+        case BOARDING_OP_SERVICE_TCP_START:
+        case BOARDING_OP_BLE_DISABLE:
+        case BOARDING_OP_SET_WIFI_CHANNEL:
+        case BOARDING_OP_NET_PAN_START:
+#if CONFIG_BK_MODEM
+        case BOARDING_OP_START_BK_MODEM:
+#endif
+        case BOARDING_OP_SYNC_SUPPORTED_ENGINE:
+        case BOARDING_OP_SYNC_SUPPORTED_NETWORK:
         {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_WIFI_SOFT_AP_TURNING_ON;
-            msg.param = (uint32_t)bk_genie_boarding_info;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
-        case BOARDING_OP_AGENT_RSP:
-        {
-            bk_genie_msg_t msg;
-            char *payload = os_zalloc(length + 1);
-
-            os_memcpy(payload, data, length);
-            msg.event = DBEVT_START_AGENT_RSP;
-            msg.param = (uint32_t)payload;
+            msg.param = 0;
             bk_genie_send_msg(&msg);
         }
         break;
 
 #if CONFIG_STA_AUTO_RECONNECT
         case BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME:
-        {
-extern uint8_t first_time_for_network_provisioning;
-            LOGI("BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME\r\n");
-            if (*data)
-                first_time_for_network_provisioning = false;
-        }
-        break;
 #endif
-
-        case BOARDING_OP_SERVICE_UDP_START:
+        case BOARDING_OP_AGENT_RSP:
         {
-            bk_genie_msg_t msg;
+            char *payload = os_zalloc(length + 1);
 
-            msg.event = DBEVT_LAN_UDP_SERVICE_START_REQUEST;
-            msg.param = 0;
+            os_memcpy(payload, data, length);
+            msg.param = (uint32_t)payload;
             bk_genie_send_msg(&msg);
         }
         break;
 
-        case BOARDING_OP_SERVICE_TCP_START:
+        default:
         {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_LAN_TCP_SERVICE_START_REQUEST;
-            msg.param = 0;
-            bk_genie_send_msg(&msg);
+            LOGI("UNSUPPORT OP CODE\n");
+            unsigned char payload = 'a';
+            //100 is beken private definition, means unsupport status code
+            bk_genie_boarding_event_notify_with_data(opcode, 100, (char *)(&payload), 1);
         }
-        break;
-
-#if 0
-
-        case BOARDING_OP_SET_CS2_DID:
-        {
-            if (p2p_cs2_key == NULL)
-            {
-                p2p_cs2_key = os_malloc(sizeof(p2p_cs2_key_t));
-
-                if (p2p_cs2_key == NULL)
-                {
-                    LOGE("malloc p2p_cs2_key\n");
-                    break;
-                }
-
-                os_memset(p2p_cs2_key, 0, sizeof(p2p_cs2_key_t));
-            }
-
-            if (strlen(p2p_cs2_key->did))
-            {
-                LOGE("Already has did %s\n", p2p_cs2_key->did);
-                break;
-            }
-
-            if (length > sizeof(p2p_cs2_key->did))
-            {
-                LOGE("payload[%d] > did size[%d]\n", length, sizeof(p2p_cs2_key->did));
-                break;
-            }
-
-            os_memcpy(p2p_cs2_key->did, data, length);
-
-            LOGI("did: %s\n", p2p_cs2_key->did);
-
-            bk_genie_boarding_event_message(opcode, BK_OK);
-        }
-        break;
-
-        case BOARDING_OP_SET_CS2_APILICENSE:
-        {
-            if (p2p_cs2_key == NULL)
-            {
-                p2p_cs2_key = os_malloc(sizeof(p2p_cs2_key_t));
-
-                if (p2p_cs2_key == NULL)
-                {
-                    LOGE("malloc p2p_cs2_key\n");
-                    break;
-                }
-
-                os_memset(p2p_cs2_key, 0, sizeof(p2p_cs2_key_t));
-            }
-
-            if (strlen(p2p_cs2_key->apilicense))
-            {
-                LOGE("Already has apilicense %s\n", p2p_cs2_key->apilicense);
-                break;
-            }
-
-            if (length > sizeof(p2p_cs2_key->apilicense))
-            {
-                LOGE("payload[%d] > apilicense size[%d]\n", length, sizeof(p2p_cs2_key->apilicense));
-                break;
-            }
-
-            os_memcpy(p2p_cs2_key->apilicense, data, length);
-
-            LOGI("apilicense: %s\n", p2p_cs2_key->apilicense);
-
-            bk_genie_boarding_event_message(opcode, BK_OK);
-        }
-        break;
-
-        case BOARDING_OP_SET_CS2_KEY:
-        {
-            if (p2p_cs2_key == NULL)
-            {
-                p2p_cs2_key = os_malloc(sizeof(p2p_cs2_key_t));
-
-                if (p2p_cs2_key == NULL)
-                {
-                    LOGE("malloc p2p_cs2_key\n");
-                    break;
-                }
-
-                os_memset(p2p_cs2_key, 0, sizeof(p2p_cs2_key_t));
-            }
-
-            if (strlen(p2p_cs2_key->key))
-            {
-                LOGE("Already key %s\n", p2p_cs2_key->key);
-                break;
-            }
-
-            if (length > sizeof(p2p_cs2_key->key))
-            {
-                LOGE("payload[%d] > key size[%d]\n", length, sizeof(p2p_cs2_key->key));
-                break;
-            }
-
-            os_memcpy(p2p_cs2_key->key, data, length);
-
-            LOGI("key: %s\n", p2p_cs2_key->key);
-
-            bk_genie_boarding_event_message(opcode, BK_OK);
-        }
-        break;
-
-        case BOARDING_OP_SET_CS2_INIT_STRING:
-        {
-            if (p2p_cs2_key == NULL)
-            {
-                p2p_cs2_key = os_malloc(sizeof(p2p_cs2_key_t));
-
-                if (p2p_cs2_key == NULL)
-                {
-                    LOGE("malloc p2p_cs2_key\n");
-                    break;
-                }
-
-                os_memset(p2p_cs2_key, 0, sizeof(p2p_cs2_key_t));
-            }
-
-            if (strlen(p2p_cs2_key->initstring))
-            {
-                LOGE("Already has initstring %s\n", p2p_cs2_key->initstring);
-                break;
-            }
-
-            if (length > sizeof(p2p_cs2_key->initstring))
-            {
-                LOGE("payload[%d] > initstring size[%d]\n", length, sizeof(p2p_cs2_key->initstring));
-                break;
-            }
-
-
-            os_memcpy(p2p_cs2_key->initstring, data, length);
-
-            LOGI("initstring: %s\n", p2p_cs2_key->initstring);
-
-            bk_genie_boarding_event_message(opcode, BK_OK);
-        }
-        break;
-
-        case BOARDING_OP_SRRVICE_CS2_START:
-        {
-            if (p2p_cs2_key == NULL)
-            {
-                LOGE("malloc p2p_cs2_key\n");
-                break;
-            }
-
-            if (p2p_cs2_key->cs2_started)
-            {
-                LOGE("CS2 already started  %x\n", p2p_cs2_key->cs2_started);
-                break;
-            }
-
-            strcat(p2p_cs2_key->apilicense, ":");
-            strcat(p2p_cs2_key->apilicense, p2p_cs2_key->key);
-            strcat(p2p_cs2_key->initstring, ":");
-            strcat(p2p_cs2_key->initstring, p2p_cs2_key->key);
-            p2p_cs2_key->cs2_started = true;
-
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_P2P_CS2_SERVICE_START_REQUEST;
-            msg.param = (uint32_t)p2p_cs2_key;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-#endif
-
-        case BOARDING_OP_BLE_DISABLE:
-        {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_BLE_DISABLE;
-            msg.param = 0;
-            bk_genie_send_msg(&msg);
-        }
-        break;
-
-        case BOARDING_OP_SET_WIFI_CHANNEL:
-        {
-            STREAM_TO_UINT16(bk_genie_boarding_info->channel, data);
-
-            LOGI("%s, BOARDING_OP_SET_WIFI_CHANNEL: %u\n", __func__, bk_genie_boarding_info->channel);
-
-        }
-        break;
-
-        case BOARDING_OP_NET_PAN_START:
-        {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_NET_PAN_REQUEST;
-            bk_genie_send_msg(&msg);
-        }
-#if CONFIG_BK_MODEM
-        case BOARDING_OP_START_BK_MODEM:
-        {
-            bk_genie_msg_t msg;
-
-            msg.event = DBEVT_START_BK_MODEM;
-            bk_genie_send_msg(&msg);
-        }
-#endif
         break;
     }
 }

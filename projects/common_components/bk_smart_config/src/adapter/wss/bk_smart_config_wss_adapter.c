@@ -25,6 +25,7 @@
 #include "bk_smart_config.h"
 #include "app_event.h"
 #include "bk_factory_config.h"
+#include "wifi_boarding_utils.h"
 
 
 #define TAG "bk_sconf_wss"
@@ -38,14 +39,6 @@ extern bk_err_t beken_rtc_stop(void);
 void bk_sconf_trans_stop(void)
 {
     beken_rtc_stop();
-}
-
-void bk_sconf_config_agent(void)
-{
-    bk_genie_msg_t msg;
-
-    msg.event = DBEVT_START_AGENT_START;
-    bk_genie_send_msg(&msg);
 }
 
 int bk_sconf_post_nfc_id(uint8_t *nfc_id)

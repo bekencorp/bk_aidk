@@ -250,10 +250,38 @@ static int bk_sconf_reselect_pan(void)
 }
 #endif
 
+#if CONFIG_BK_BOARDING_SERVICE
+void bk_sconf_gotip_and_startup_agent_by_ble(netif_if_t type)
+{
+    bk_genie_msg_t msg;
+    //inform beken apk netif got ip
+    msg.event = BOARDING_OP_STATION_START;
+    //for BOARDING_OP_STATION_START,msg.param:
+    //0 means start sta connect
+    //low 16bit non-zero means got ip and need to notify apk, high 16bit store netif_index
+    msg.param = ((type << 16) & 0xffff0000) | 0x1;
+    bk_genie_send_msg(&msg);
+#if CONFIG_STA_AUTO_RECONNECT
+    if (!first_time_for_network_provisioning) {
+        BK_LOGI(TAG, "first_time_for_network_provisioning\r\n");
+        goto skip_agent_request;
+    }
+#endif
+#if 1//!CONFIG_BK_DEV_STARTUP_AGENT
+    msg.event = BOARDING_OP_SET_AGENT_INFO;
+    bk_genie_send_msg(&msg);
+#endif
+    return;
+#if CONFIG_STA_AUTO_RECONNECT
+skip_agent_request:
+    bk_sconf_trans_start();
+#endif
+}
+#endif
+
 static int bk_sconf_netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
 {
     netif_event_got_ip4_t *got_ip;
-    bk_genie_msg_t msg;
     __maybe_unused wifi_sta_config_t sta_config = {0};
 
     switch (event_id)
@@ -274,24 +302,13 @@ static int bk_sconf_netif_event_cb(void *arg, event_module_t event_module, int e
                 app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_SUCCESS, 0);
                 bk_wifi_sta_get_config(&sta_config);
                 demo_save_network_auto_restart_info(got_ip->netif_if, &sta_config);
-                //inform beken apk netif got ip
-                msg.event = DBEVT_NETWORK_CONNECTED;
-                msg.param = got_ip->netif_if;
-                bk_genie_send_msg(&msg);
-#if CONFIG_STA_AUTO_RECONNECT
-                if (!first_time_for_network_provisioning) {
-                    BK_LOGI(TAG, "first_time_for_network_provisioning\r\n");
-                    goto skip_agent_request;
-                }
+#if CONFIG_BK_BOARDING_SERVICE
+                bk_sconf_gotip_and_startup_agent_by_ble(got_ip->netif_if);
 #endif
-                bk_sconf_config_agent();
             }
             else
             {
                 app_event_send_msg(APP_EVT_RECONNECT_NETWORK_SUCCESS, 0);
-#if CONFIG_STA_AUTO_RECONNECT
-skip_agent_request:
-#endif
                 bk_sconf_trans_start();
             }
 
@@ -308,7 +325,6 @@ static int bk_sconf_wifi_event_cb(void *arg, event_module_t event_module, int ev
 {
     wifi_event_sta_disconnected_t *sta_disconnected;
     wifi_event_sta_connected_t *sta_connected;
-    bk_genie_msg_t msg;
 
     switch (event_id)
     {
@@ -337,8 +353,6 @@ static int bk_sconf_wifi_event_cb(void *arg, event_module_t event_module, int ev
 				if (smart_config_running == false)
 					app_event_send_msg(APP_EVT_RECONNECT_NETWORK_FAIL, 0);
 				else {
-					msg.event = DBEVT_WIFI_STATION_DISCONNECTED;
-					bk_genie_send_msg(&msg);
 					app_event_send_msg(APP_EVT_NETWORK_PROVISIONING_FAIL, 0);
 				}
 				network_disc_evt_posted = 1;
@@ -390,6 +404,7 @@ extern bk_err_t bk_modem_deinit(void);
     BK_LOGW(TAG, "%s pan disable !!!\n", __func__);
 #endif
 
+#if CONFIG_BK_BOARDING_SERVICE
     extern bool ate_is_enabled(void);
 
     if (!ate_is_enabled())
@@ -401,8 +416,7 @@ extern bk_err_t bk_modem_deinit(void);
     {
         BK_LOGW(TAG, "%s ATE is enable, ble will not enable!!!!!!\n", __func__);
     }
-
-    //network_reconnect_start_timeout_check(300);	//5min
+#endif
 }
 
 int bk_smart_config_init(void)
@@ -485,5 +499,30 @@ void bk_sconf_start_to_config_network(void)
 void bk_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     demo_erase_network_auto_reconnect_info();
+}
+
+uint8_t bk_sconf_get_supported_engine(void)
+{
+#ifdef CONFIG_AGORA_IOT_SDK
+    return 0;
+#elif CONFIG_VOLC_RTC_EN
+    return 1;
+#elif CONFIG_BK_WSS_TRANS
+    return 2;
+#else // 3 means device startup agent
+    return 3;
+#endif
+}
+
+void bk_sconf_get_supported_network(uint8_t *val)
+{
+    uint8_t *tmp_val = val;
+#ifdef CONFIG_WIFI_ENABLE
+    *(tmp_val++) = 0;
+#elif CONFIG_BK_MODEM
+    *(tmp_val++) = 1;
+#elif CONFIG_NET_PAN
+    *(tmp_val) = 2;
+#endif
 }
 
