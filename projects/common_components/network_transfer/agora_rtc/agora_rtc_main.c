@@ -32,6 +32,7 @@
 
 #include "audio_engine.h"
 #include "video_engine.h"
+#include "timer_util.h"
 
 #define TAG "agora_main"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -162,12 +163,17 @@ static void memory_free_show(void)
 static void app_media_read_frame_callback(frame_buffer_t *frame)
 {
     video_frame_info_t info = { 0 };
+    static uint32_t before = 0, curr = 0;
+    curr = bk_get_current_timer();
 
     if (false == g_connected_flag)
     {
         /* agora rtc is not running, do not send video. */
         return;
     }
+
+    if (before == 0)
+        before = curr;
 
     info.stream_type = VIDEO_STREAM_HIGH;
     if (frame->fmt == PIXEL_FMT_JPEG)
@@ -177,6 +183,11 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
     }
     else if (frame->fmt == PIXEL_FMT_H264)
     {
+        if ((frame->h264_type & (1 << H264_NAL_I_FRAME)) == 0)
+        {
+            LOGW("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
+            return;
+        }
         info.data_type = VIDEO_DATA_TYPE_H264;
         info.frame_type = VIDEO_FRAME_AUTO_DETECT;
     }
@@ -190,24 +201,23 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
         LOGE("not support format: %d \r\n", frame->fmt);
     }
 
+    if (curr > before && before && curr - before >= 500000)
+    {
+        LOGW("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-    do {
+        do {
 #endif
-        bk_agora_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
+            bk_agora_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
 
-        /* send two frame images per second */
+            /* send two frame images per second */
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-        rtos_delay_milliseconds(video_interval);
-#else
-        rtos_delay_milliseconds(500);
-#endif
-
-#if (CONFIG_IMAGE_DEBUG_DUMP)
-    } while (video_lock);
+            rtos_delay_milliseconds(video_interval);
+        } while (video_lock);
 #endif
 
+        before = curr;
+    }
 }
-
 
 static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const audio_frame_info_t *info_ptr)
 {
