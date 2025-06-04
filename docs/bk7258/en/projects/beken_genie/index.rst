@@ -565,13 +565,13 @@ and special reminders are signaled by alternating red and green light blinking. 
     }
 
 
-5.bk_sconf_netif_event_cb: Manages post-WiFi connection processes including:Agent initialization, WiFi/agent information storage, Post-provisioning agent wakeup,(Customizable - customers may replace with their own implementation)
+6.bk_sconf_netif_event_cb: Manages post-WiFi connection processes including:Agent initialization, WiFi/agent information storage, Post-provisioning agent wakeup,(Customizable - customers may replace with their own implementation)
 
 
-6.bk_sconf_erase_agent_info,bk_sconf_save_agent_info,bk_sconf_get_agent_info: These are all Beken agent background maintenance solutions. Customers may replace them with their own implementations.
+7.bk_sconf_erase_agent_info,bk_sconf_save_agent_info,bk_sconf_get_agent_info: These are all Beken agent background maintenance solutions. Customers may replace them with their own implementations.
 
 
-7.ir_mode_switch_main: Handles multimodal switching. For custom implementations, customers must either: Implement their own bk_sconf_update_agent_info function, or Adapt Beken's solution by replacing bk_get_bk_server_url() with their private server endpoint
+8.ir_mode_switch_main: Handles multimodal switching. For custom implementations, customers must either: Implement their own bk_sconf_update_agent_info function, or Adapt Beken's solution by replacing bk_get_bk_server_url() with their private server endpoint
 
 .. code::
 
@@ -623,7 +623,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     }
 
 
-8.bk_sconf_start_agora_rtc: Manages initialization of both the Agora agent and device-side RTC. The 'reset' parameter determines whether to force revert to initial agent configuration on Beken's server.
+9.bk_sconf_start_agora_rtc: Manages initialization of both the Agora agent and device-side RTC. The 'reset' parameter determines whether to force revert to initial agent configuration on Beken's server.
 
 
 3. Demonstration instructions

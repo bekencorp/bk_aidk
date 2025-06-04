@@ -535,13 +535,13 @@ Beken Genie AI
     }
 
 
-5、bk_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户可替换成自己方案
+6、bk_sconf_netif_event_cb负责wifi连上后启动agent、保存wifi及agent信息及配网后，agent唤醒，客户可替换成自己方案
 
 
-6、bk_sconf_erase_agent_info、bk_sconf_save_agent_info、bk_sconf_get_agent_info均是beken agent后台维护方案，客户可替换成自己方案
+7、bk_sconf_erase_agent_info、bk_sconf_save_agent_info、bk_sconf_get_agent_info均是beken agent后台维护方案，客户可替换成自己方案
 
 
-7、ir_mode_switch_main负责切换多模态，客户定制需要自行实现bk_sconf_upate_agent_info函数，或者参考beken方案，将服务器连接bk_get_bk_server_url()替换成自己的服务器地址
+8、ir_mode_switch_main负责切换多模态，客户定制需要自行实现bk_sconf_upate_agent_info函数，或者参考beken方案，将服务器连接bk_get_bk_server_url()替换成自己的服务器地址
 
 .. code::
 
@@ -593,9 +593,11 @@ Beken Genie AI
     }
 
 
-8、bk_sconf_start_agora_rtc负责启动声网agent及设备端rtc，reset参数用来通知beken服务器是否强制切回初始agent配置
+9、bk_sconf_start_agora_rtc负责启动声网agent及设备端rtc，reset参数用来通知beken服务器是否强制切回初始agent配置
 
 
+3. 用例演示
+--------------------------------
 
 3.1 代码下载及编译
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
