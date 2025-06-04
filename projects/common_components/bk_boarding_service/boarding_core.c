@@ -302,9 +302,11 @@ extern bk_err_t bk_modem_init(void);
 
                 case BOARDING_OP_SYNC_SUPPORTED_NETWORK:
                 {
-			uint8_t val[3] = {0};
-                    bk_sconf_get_supported_network(val);
-                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_SYNC_SUPPORTED_NETWORK, 0, (char *)val, 3);
+			uint8_t *val = NULL, len = 0;
+                    val = bk_sconf_get_supported_network(&len);
+                    bk_genie_boarding_event_notify_with_data(BOARDING_OP_SYNC_SUPPORTED_NETWORK, 0, (char *)val, len);
+                    if (val)
+                        os_free(val);
                 }
                 break;
 

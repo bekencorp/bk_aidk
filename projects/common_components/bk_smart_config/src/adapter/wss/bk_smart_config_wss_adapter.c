@@ -61,11 +61,8 @@ uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
     {
         sprintf(uid_str + i * 2, "%02x", uid[i]);
     }
-    len = os_snprintf(payload, max_len, "{\"channel\":\"%s\",\"agent_param\": {", uid_str);
-    len += os_snprintf(payload+len, max_len, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
-    len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
-    len += os_snprintf(payload+len, max_len, "}}");
-    BK_LOGI(TAG, "ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
+    len = os_snprintf(payload, max_len, "{\"channel\":\"%s\"}", uid_str);
+    BK_LOGI(TAG, "ori channel name:%s, %d\r\n", uid_str, len);
     return len;
 }
 

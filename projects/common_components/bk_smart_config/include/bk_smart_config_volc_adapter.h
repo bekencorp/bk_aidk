@@ -6,6 +6,7 @@
 typedef struct
 {
     uint8_t valid;
+    char channel_name[128];
     rtc_room_info_t room_info;
 } bk_sconf_agent_info_t;
 
@@ -24,6 +25,8 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset);
 void bk_sconf_erase_agent_info(void);
 int bk_sconf_save_agent_info(rtc_room_info_t *volc_room_info);
 int bk_sconf_get_agent_info(bk_sconf_agent_info_t *info);
+int bk_sconf_save_channel_name(char *chan);
+int bk_sconf_get_channel_name(char *chan);
 int bk_sconf_wakeup_agent(uint8_t reset);
 int bk_sconf_upate_agent_info(char *update_info);
 void bk_sconf_begin_to_switch_ir_mode(void);

@@ -26,6 +26,9 @@ typedef enum
 
     //device reserved opcode
     BOARDING_OP_NFC_GOT_ID = 150,
+
+    //server reserved opcode
+    BOARDING_OP_SERVER_CHECK_VERSION = 500,
     BOARDING_OP_MAX
 } boarding_opcode_t;
 

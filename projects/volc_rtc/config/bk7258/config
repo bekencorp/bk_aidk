@@ -206,6 +206,6 @@ CONFIG_QUEUE_IN_PSRAM=y
 CONFIG_TASK_STACK_IN_PSRAM=y
 # volc rtc configuration
 #@ Enable start agent on device
-CONFIG_BK_DEV_STARTUP_AGENT=y
+CONFIG_BK_DEV_STARTUP_AGENT=n
 #@ Enable Volc RTC
 CONFIG_VOLC_RTC_EN=y

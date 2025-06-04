@@ -21,6 +21,7 @@
 #include "media_app.h"
 #include "lcd_act.h"
 #include "components/bk_uid.h"
+#include "bk_factory_config.h"
 #if CONFIG_BK_SMART_CONFIG
 #include "bk_smart_config.h"
 #endif
@@ -522,6 +523,7 @@ void byte_auto_run(uint8_t reset)
         app_event_send_msg(APP_EVT_AGENT_START_FAIL, 0);
         return;
     }
+    bk_config_sync_flash_safely();
     if (!byte_runing)
     {
         audio_en = true;

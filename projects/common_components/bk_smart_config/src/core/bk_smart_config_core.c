@@ -508,21 +508,29 @@ uint8_t bk_sconf_get_supported_engine(void)
 #elif CONFIG_VOLC_RTC_EN
     return 1;
 #elif CONFIG_BK_WSS_TRANS
-    return 2;
+    //TODO, will be changed to 2
+    return 3;
 #else // 3 means device startup agent
     return 3;
 #endif
 }
 
-void bk_sconf_get_supported_network(uint8_t *val)
+uint8_t * bk_sconf_get_supported_network(uint8_t *len)
 {
-    uint8_t *tmp_val = val;
+    uint8_t tmp_val[3] = {0}, i = 0, *val = NULL;
+
 #ifdef CONFIG_WIFI_ENABLE
-    *(tmp_val++) = 0;
-#elif CONFIG_BK_MODEM
-    *(tmp_val++) = 1;
-#elif CONFIG_NET_PAN
-    *(tmp_val) = 2;
+    tmp_val[i++] = 0;
 #endif
+#ifdef CONFIG_BK_MODEM
+    tmp_val[i++]  = 1;
+#endif
+#ifdef CONFIG_NET_PAN
+    tmp_val[i++]  = 2;
+#endif
+    val = os_zalloc(i);
+    os_memcpy(val, tmp_val, i);
+    *len = i;
+    return val;
 }
 

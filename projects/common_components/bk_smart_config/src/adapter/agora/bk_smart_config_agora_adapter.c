@@ -579,7 +579,7 @@ int bk_sconf_rsp_parse_update(char *buffer)
 	return BK_OK;
 }
 
-extern char *bk_get_bk_server_url(void);
+extern char *bk_get_bk_server_url(uint8_t index);
 int bk_sconf_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_DEV_STARTUP_AGENT
@@ -636,7 +636,7 @@ extern char *channel_name_record;
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(0));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -732,7 +732,7 @@ int bk_sconf_upate_agent_info(char *update_info)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url(0));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -821,7 +821,7 @@ int bk_sconf_post_nfc_id(uint8_t *nfc_id)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(0));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");

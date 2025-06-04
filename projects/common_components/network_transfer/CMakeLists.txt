@@ -58,5 +58,5 @@ armino_component_register(
     SRCS "${srcs}"
     INCLUDE_DIRS "${incs}"
     PRIV_REQUIRES bk_common bk_boarding_service bk_smart_config bk_init lwip_intf_v2_1 mbedtls json multimedia avdk_utils 
-                  VolcEngineRTCLite agora-iot-sdk video_engine audio_engine bk_app_event 
+                  VolcEngineRTCLite agora-iot-sdk video_engine audio_engine bk_app_event bk_factory_config
 )

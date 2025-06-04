@@ -36,5 +36,5 @@ void bk_sconf_trans_start(void);
 void bk_sconf_trans_stop(void);
 int bk_sconf_is_net_pan_configured(void);
 uint8_t bk_sconf_get_supported_engine(void);
-void bk_sconf_get_supported_network(uint8_t *val);
+uint8_t * bk_sconf_get_supported_network(uint8_t *len);
 #endif

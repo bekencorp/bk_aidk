@@ -33,7 +33,7 @@
 #include "wifi_boarding_utils.h"
 
 #define TAG "bk_sconf_volc"
-#define RCV_BUF_SIZE            256
+#define RCV_BUF_SIZE            512
 #define SEND_HEADER_SIZE           1024
 #define POST_DATA_MAX_SIZE  1024*2
 #define MAX_URL_LEN         256
@@ -93,8 +93,9 @@ int bk_sconf_save_agent_info(rtc_room_info_t *volc_room_info)
 {
     bk_sconf_agent_info_t info_tmp = {0};
 
+    bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
     info_tmp.valid = 1;
-    os_memcpy((void *)(&info_tmp.room_info), volc_room_info, sizeof(rtc_room_info_t));
+    os_memcpy((void *)(&info_tmp.room_info), (const void *)volc_room_info, sizeof(rtc_room_info_t));
     bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
 
     return 0;
@@ -109,6 +110,30 @@ int bk_sconf_get_agent_info(bk_sconf_agent_info_t *info)
         return -1;
     }
     os_memcpy(info, &info_tmp, sizeof(bk_sconf_agent_info_t));
+    return 0;
+}
+
+int bk_sconf_save_channel_name(char *chan)
+{
+    bk_sconf_agent_info_t info_tmp = {0};
+
+    bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
+    os_memset(info_tmp.channel_name, 0x0, 128);
+    os_strcpy(info_tmp.channel_name, chan);
+    bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
+
+    return 0;
+}
+
+int bk_sconf_get_channel_name(char *chan)
+{
+    bk_sconf_agent_info_t info_tmp = {0};
+
+    if (bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t)) <= 0)
+    {
+        return -1;
+    }
+    os_strcpy(chan, info_tmp.channel_name);
     return 0;
 }
 
@@ -180,13 +205,13 @@ int bk_sconf_rsp_parse_update(char *buffer)
     return BK_OK;
 }
 
-extern char *bk_get_bk_server_url(void);
+extern char *bk_get_bk_server_url(uint8_t index);
 int bk_sconf_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_DEV_STARTUP_AGENT
     rtc_room_info_t room_info = {0};
 
-    #if CONFIG_VOLC_HTTP_STARTUP_AGENT
+#if CONFIG_VOLC_HTTP_STARTUP_AGENT
     bk_sconf_agent_info_t info = {0};
     bk_sconf_get_agent_info(&info);
     if (info.valid == 1)
@@ -196,12 +221,12 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     ret = bk_volc_dev_start_agent(&room_info);
     if (ret)
         return ret;
-    #else
+#else
     os_strcpy((char *)room_info.room_id, DEFAULT_ROOM_ID);
     os_strcpy((char *)room_info.uid, DEFAULT_USER_ID);
     os_strcpy((char *)room_info.app_id, DEFAULT_RTC_APP_ID);
     os_strcpy((char *)room_info.token, DEFAULT_TOKEN);
-    #endif
+#endif
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
@@ -216,6 +241,7 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     char generate_url[256] = {0};
     int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
     uint32_t rand_flag = 0;
+    char tmp_channel[128] = {0};
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
@@ -229,7 +255,7 @@ int bk_sconf_wakeup_agent(uint8_t reset)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(1));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -246,11 +272,10 @@ int bk_sconf_wakeup_agent(uint8_t reset)
         goto __exit;
     }
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
-
-    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", "todo");
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"reset\":%u,\"agent_param\": {", reset);
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"out_acodec\": \"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
+    bk_sconf_get_channel_name(tmp_channel);
+    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", tmp_channel);
+    //agent_param reserved for further development
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {");
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
@@ -266,7 +291,6 @@ int bk_sconf_wakeup_agent(uint8_t reset)
         goto __exit;
     }
     os_memset(buffer, 0, RCV_BUF_SIZE);
-
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
     {
@@ -274,7 +298,6 @@ int bk_sconf_wakeup_agent(uint8_t reset)
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
         goto __exit;
     }
-
     BK_LOGI(TAG, "webclient post response data: \n");
     do
     {
@@ -325,7 +348,7 @@ int bk_sconf_upate_agent_info(char *update_info)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url(1));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -414,7 +437,7 @@ int bk_sconf_post_nfc_id(uint8_t *nfc_id)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url());
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(1));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -497,23 +520,45 @@ uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
     {
         sprintf(uid_str + i * 2, "%02x", uid[i]);
     }
-    len = os_snprintf(payload, max_len, "{\"channel\":\"%s\",\"agent_param\": {", uid_str);
-    len += os_snprintf(payload+len, max_len, "\"audio_duration\": %d,", CONFIG_AUDIO_FRAME_DURATION_MS);
-    len += os_snprintf(payload+len, max_len, "\"out_acodec\": \"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
-    len += os_snprintf(payload+len, max_len, "}}");
-    BK_LOGI(TAG, "ori channel name:%s, %s, %d\r\n", uid_str, payload, len);
+    len = os_snprintf(payload, max_len, "{\"channel\":\"%s\"}", uid_str);
+    BK_LOGI(TAG, "ori channel name:%s, %d\r\n", uid_str, len);
     return len;
 }
 
 void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
-    BK_LOGI(TAG, "%s, begin byte_auto_run\n", __func__);
-    bk_config_sync_flash_safely();
+    BK_LOGI(TAG, "%s, begin byte_auto_run, %s\n", __func__, payload);
+    cJSON *json = NULL;
+    char *tmp_channel = NULL;
+
+    json = cJSON_Parse(payload);
+    if (!json)
+    {
+        BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
+        goto fail;
+    }
+
+    cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
+    if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
+    {
+        tmp_channel = channel_name->valuestring;
+        BK_LOGI(TAG, "real channel name:%s\r\n", tmp_channel);
+        bk_sconf_save_channel_name(tmp_channel);
+    }
+    else
+    {
+        BK_LOGE(TAG, "[Error] not find msg\n");
+    }
+    cJSON_Delete(json);
+
     byte_auto_run(reset);
     if (!bk_sconf_is_net_pan_configured())
     {
     	app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
+fail:
+    if (payload)
+        os_free(payload);
 }
 
 //image recognition mode switch
