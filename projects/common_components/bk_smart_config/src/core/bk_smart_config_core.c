@@ -35,6 +35,9 @@
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "bk_factory_config.h"
 #include "driver/trng.h"
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+#include "mbedtls/platform.h"
+#endif
 
 #define TAG "bk_sconf_core"
 bool smart_config_running = false;
@@ -419,10 +422,25 @@ extern bk_err_t bk_modem_deinit(void);
 #endif
 }
 
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+void* bk_sconf_psram_calloc(size_t num, size_t size) {
+    if (size && num > (~(size_t) 0) / size)
+        return NULL;
+    return psram_zalloc(num * size);
+}
+
+void bk_sconf_psram_free(void* ptr) {
+    psram_free(ptr);
+}
+#endif
+
 int bk_smart_config_init(void)
 {
     int flag;
 
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+    mbedtls_platform_set_calloc_free(bk_sconf_psram_calloc, bk_sconf_psram_free);
+#endif
     event_handler_init();
     flag = demo_network_auto_reconnect(false);
 
