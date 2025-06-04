@@ -29,5 +29,5 @@ endif()
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" 
-    PRIV_REQUIRES bk_boarding_service mbedtls json bk_bt bk_factory_config bk_app_event multimedia 
+    PRIV_REQUIRES bk_boarding_service mbedtls psa_mbedtls json bk_bt bk_factory_config bk_app_event multimedia 
                   network_transfer agora-iot-sdk video_engine audio_engine VolcEngineRTCLite)

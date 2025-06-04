@@ -42,8 +42,6 @@ CONFIG_USB_DEVICE=n
 CONFIG_USBD_MSC=n
 #@ Enable Webclient
 CONFIG_WEBCLIENT=y
-#@ Enable Mbedtls
-CONFIG_MBEDTLS=y
 #@ Enable Webclient
 CONFIG_WEBCLIENT_TLS=y
 #@ Enable CJSON
