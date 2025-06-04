@@ -102,6 +102,12 @@ https://docs.bekencorp.com/arminodoc/bk_avdk/bk7258/zh_CN/v2.0.1/api-reference/m
         - 16bit位宽
         - 16K采样率
 
+
+.. important::
+
+    - wav格式提示音文件格式必须是 ``44字节的头 + 有效pcm音频数据`` ，不包含作者、专辑等其他说明信息。
+    - mp3格式提示音文件不包含 ``ID3v1`` 头和作者、专辑等其他说明信息。
+
 4. ASR离线语音唤醒
 -----------------------------------------
 

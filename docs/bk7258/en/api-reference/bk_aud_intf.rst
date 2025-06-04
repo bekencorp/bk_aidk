@@ -98,6 +98,11 @@ https://docs.bekencorp.com/arminodoc/bk_avdk/bk7258/en/v2.0.1/api-reference/mult
         - 16kHz sample rate
 
 
+.. important::
+
+    - The WAV format prompt tone file must strictly follow the format of ``44-byte header + valid PCM audio data`` and must not contain additional information such as author or album details.  
+    - The MP3 format prompt tone file must not include an ``ID3v1 header`` or other metadata such as author or album information.
+
 
 4. ASR Offline Voice Wake-up
 ------------------------------------------
