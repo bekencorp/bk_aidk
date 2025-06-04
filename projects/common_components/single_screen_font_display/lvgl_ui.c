@@ -52,19 +52,31 @@ static int lv_get_utf8_char_length(const char *str)
 static void lvgl_label_timer_cb(lv_timer_t *timer)
 {
     static uint16_t list_empty_count = 0;
+    static uint32_t reset_pos = 0;
 
     if (!lv_comm_list_is_empty(g_lv_font_list)) {
         lv_font_info_t *font_info = lv_comm_list_front(g_lv_font_list);
 
-        char font_buffer[1024] = {0};
+        char font_buffer[512] = {0};
+        uint32_t temp_pos = os_strlen(lv_label_get_text(label));
+        LOGD("temp_pos = %d, current_pos = %d\r\n", temp_pos, font_info->current_pos);
 
         if (font_info->current_pos < font_info->text_length) {
+            if (temp_pos > 270) {
+                reset_pos = temp_pos;
+                lv_label_set_text(label, "");
+                return;
+            }
+
             int char_len = lv_get_utf8_char_length(&font_info->text_data[font_info->current_pos]);
-            os_strncpy(font_buffer, font_info->text_data, font_info->current_pos + char_len);
+            os_strncpy(font_buffer, font_info->text_data + reset_pos, font_info->current_pos - reset_pos + char_len);
             lv_label_set_text(label, font_buffer);
+            lv_timer_set_period(label_timer, 210);
             font_info->current_pos += char_len;
         } else {
             list_empty_count = 0;
+            reset_pos = 0;
+            lv_timer_set_period(label_timer, 400);
             lv_comm_list_remove(g_lv_font_list, font_info);
         }
     } else {
@@ -72,6 +84,8 @@ static void lvgl_label_timer_cb(lv_timer_t *timer)
 
         if (list_empty_count == 20) {
             lv_label_set_text(label, "");
+            lv_timer_del(label_timer);
+            label_timer = NULL;
         }
     }
 }
@@ -108,7 +122,7 @@ bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
 
     if (label_timer == NULL) {
         lv_vendor_disp_lock();
-        label_timer = lv_timer_create(lvgl_label_timer_cb, 180, NULL);
+        label_timer = lv_timer_create(lvgl_label_timer_cb, 210, NULL);
         lv_vendor_disp_unlock();
     }
 
@@ -247,7 +261,7 @@ bk_err_t lvgl_event_open_handle(media_mailbox_msg_t *msg)
     lv_label_set_text(label, "欢迎来到BEKEN AI精灵");
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(label, 300);
-    lv_obj_scroll_to_view(label, LV_ANIM_OFF);
+    lv_obj_scroll_to_view(label, LV_ANIM_ON);
     lv_obj_center(label);
 
     lv_vendor_disp_unlock();
