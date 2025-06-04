@@ -505,7 +505,7 @@ bk_err_t audio_tras_init(void)
 
     /* create task to asr */
     ret = rtos_create_thread(&aud_thread_hdl,
-                             4,
+                             3,
                              "audio_tras",
                              (beken_thread_function_t)aud_tras_main,
                              2048,
