@@ -1042,6 +1042,7 @@ uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
 
 void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
+#if !CONFIG_BK_DEV_STARTUP_AGENT
     cJSON *json = NULL;
     int ret = 0;
 
@@ -1095,14 +1096,23 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
         }
     }
 fail:
+#else
+    bk_config_sync_flash_safely();
+    agora_auto_run(reset);
+    if (!bk_sconf_is_net_pan_configured())
+    {
+        app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+    }
+#endif
     if (payload)
         os_free(payload);
 }
 
 //image recognition mode switch
+uint8_t ir_mode_switching = 0;
+#if !CONFIG_BK_DEV_STARTUP_AGENT
 #define CONFIG_IR_MODE_SWITCH_TASK_PRIORITY 4
 static beken_thread_t config_ir_mode_switch_thread_handle = NULL;
-uint8_t ir_mode_switching = 0;
 extern bool agora_runing;
 extern bool g_agent_offline;
 extern bool video_started;
@@ -1184,6 +1194,12 @@ void bk_sconf_begin_to_switch_ir_mode(void)
         config_ir_mode_switch_thread_handle = NULL;
     }
 }
+#else
+void bk_sconf_begin_to_switch_ir_mode(void)
+{
+    //need to be implemented
+}
+#endif
 
 extern bool first_time_for_network_reconnect;
 void bk_sconf_trans_start(void)

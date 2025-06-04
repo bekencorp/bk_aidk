@@ -522,7 +522,11 @@ void bk_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 uint8_t bk_sconf_get_supported_engine(void)
 {
 #ifdef CONFIG_AGORA_IOT_SDK
+#if !CONFIG_BK_DEV_STARTUP_AGENT
     return 0;
+#else
+    return 3;
+#endif
 #elif CONFIG_VOLC_RTC_EN
     return 1;
 #elif CONFIG_BK_WSS_TRANS

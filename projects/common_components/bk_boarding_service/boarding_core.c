@@ -387,7 +387,7 @@ void bk_genie_core_init(void)
                              BEKEN_DEFAULT_WORKER_PRIORITY,
                              "db_info->thd",
                              (beken_thread_function_t)bk_genie_message_handle,
-                             3072,
+                             4096,
                              NULL);
 
     if (ret != BK_OK)
