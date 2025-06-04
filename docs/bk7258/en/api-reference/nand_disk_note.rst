@@ -14,7 +14,7 @@ Notes on Nand disk format
 
 On the Windows platform, when formatting the NAND disk for the first time, it may not be possible to format it directly due to the lack of a file system. Only the drive letter appears in the file browser and cannot be formatted, as shown below.
 
-.. figure:: ../../_static/disk_fomat_computer.png
+.. figure:: ../../_static/disk_fomat_computer_en.png
     :align: center
     :alt: nand disk not formatted.
     :figclass: align-center
@@ -23,7 +23,7 @@ On the Windows platform, when formatting the NAND disk for the first time, it ma
 
 When this situation occurs, you need to open the disk management window and locate the Nand disk, as shown in the following figure.
 
-.. figure:: ../../_static/disk_fomat_disk_manager.png
+.. figure:: ../../_static/disk_fomat_disk_manager_en.png
     :align: center
     :alt: disk management windows.
     :figclass: align-center
@@ -32,14 +32,14 @@ When this situation occurs, you need to open the disk management window and loca
 
 Format the disk by creating a new volume, select FAT32 file system format, and set the drive letter and allocation unit size.
 
-.. figure:: ../../_static/disk_fomat_new_disk.png
+.. figure:: ../../_static/disk_fomat_new_disk_en.png
     :align: center
     :alt: add disk for nand disk .
     :figclass: align-center
 
-    add disk for nand disk 
+    add disk for nand disk
 
-.. figure:: ../../_static/disk_fomat_type.png
+.. figure:: ../../_static/disk_fomat_type_en.png
     :align: center
     :alt: set file system format for nand disk.
     :figclass: align-center
@@ -48,7 +48,7 @@ Format the disk by creating a new volume, select FAT32 file system format, and s
 
 Afterwards, the nand disk can be used normally in the file manager, as shown below.
 
-.. figure:: ../../_static/disk_fomat_normal.png
+.. figure:: ../../_static/disk_fomat_normal_en.png
     :align: center
     :alt: normal nand disk.
     :figclass: align-center
