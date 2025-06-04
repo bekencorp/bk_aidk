@@ -201,17 +201,24 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_DEV_STARTUP_AGENT
     rtc_room_info_t room_info = {0};
-    bk_sconf_agent_info_t info = {0};
-    int ret = BK_FAIL;
 
+    #if CONFIG_VOLC_HTTP_STARTUP_AGENT
+    bk_sconf_agent_info_t info = {0};
     bk_sconf_get_agent_info(&info);
     if (info.valid == 1)
         bk_volc_dev_stop_agent(&info.room_info);
 
+    int ret = BK_FAIL;
     ret = bk_volc_dev_start_agent(&room_info);
     if (ret)
-    	return ret;
-    
+        return ret;
+    #else
+    os_strcpy((char *)room_info.room_id, DEFAULT_ROOM_ID);
+    os_strcpy((char *)room_info.uid, DEFAULT_USER_ID);
+    os_strcpy((char *)room_info.app_id, DEFAULT_RTC_APP_ID);
+    os_strcpy((char *)room_info.token, DEFAULT_TOKEN);
+    #endif
+
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
     os_memset(volc_room_info, 0, sizeof(rtc_room_info_t)+1);

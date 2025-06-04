@@ -44,10 +44,12 @@ list(APPEND srcs
 )
 
 if (CONFIG_BK_DEV_STARTUP_AGENT)
+if (CONFIG_VOLC_HTTP_STARTUP_AGENT)
 list(APPEND srcs
     volc_rtc/RtcBotUtils.c
     volc_rtc/RtcHttpUtils.c
 )
+endif()
 endif()
 
 endif()

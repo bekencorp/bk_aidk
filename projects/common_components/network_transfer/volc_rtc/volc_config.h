@@ -1,7 +1,7 @@
 // Copyright (2025) Beijing Volcano Engine Technology Ltd.
 // SPDX-License-Identifier: MIT
 
-#if CONFIG_BK_DEV_STARTUP_AGENT
+#if CONFIG_VOLC_HTTP_STARTUP_AGENT
 // RTC APP ID
 #define DEFAULT_RTC_APP_ID    "xxx"
 // 服务端的地址
