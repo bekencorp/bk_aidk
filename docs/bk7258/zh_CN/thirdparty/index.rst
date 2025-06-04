@@ -7,3 +7,4 @@
    :maxdepth: 1
 
    声网 <agora/index>
+   火山 <volc/index>
