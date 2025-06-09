@@ -50,22 +50,22 @@ rtc_room_info_t *volc_room_info = NULL;
 #include "cJSON.h"
 #include "RtcBotUtils.h"
 
-int bk_volc_dev_stop_agent(rtc_room_info_t *volc_room_info)
+int bk_volc_dev_stop_agent(rtc_room_info_t *room_info)
 {
-    if (!volc_room_info) {
+    if (!room_info) {
 	BK_LOGE(TAG, "stop agent fail, invalid room info\r\n");
 	return BK_FAIL;
     }
-    stop_voice_bot(volc_room_info);
+    stop_voice_bot(room_info);
 
     return BK_OK;
 }
 
-int bk_volc_dev_start_agent(rtc_room_info_t *volc_room_info)
+int bk_volc_dev_start_agent(rtc_room_info_t *room_info)
 {
     int start_ret = BK_FAIL;
 
-    start_ret = start_voice_bot(volc_room_info);
+    start_ret = start_voice_bot(room_info);
     if (start_ret != 200) {
         BK_LOGE(TAG, "start agent fail, ret = %d\r\n", start_ret);
         return BK_FAIL;
@@ -89,13 +89,13 @@ void bk_sconf_erase_agent_info(void)
     bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
 }
 
-int bk_sconf_save_agent_info(rtc_room_info_t *volc_room_info)
+int bk_sconf_save_agent_info(rtc_room_info_t *room_info)
 {
     bk_sconf_agent_info_t info_tmp = {0};
 
     bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
     info_tmp.valid = 1;
-    os_memcpy((void *)(&info_tmp.room_info), (const void *)volc_room_info, sizeof(rtc_room_info_t));
+    os_memcpy((void *)(&info_tmp.room_info), (const void *)room_info, sizeof(rtc_room_info_t));
     bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
 
     return 0;
@@ -339,6 +339,12 @@ int bk_sconf_upate_agent_info(char *update_info)
     char *buffer = NULL, *post_data = NULL;
     char generate_url[256] = {0};
     int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
+    uint32_t rand_flag = 0;
+    char tmp_channel[128] = {0};
+
+    if (!volc_room_info)
+        volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
+    os_memset(volc_room_info, 0, sizeof(rtc_room_info_t)+1);
 
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
@@ -348,7 +354,7 @@ int bk_sconf_upate_agent_info(char *update_info)
         goto __exit;
     }
 
-    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/switch_model_type/", bk_get_bk_server_url(1));
+    url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(1));
     if ((url_len < 0) || (url_len >= MAX_URL_LEN))
     {
         BK_LOGE(TAG, "URL len overflow\r\n");
@@ -365,9 +371,12 @@ int bk_sconf_upate_agent_info(char *update_info)
         goto __exit;
     }
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
-
-    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", "todo");
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"model_type\":\"%s\"}", update_info);
+    bk_sconf_get_channel_name(tmp_channel);
+    data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", tmp_channel);
+    //agent_param reserved for further development
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {\"mode\":\"%s\"", update_info);
+    rand_flag = bk_rand();
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
 
     webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
@@ -381,7 +390,6 @@ int bk_sconf_upate_agent_info(char *update_info)
         goto __exit;
     }
     os_memset(buffer, 0, RCV_BUF_SIZE);
-
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
     {
@@ -389,7 +397,6 @@ int bk_sconf_upate_agent_info(char *update_info)
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
         goto __exit;
     }
-
     BK_LOGI(TAG, "webclient post response data: \n");
     do
     {
@@ -404,7 +411,7 @@ int bk_sconf_upate_agent_info(char *update_info)
 
     BK_LOGI(TAG, "buffer %s.\n", buffer);
 
-    //ret = bk_sconf_rsp_parse_update(buffer);
+    ret = bk_sconf_rsp_parse_update(buffer);
 __exit:
     if (session)
     {
@@ -568,8 +575,8 @@ uint8_t ir_mode_switching = 0;
 extern bool byte_runing;
 extern bool g_agent_offline;
 extern bool video_started;
-extern bk_err_t video_turn_on(void);
-extern bk_err_t video_turn_off(void);
+extern bk_err_t byte_stop(void);
+extern void byte_restart(bool enable_video);
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
 extern uint8_t lvgl_app_init_flag;
 #endif
@@ -583,7 +590,8 @@ void ir_mode_switch_main(void)
     ir_mode_switching = 1;
 
     if (!video_started) {
-        bk_sconf_upate_agent_info("text_and_image");
+        byte_stop();
+        bk_sconf_upate_agent_info("vision");
         while (g_agent_offline)
         {
             if (!byte_runing)
@@ -592,7 +600,8 @@ void ir_mode_switch_main(void)
             }
             rtos_delay_milliseconds(100);
         }
-        video_turn_on();
+        //video_turn_on();
+	byte_restart(true);
 
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
         if (lvgl_app_init_flag == 1) {
@@ -600,8 +609,10 @@ void ir_mode_switch_main(void)
         }
 #endif
     } else {
-        video_turn_off();
+        //video_turn_off();
+        byte_stop();
         bk_sconf_upate_agent_info("text");
+        byte_restart(false);
 
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
         if (lvgl_app_init_flag == 1) {

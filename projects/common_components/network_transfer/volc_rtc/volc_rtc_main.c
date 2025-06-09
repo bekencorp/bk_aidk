@@ -35,6 +35,10 @@
 #if CONFIG_BK_DEV_STARTUP_AGENT
 #include "RtcBotUtils.h"
 #endif
+#include "video_engine.h"
+
+#include "timer_util.h"
+
 #define TAG "volc_main"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
@@ -203,6 +207,55 @@ static int byte_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int 
     return ret;
 }
 
+static void app_media_read_frame_callback(frame_buffer_t *frame)
+{
+    video_frame_info_t info = { 0 };
+    
+    static uint32_t before = 0, curr = 0;
+    curr = bk_get_current_timer();
+
+    if (false == g_connected_flag)
+    {
+        /* volc rtc is not running, do not send video. */
+        return;
+    }
+
+    if (before == 0)
+         before = curr;
+
+    info.stream_type = VIDEO_STREAM_HIGH;
+    if (frame->fmt == PIXEL_FMT_H264)
+    {
+        if ((frame->h264_type & (1 << H264_NAL_I_FRAME)) == 0)
+        {
+            LOGI("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
+            return;
+        }
+        info.data_type = VIDEO_DATA_TYPE_H264;
+        info.frame_type = VIDEO_FRAME_AUTO_DETECT;
+    }
+    else
+    {
+        LOGE("not support format: %d \r\n", frame->fmt);
+    }
+
+    if (curr > before && before && curr - before >= 500000)
+    {
+        LOGI("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
+
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+        do {
+#endif
+            bk_byte_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
+            /* send two frame images per second */
+#if (CONFIG_IMAGE_DEBUG_DUMP)
+            rtos_delay_milliseconds(video_interval);
+        } while (video_lock);
+#endif
+            before = curr;
+    }
+}
+
 void byte_main(void)
 {
     bk_err_t ret = BK_OK;
@@ -225,6 +278,7 @@ void byte_main(void)
     byte_rtc_config.log_level = BYTE_RTC_LOG_LEVEL_INFO;
 
     audio_tras_register_tx_data_func(bk_byte_rtc_audio_data_send);
+    video_register_tx_data_func(app_media_read_frame_callback);
 
     ret = bk_byte_rtc_create(&byte_rtc_config, (byte_rtc_msg_notify_cb)byte_rtc_user_notify_msg_handle);
     if (ret != BK_OK)
@@ -281,17 +335,17 @@ void byte_main(void)
     }
 #endif
 
-    // /* turn on video */
-    // if (video_en)
-    // {
-    //     ret = video_turn_on();
-    //     if (ret != BK_OK)
-    //     {
-    //         LOGE("%s, %d, video turn on fail, ret:%d\n", __func__, __LINE__, ret);
-    //         goto exit;
-    //     }
-    //     memory_free_show();
-    // }
+    /* turn on video */
+    if (video_en)
+    {
+        ret = video_turn_on();
+        if (ret != BK_OK)
+        {
+            LOGE("%s, %d, video turn on fail, ret:%d\n", __func__, __LINE__, ret);
+            goto exit;
+        }
+        memory_free_show();
+    }
 
     while (byte_runing)
     {
@@ -315,7 +369,7 @@ exit:
     /* free video sources */
     if (video_en)
     {
-        //video_turn_off();
+        video_turn_off();
     }
 
     /* free byte */
@@ -516,6 +570,16 @@ cmd_fail:
 }
 #endif
 /* call this api when wifi autoconnect */
+void byte_restart(bool enable_video)
+{
+    if (!byte_runing)
+    {
+        audio_en = true;
+        video_en = enable_video;
+        byte_start();
+    }
+}
+
 void byte_auto_run(uint8_t reset)
 {
     if (bk_sconf_wakeup_agent(reset)) {

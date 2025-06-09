@@ -33,7 +33,7 @@ static media_camera_device_t camera_device =
     .fmt  = PIXEL_FMT_JPEG,
 #endif
 #if (CONFIG_VIDEO_ENGINE_H264_FORMAT)
-    .mode = h264_MODE,
+    .mode = H264_MODE,
     .fmt  = PIXEL_FMT_H264,
 #endif
     /* expect the width and length */
@@ -48,7 +48,7 @@ static media_camera_device_t camera_device =
     .fmt  = PIXEL_FMT_JPEG,
 #endif
 #if (CONFIG_VIDEO_ENGINE_H264_FORMAT)
-    .mode = h264_MODE,
+    .mode = H264_MODE,
     .fmt  = PIXEL_FMT_H264,
 #endif
     /* expect the width and length */

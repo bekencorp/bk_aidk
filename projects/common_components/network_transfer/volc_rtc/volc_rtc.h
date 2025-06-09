@@ -96,7 +96,7 @@ typedef struct
                         .auto_subscribe_audio = true,                   \
                         .auto_subscribe_video = false,                  \
                         .auto_publish_audio = true,                     \
-                        .auto_publish_video = false,                    \
+                        .auto_publish_video = true,                    \
                     },                                                  \
 }
 
