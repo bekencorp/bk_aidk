@@ -353,7 +353,17 @@ typedef enum {
 
 
 enum MsgType {
-    BEKEN_RTC_SEND_HELLO = 0,
+    BEKEN_RTC_SEND_HELLO                    = 0,
+    BEKEN_RTC_SESSION_UPDATE                = 1,
+    BEKEN_RTC_SESSION_UPDATED               = 2,
+    BEKEN_RTC_INPUT_AUDIO_BUFFER_APPEND     = 3,
+    BEKEN_RTC_INPUT_AUDIO_BUFFER_CLEAR      = 4,
+    BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT     = 5,
+    BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMITTED  = 6,
+    BEKEN_RTC_RESPONSE_CREATE               = 7,
+    BEKEN_RTC_RESPONSE_CREATED              = 8,
+    BEKEN_RTC_RESPONSE_AUDIO_DONE           = 9,
+    BEKEN_RTC_ERROR                         = 10,
 };
 
 /*
@@ -425,7 +435,17 @@ typedef struct {
  */
 typedef struct {
     uint8_t text_type;
-	char *text_data;
+    char *text_data;
+    const char *devId;
+    const char *nfcId;
+    const char *input_audio_format;
+    int input_audio_rate;
+    const char *output_audio_format;
+    int output_audio_rate;
+    const char *user_text;
+    const char *mode;
+    bool playback_complete;
+    bool multi_turn_mode;
 } text_info_t;
 
 typedef struct {
@@ -450,6 +470,21 @@ typedef struct {
 	int disconnecting_state;
 }rtc_session;
 
+typedef struct {
+    char devId[32];
+    char nfcId[32];
+    char input_audio_format[16];
+    uint32_t input_audio_rate;
+    char output_audio_format[16];
+    uint32_t output_audio_rate;
+    uint32_t cloud_vad;
+    char source[16];
+}dialog_session_t;
+
+typedef struct error_info {
+    char *error_desc;
+} error_info_t;
+
 #define HEAD_SIZE_TOTAL             (sizeof(db_trans_head_t))
 #define HEAD_MAGIC_CODE             (0xF0D5)
 #define HEAD_FLAGS_CRC              (1 << 0)
@@ -466,6 +501,14 @@ void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
 void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size);
 int bk_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const video_frame_info_t *info_ptr);
 bk_err_t bk_rtc_register_video_rx_handle(rtc_video_rx_data_handle video_rx_handle);
+void parse_session_updated(text_info_t *info, cJSON *root);
+void parse_audio_committed(text_info_t *info, cJSON *root);
+void parse_text_response(text_info_t *info, cJSON *root);
+void parse_audio_frame(text_info_t *info, const uint8_t *data, size_t len);
+void parse_audio_done(text_info_t *info, cJSON *root);
+void rtc_fill_dialog_info(dialog_session_t *dialog_info, char *devId, char *nfcId,
+                                char *input_audio_format, uint32_t input_audio_rate,
+                                char *output_audio_format, uint32_t output_audio_rate, uint32_t cloud_vad, char *source);
 #ifdef __cplusplus
 }
 #endif

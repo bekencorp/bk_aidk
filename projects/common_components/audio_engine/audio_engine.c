@@ -12,7 +12,7 @@
 #include <modules/audio_process.h>
 #include "aud_intf.h"
 #include "audio_engine.h"
-#if CONFIG_BK_WSS_TRANS
+#if (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM)
 #include "bk_wss.h"
 #endif
 
@@ -102,7 +102,7 @@ uint32_t audio_codec_type_mapping_str2int(char *codec_type)
     return aud_codec_type;
 }
 
-#if CONFIG_BK_WSS_TRANS
+#if (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM)
 char * get_name_by_codec_type(uint32_t codec_type)
 {
     switch(codec_type)
@@ -230,7 +230,7 @@ bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
 bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
-    #if CONFIG_BK_WSS_TRANS
+    #if (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM)
     char * encoder_name;
     char * decoder_name;
     #endif
@@ -292,11 +292,16 @@ bk_err_t audio_turn_on(void)
         AUDE_LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
 
-#if CONFIG_BK_WSS_TRANS    
+#if CONFIG_BK_WSS_TRANS
     encoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.encoder_type);
     decoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.decoder_type);
-    
+
     rtc_get_aud_inft_info(&aud_intf_voc_setup,encoder_name,decoder_name);
+
+#endif
+
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+    rtc_get_dialog_info(&aud_intf_voc_setup, encoder_name, decoder_name);
 #endif
 
     ret = bk_aud_intf_voc_start();

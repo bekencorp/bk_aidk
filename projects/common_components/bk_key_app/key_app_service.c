@@ -29,6 +29,7 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+extern bool g_button_flag;
 
 #if (CONFIG_SYS_CPU0)
 uint32_t volume = 7;   // volume level, not gain.
@@ -170,6 +171,19 @@ static void handle_system_event(key_event_t event)
             bk_factory_reset();
             bk_reboot();
             break;
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+        case AUDIO_BUF_APPEND:
+            BK_LOGW(TAG, "audio append start!\n");
+            //websocket_event_send_msg(WSS_EVT_AUDIO_BUF_APPEND, 0);
+            g_button_flag = true;
+            app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
+            break;
+        case AUDIO_BUF_COMMIT:
+            BK_LOGW(TAG, "audio commit finish!\n");
+            g_button_flag = false;
+            websocket_event_send_msg(WSS_EVT_AUDIO_BUF_COMMIT, 0);
+            break;
+#endif
         // 其他事件处理...
         default:
             break;

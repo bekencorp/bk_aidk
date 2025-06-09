@@ -26,7 +26,7 @@
 #include "app_event.h"
 #include "bk_factory_config.h"
 #include "wifi_boarding_utils.h"
-
+#include <stdio.h>
 
 #define TAG "bk_sconf_wss"
 extern void beken_auto_run(void);

@@ -15,6 +15,9 @@ extern "C" {
 #include "aud_intf.h"
 
 void rtc_get_aud_inft_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name);
+void rtc_get_dialog_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name);
+
+
 #ifdef __cplusplus
 }
 #endif

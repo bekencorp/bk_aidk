@@ -26,9 +26,12 @@
 #include "bk_smart_config.h"
 #include "app_event.h"
 #include "cJSON.h"
-#include "audio_process.h"
+#include <modules/audio_process.h>
 #include "audio_engine.h"
 #include "video_engine.h"
+#include "bk_wss.h"
+#include "app_main.h"
+
 
 #define TAG "WS_MAIN"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -52,6 +55,7 @@ extern bool rx_spk_data_flag;
 bool g_connected_flag = false;
 static bool audio_en = false;
 static bool video_en = false;
+bool g_button_flag = false;
 #if 0
 static media_camera_device_t camera_device =
 {
@@ -81,6 +85,8 @@ static beken_semaphore_t rtc_sem = NULL;
 bool rtc_runing = false;
 audio_info_t audio_info = {};
 rtc_session *beken_rtc = NULL;
+dialog_session_t dialog_info = {};
+
 rtc_session *__get_beken_rtc(void)
 {
     return beken_rtc;
@@ -93,6 +99,108 @@ extern app_aud_para_t app_aud_cust_para;
 
 #if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
 extern uint8_t lvgl_app_init_flag;
+#endif
+
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+typedef struct
+{
+    beken_thread_t thread;
+    beken_queue_t queue;
+} wss_evt_info_t;
+
+typedef struct
+{
+    uint32_t event;
+    uint32_t param;
+} wss_evt_msg_t;
+
+static wss_evt_info_t wss_evt_info;
+
+bk_err_t websocket_event_send_msg(uint32_t event, uint32_t param)
+{
+    bk_err_t ret;
+    wss_evt_msg_t msg;
+
+    msg.event = event;
+    msg.param = param;
+
+    ret = rtos_push_to_queue(&wss_evt_info.queue, &msg, BEKEN_NO_WAIT);
+    if (BK_OK != ret)
+    {
+        LOGE("%s, %d : %d fail \n", __func__, __LINE__, event);
+        return BK_FAIL;
+    }
+
+    return BK_FAIL;
+}
+
+static void wss_event_thread(beken_thread_arg_t data)
+{
+    int ret = BK_OK;
+
+    while (1)
+    {
+        wss_evt_msg_t msg;
+
+        ret = rtos_pop_from_queue(&wss_evt_info.queue, &msg, BEKEN_WAIT_FOREVER);
+
+        if (ret == BK_OK)
+        {
+            switch (msg.event)
+            {
+                case WSS_EVT_SERVER_HELLO:
+                    LOGI("hello from server\n");
+                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_SESSION_UPDATE);
+                    break;
+                case WSS_EVT_SERVER_SESSION_UPDATED:
+                    LOGI("updated from server\n");
+                    break;
+                case WSS_EVT_AUDIO_BUF_COMMIT:
+                    LOGI("audio buf commit\n");
+                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT);
+                    break;
+                case WSS_EVT_SERVER_BUF_COMMITED:
+                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_RESPONSE_CREATE);
+                    break; 
+            }
+        }
+    }
+    LOGI("%s, exit\r\n", __func__);
+    rtos_delete_thread(NULL);
+
+}
+
+void wss_event_init(void)
+{
+    int ret = BK_FAIL;
+
+    os_memset(&wss_evt_info, 0, sizeof(wss_evt_info_t));
+
+    ret = rtos_init_queue(&wss_evt_info.queue,
+                          "wss_event_queue",
+                          sizeof(wss_evt_info_t),
+                          15);
+
+    if (ret != BK_OK)
+    {
+        LOGE("%s, init queue failed\r\n", __func__);
+        return;
+    }
+
+    ret = rtos_create_thread(&wss_evt_info.thread,
+                             BEKEN_DEFAULT_WORKER_PRIORITY - 1,
+                             "wsse_thread",
+                             (beken_thread_function_t)wss_event_thread,
+                             1024 * 4,
+                             NULL);
+
+    if (ret != BK_OK)
+    {
+        LOGE("%s, init thread failed\r\n", __func__);
+        return;
+    }
+
+}
 #endif
 
 #if CONFIG_WIFI_ENABLE
@@ -267,6 +375,9 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
 			app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
 			smart_config_running = false;
 			__get_beken_rtc()->disconnecting_state = 0;
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+            websocket_event_send_msg(WSS_EVT_SERVER_HELLO, 0);
+#endif
 		}
 		else {
 			LOGE("join WebSocket server fail\r\n");
@@ -282,7 +393,25 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
             media_app_lvgl_send_data(&info);
         }
 #endif
-    } else {
+    } 
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+    else if (strcmp(type->valuestring, "session.updated") == 0) {
+        LOGI("session.updated\n");
+        websocket_event_send_msg(WSS_EVT_SERVER_SESSION_UPDATED, 0);
+    } else if (strcmp(type->valuestring, "input_audio_buffer.committed") == 0) {
+        LOGI("input_audio_buffer.committed\n");
+        websocket_event_send_msg(WSS_EVT_SERVER_BUF_COMMITED, 0);
+    } else if (strcmp(type->valuestring, "response.created") == 0) {
+        LOGI("response.created\n");
+        text_info_t info = {};
+        parse_text_response(&info, root);
+    } else if (strcmp(type->valuestring, "response.audio.done") == 0) {
+        LOGI("response.audio.done\n");
+        text_info_t info = {};
+        parse_audio_done(&info, root);
+    } 
+#endif
+    else {
         LOGE("Warning: Unknown type: %s\n", type->valuestring);
     }
     cJSON_Delete(root);
@@ -295,7 +424,11 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 	switch (event_id) {
 		case WEBSOCKET_EVENT_CONNECTED:
 			LOGE("Connected to WebSocket server\r\n");
+#if !CONFIG_BK_WSS_TRANS_NOPSRAM
 			rtc_websocket_send_text(client, (void *)(&audio_info), BEKEN_RTC_SEND_HELLO);
+#else
+            rtc_websocket_send_text(client, (void *)(&dialog_info), BEKEN_RTC_SEND_HELLO);
+#endif
 			break;
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
@@ -334,9 +467,20 @@ void beken_rtc_main(void)
 {
     bk_err_t ret = BK_OK;
     memory_free_show();
-
+#ifndef CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    if (audio_en)
+    {
+        ret = audio_turn_on();
+        if (ret != BK_OK)
+        {
+            LOGE("%s, %d, audio turn on fail, ret:%d\n", __func__, __LINE__, ret);
+            goto exit;
+        }
+        memory_free_show();
+    }
+#endif
 	websocket_client_input_t websocket_cfg = {0};
-	websocket_cfg.uri = "wss://ai.aclsemi.com:9016/";
+	websocket_cfg.uri = "wss://ai.aclsemi.com:9016";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
 	audio_tras_register_tx_data_func(rtc_websocket_audio_send_data);
 	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);
@@ -381,6 +525,13 @@ void beken_rtc_main(void)
     }
 
 exit:
+#ifndef CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+    /* free audio  */
+    if (audio_en)
+    {
+        audio_turn_off();
+    }
+#endif
     /* free video sources */
     if (video_en)
     {
@@ -438,13 +589,21 @@ static bk_err_t beken_rtc_start(void)
         LOGE("%s, %d, create semaphore fail\n", __func__, __LINE__);
         return BK_FAIL;
     }
-
+#if !CONFIG_BK_WSS_TRANS_NOPSRAM
     ret = rtos_create_thread(&rtc_thread_hdl,
                              4,
                              "beken_rtc",
                              (beken_thread_function_t)beken_rtc_main,
                              6 * 1024,
                              NULL);
+#else 
+    ret = rtos_create_thread(&rtc_thread_hdl,
+                             4,
+                             "beken_rtc",
+                             (beken_thread_function_t)beken_rtc_main,
+                             2 * 1024,
+                             NULL);
+#endif
     if (ret != kNoErr)
     {
         LOGE("%s, %d, create beken app task fail, ret:%d\n", __func__, __LINE__, ret);

@@ -1,0 +1,32 @@
+menu "Beken_Genie Project Configuration"
+    config LDO3V3_ENABLE
+        bool "Enabel LDO_3V3"
+        default n
+
+    config LDO3V3_CTRL_GPIO
+        depends on LDO3V3_ENABLE
+        int "Set LDO_3V3 Control Gpio"
+        range 0 100
+        default 52
+
+    config LCD_BACKLIGHT_GPIO
+        int "Set LCD Backlight Control Gpio"
+        range 0 100
+        default 25
+
+    config LCD_QSPI_RESET_PIN
+        int "Set LCD QSPI Reset Gpio"
+        range 0 100
+        default 45
+
+    config LCD_QSPI_ID
+        int "Set LCD QSPI ID"
+        default 0
+        help
+            0 - QSPI_ID_0
+            1 - QSPI_ID_1
+
+	config NETWORK_AUTO_RECONNECT
+		bool "Enable auto reconnect Network"
+		default y
+endmenu

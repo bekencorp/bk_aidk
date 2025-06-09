@@ -5,7 +5,9 @@
 #include <driver/lcd.h>
 #include "yuv_encode.h"
 #include "bk_posix.h"
+#if CONFIG_LVGL
 #include "lv_jpeg_hw_decode.h"
+#endif
 #include "modules/jpeg_decode_sw.h"
 #include "lv_vendor.h"
 #if CONFIG_LCD_QSPI

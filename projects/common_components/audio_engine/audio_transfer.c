@@ -65,6 +65,7 @@ static uint16_t mic_tx_buf_frame_num = MIC_FRAME_NUM;
 
 extern bool tx_mic_data_flag;
 extern bool g_connected_flag;
+extern bool g_button_flag;
 
 enum vad_state
 {
@@ -76,8 +77,11 @@ enum vad_state
 static int send_audio_frame(uint8_t *data, unsigned int len)
 {
     // audio_frame_info_t info = { 0 };
-
-    if (!g_connected_flag)
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+    if ((!g_connected_flag) || (!g_button_flag))
+#else
+    if(!g_connected_flag)
+#endif
     {
         return 0;
     }
@@ -288,8 +292,11 @@ static void aud_tras_main(void)
     #endif
 
     rtos_set_semaphore(&aud_sem);
-
+#if CONFIG_PSRAM
     mic_temp_buff = psram_malloc(buf_fill_th);
+#else
+    mic_temp_buff = os_malloc(buf_fill_th);
+#endif
     if (NULL == mic_temp_buff)
     {
         AUDE_LOGE("mic_temp_buff malloc fail\n");
@@ -385,7 +392,11 @@ aud_tras_exit:
 
     if (mic_temp_buff)
     {
+#if CONFIG_PSRAM
         psram_free(mic_temp_buff);
+#else
+        os_free(mic_temp_buff);
+#endif
     }
 
     #if 0
@@ -398,7 +409,11 @@ aud_tras_exit:
     if (mic_data_buffer)
     {
         ring_buffer_clear(&mic_data_rb);
+#if CONFIG_PSRAM
         psram_free(mic_data_buffer);
+#else
+        os_free(mic_data_buffer);
+#endif
         mic_data_buffer = NULL;
     }
 
@@ -454,8 +469,11 @@ bk_err_t audio_tras_init(void)
     #if (CONFIG_G722_CODEC_RUN_ON_CPU0)
     tx_trans_buf_size = bk_aud_get_enc_input_size_in_byte()*(buf_frame_num);
     #endif
-
+#if CONFIG_PSRAM
     mic_data_buffer = psram_malloc(tx_trans_buf_size);
+#else
+    mic_data_buffer = os_malloc(tx_trans_buf_size);
+#endif
     if (mic_data_buffer == NULL)
     {
         AUDE_LOGE("malloc mic_data_buffer fail\n");
@@ -527,7 +545,11 @@ fail:
     if (mic_data_buffer)
     {
         ring_buffer_clear(&mic_data_rb);
+#if CONFIG_PSRAM
         psram_free(mic_data_buffer);
+#else
+        os_free(mic_data_buffer);
+#endif
         mic_data_buffer = NULL;
     }
 

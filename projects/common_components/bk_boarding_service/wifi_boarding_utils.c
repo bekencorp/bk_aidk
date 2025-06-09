@@ -727,6 +727,7 @@ static void dm_ble_gap_common_cb(bk_ble_gap_cb_event_t event, bk_ble_gap_cb_para
 
 }
 
+#if CONFIG_BT//dm
 int wifi_boarding_init(ble_boarding_info_t *info)
 {
     bt_err_t ret = BK_FAIL;
@@ -1124,3 +1125,128 @@ int wifi_boarding_notify(uint8_t *data, uint16_t length)
     }
 }
 
+#else//ble
+int ble_boarding_init(ble_boarding_info_t *info);
+int ble_boarding_deinit(void);
+int ble_boarding_adv_start(uint8_t *adv_data, uint16_t adv_len);
+int ble_boarding_adv_stop(void);
+int ble_boarding_notify(uint8_t *data, uint16_t length);
+
+#define ADV_MAX_SIZE (251)
+#define ADV_NAME_HEAD "bk_genie"
+
+#define ADV_TYPE_FLAGS                      (0x01)
+#define ADV_TYPE_LOCAL_NAME                 (0x09)
+#define ADV_TYPE_SERVICE_UUIDS_16BIT        (0x14)
+#define ADV_TYPE_SERVICE_DATA               (0x16)
+#define ADV_TYPE_MANUFACTURER_SPECIFIC      (0xFF)
+
+#define BEKEN_COMPANY_ID                    (0x05F0)
+
+#define BOARDING_UUID                       (0xFE01)
+
+int wifi_boarding_init(ble_boarding_info_t *info)
+{
+    bt_err_t ret = BK_FAIL;
+
+    wboard_logi("%s\n", __func__);
+
+    ret = ble_boarding_init(info);
+    return ret;
+}
+
+int wifi_boarding_deinit()
+{
+    int32_t ret = 0;
+
+    wboard_logw("");
+    ret = ble_boarding_deinit();
+    return ret;
+}
+
+int wifi_boarding_adv_start(void)
+{
+    uint8_t adv_data[ADV_MAX_SIZE] = {0};
+    uint8_t adv_index = 0;
+    uint8_t len_index = 0;
+    uint8_t mac[6];
+    int ret;
+
+
+    wboard_logi("%s\n", __func__);
+
+    /* flags */
+    len_index = adv_index;
+    adv_data[adv_index++] = 0x00;
+    adv_data[adv_index++] = ADV_TYPE_FLAGS;
+    adv_data[adv_index++] = 0x06;
+    adv_data[len_index] = 2;
+
+    /* local name */
+    bk_bluetooth_get_address(mac);
+
+    len_index = adv_index;
+    adv_data[adv_index++] = 0x00;
+    adv_data[adv_index++] = ADV_TYPE_LOCAL_NAME;
+
+    ret = sprintf((char *)&adv_data[adv_index], "%s_%02X%02X%02X",
+                  ADV_NAME_HEAD, mac[0], mac[1], mac[2]);
+
+    adv_index += ret;
+    adv_data[len_index] = ret + 1;
+
+    /* 16bit uuid */
+    len_index = adv_index;
+    adv_data[adv_index++] = 0x00;
+    adv_data[adv_index++] = ADV_TYPE_SERVICE_DATA;
+    adv_data[adv_index++] = BOARDING_UUID & 0xFF;
+    adv_data[adv_index++] = BOARDING_UUID >> 8;
+    adv_data[len_index] = 3;
+
+    /* manufacturer */
+    len_index = adv_index;
+    adv_data[adv_index++] = 0x00;
+    adv_data[adv_index++] = ADV_TYPE_MANUFACTURER_SPECIFIC;
+    adv_data[adv_index++] = BEKEN_COMPANY_ID & 0xFF;
+    adv_data[adv_index++] = BEKEN_COMPANY_ID >> 8;
+    adv_data[len_index] = 3;
+
+    /*
+    os_printf("adv data:\n");
+
+    int i = 0;
+    for (i = 0; i < adv_index; i++)
+    {
+        os_printf("%02X ", adv_data[i]);
+    }
+
+    os_printf("\n");
+    */
+    ble_boarding_adv_stop();
+
+    ret = ble_boarding_adv_start(adv_data, adv_index);
+
+    return ret;
+}
+
+int wifi_boarding_adv_stop(void)
+{
+    int32_t ret = 0;
+
+    if(bk_bluetooth_get_status() != BK_BLUETOOTH_STATUS_ENABLED)
+    {
+        wboard_loge("bluetooth not init !!!");
+        return BK_FAIL;
+    }
+
+    ret = ble_boarding_adv_stop();
+
+    return ret;
+}
+
+int wifi_boarding_notify(uint8_t *data, uint16_t length)
+{
+    return ble_boarding_notify(data, length);
+}
+
+#endif

@@ -177,7 +177,9 @@ static void app_event_thread(beken_thread_arg_t data)
 #if CONFIG_COUNTDOWN
     update_countdown(s_active_tickets);
 #endif
+#if CONFIG_BAT_MONITOR
     battery_event_callback_register(battery_event_callback);
+#endif
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
 
     while (1)
@@ -465,7 +467,9 @@ static void app_event_thread(beken_thread_arg_t data)
 #if CONFIG_BK_BOARDING_SERVICE
                     bk_genie_boarding_deinit();
 #endif
+#if CONFIG_BLUETOOTH
                     bk_bluetooth_deinit();
+#endif
 #endif
                     break;
 
@@ -565,7 +569,7 @@ void app_event_init(void)
                              BEKEN_DEFAULT_WORKER_PRIORITY - 1,
                              "ae_thread",
                              (beken_thread_function_t)app_event_thread,
-                             1024 * 4,
+                             1024 * 2,
                              NULL);
 
     if (ret != BK_OK)

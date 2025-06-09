@@ -24,19 +24,6 @@
 
 #define TAG "db-bd"
 
-#define ADV_MAX_SIZE (251)
-#define ADV_NAME_HEAD "bk_genie"
-
-#define ADV_TYPE_FLAGS                      (0x01)
-#define ADV_TYPE_LOCAL_NAME                 (0x09)
-#define ADV_TYPE_SERVICE_UUIDS_16BIT        (0x14)
-#define ADV_TYPE_SERVICE_DATA               (0x16)
-#define ADV_TYPE_MANUFACTURER_SPECIFIC      (0xFF)
-
-#define BEKEN_COMPANY_ID                    (0x05F0)
-
-#define BOARDING_UUID                       (0xFE01)
-
 static bk_genie_boarding_info_t *bk_genie_boarding_info = NULL;
 //static p2p_cs2_key_t *p2p_cs2_key = NULL;
 
@@ -156,6 +143,11 @@ int bk_genie_boarding_init(void)
         }
 
         os_memset(bk_genie_boarding_info, 0, sizeof(bk_genie_boarding_info_t));
+    }
+    else
+    {
+        LOGI("%s already initialised\n", __func__);
+        return BK_OK;
     }
 
     bk_genie_boarding_info->boarding_info.cb = bk_genie_boarding_operation_handle;

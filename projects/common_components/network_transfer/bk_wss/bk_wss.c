@@ -14,6 +14,9 @@
 #include <driver/aon_rtc.h>
 #endif
 #include "bk_genie_comm.h"
+#include "app_event.h"
+#include <modules/wifi.h>
+#include "modules/wifi_types.h"
 
 
 #define TAG "beken_rtc"
@@ -61,7 +64,11 @@ static const uint8 crc8_table[256] =
 	0xF4, 0x03, 0x4D, 0xBA, 0xD1, 0x26, 0x68, 0x9F
 };
 
+#if CONFIG_PSRAM
 #define WSS_AUDIO_BUFFER_SIZE (680*1024)
+#else
+#define WSS_AUDIO_BUFFER_SIZE (68*1024)
+#endif
 
 void rtc_client_hex_dump(uint8_t *data, uint32_t length)
 {
@@ -808,6 +815,7 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
 	}
 	int n = 0;
 	switch (msgtype) {
+#if !CONFIG_BK_WSS_TRANS_NOPSRAM
 		case BEKEN_RTC_SEND_HELLO:
 			n = os_snprintf(buf, BEKEN_RTC_TXT_SIZE,
 				"{\"type\":\"hello\",\"config\":{\"version\": 2,\"audio\":{\"to_server\":{\"format\":\"%s\", \"sample_rate\":%u, \"channels\":1, \"frame_duration\":%u}, \"from_server\":{\"format\":\"%s\", \"sample_rate\":%u, \"channels\":1, \"frame_duration\":%u}}}}",
@@ -816,6 +824,63 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
 			BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
 			websocket_client_send_text(web_socket, buf, n, 10*1000);
 			break;
+#else
+		case BEKEN_RTC_SEND_HELLO:
+			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
+                        "{\"type\":\"hello\",\"interact_mode\":3}");
+            BK_LOGE("WebSocket", "Hello Sending: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+        case BEKEN_RTC_SESSION_UPDATE:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
+                        "{"
+                        "\"type\":\"session.update\", "
+                        "\"session\":{"
+                        "\"devId\":\"%s\", "
+                        "\"nfcId\":\"%s\", "
+                        "\"input_audio_format\":\"%s\", "
+                        "\"input_audio_rate\":%d, "
+                        "\"output_audio_format\":\"%s\", "
+                        "\"output_audio_rate\":%d, "
+                        "\"cloud_vad\":%d, "
+                        "\"source\":\"%s\" "
+                        "}"
+                        "}",
+                        ((dialog_session_t *)str)->devId, ((dialog_session_t *)str)->nfcId,
+                        ((dialog_session_t *)str)->input_audio_format, ((dialog_session_t *)str)->input_audio_rate,
+                        ((dialog_session_t *)str)->output_audio_format, ((dialog_session_t *)str)->output_audio_rate,
+                        ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source);
+            BK_LOGI("WebSocket", "Session_Update: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+        case BEKEN_RTC_INPUT_AUDIO_BUFFER_APPEND:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.append\"}");
+            BK_LOGI("WebSocket", "Audio_Buf_Commit: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
+            break;
+        case BEKEN_RTC_INPUT_AUDIO_BUFFER_CLEAR:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.clear\"}");
+            BK_LOGI("WebSocket", "Audio_Buf_Clear: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+        case BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.commit\"}");
+            BK_LOGI("WebSocket", "Audio_Buf_Commit: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+        case BEKEN_RTC_RESPONSE_CREATE:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
+                        "{\"type\":\"response.create\",\"data_type\":\"binary\"}");
+            BK_LOGI("WebSocket", "Response_Create: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+         case BEKEN_RTC_ERROR:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"error\", \"error\":\"%s\"}", ((error_info_t *)str)->error_desc);
+            BK_LOGE("WebSocket", "Error: %s\r\n", buf);
+            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            break;
+#endif
 		default:
 			BK_LOGE("WebSocket", "Unsupported message type");
 			return -1;
@@ -880,6 +945,109 @@ void rtc_get_aud_inft_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encod
 
 }
 
+void rtc_get_dialog_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name)
+{
+    uint8_t devId_mac[6];
+    char devId_mac_str[18];
+
+    bk_wifi_sta_get_mac(devId_mac);
+    os_snprintf(devId_mac_str, 18, "%02x:%02x:%02x:%02x:%02x:%02x", devId_mac[0], devId_mac[1], devId_mac[2], devId_mac[3], devId_mac[4], devId_mac[5]);
+    extern dialog_session_t dialog_info;
+    rtc_fill_dialog_info(&dialog_info, devId_mac_str, "", decoder_name, aud_intf_voc_setup->aud_codec_setup_input.dac_samp_rate, 
+                         encoder_name, aud_intf_voc_setup->aud_codec_setup_input.adc_samp_rate, 0, "BKR1");
+}
+/* For session.updated message */
+void parse_session_updated(text_info_t *info, cJSON *root) {
+    cJSON *session = cJSON_GetObjectItem(root, "session");
+    if (!session) {
+        LOGE("Missing session object\n");
+        return;
+    }
+    
+    cJSON *devId = cJSON_GetObjectItem(session, "devId");
+    cJSON *nfcId = cJSON_GetObjectItem(session, "nfcId");
+    cJSON *input_audio_format = cJSON_GetObjectItem(session, "input_audio_format");
+    cJSON *input_audio_rate = cJSON_GetObjectItem(session, "input_audio_rate");
+    cJSON *output_audio_format = cJSON_GetObjectItem(session, "output_audio_format");
+    cJSON *output_audio_rate = cJSON_GetObjectItem(session, "output_audio_rate");
+
+    if (devId == NULL || nfcId == NULL || input_audio_format == NULL || input_audio_rate == NULL ||
+        output_audio_format == NULL || output_audio_rate == NULL) {
+        LOGE("Error: Missing required fields in 'session' object.\n");
+        return;
+    }
+
+    LOGI("Session updated: devId=%s, nfcId=%s\n", devId->valuestring, nfcId->valuestring);
+    // Store relevant information in info struct
+    info->devId = devId->valuestring;
+    info->nfcId = nfcId->valuestring;
+    info->input_audio_format = input_audio_format->valuestring;
+    info->input_audio_rate = input_audio_rate->valueint;
+    info->output_audio_format = output_audio_format->valuestring;
+    info->output_audio_rate = output_audio_rate->valueint;
+}
+
+/* For input_audio_buffer.committed message */
+void parse_audio_committed(text_info_t *info, cJSON *root) {
+    LOGI("ASR has received and started processing audio\n");
+    //ToDo:add some flag?
+}
+
+/* For response.created message */
+void parse_text_response(text_info_t *info, cJSON *root) {
+    rtc_websocket_parse_text(info, root);
+    //ToDo
+}
+
+/* For binary audio frames */
+void parse_audio_frame(text_info_t *info, const uint8_t *data, size_t len) {
+    LOGI("Received audio frame of size %zu\n", len);
+    //ToDo
+}
+
+/* For response.audio.done message */
+void parse_audio_done(text_info_t *info, cJSON *root) {
+    cJSON *mode = cJSON_GetObjectItem(root, "mode");
+    if (mode && strcmp(mode->valuestring, "mutil-chat") == 0) {
+        LOGD("Multi-turn conversation mode activated\n");
+        info->multi_turn_mode = true;
+        //ToDo
+    } else {
+        LOGD("Audio playback completed\n");
+        info->playback_complete = true;
+    }
+}
+
+void rtc_fill_dialog_info(dialog_session_t *dialog_info, char *devId, char *nfcId,
+                                char *input_audio_format, uint32_t input_audio_rate,
+                                char *output_audio_format, uint32_t output_audio_rate, uint32_t cloud_vad, char *source)
+{
+    memset(dialog_info, 0, sizeof(dialog_session_t));
+    if (devId) {
+        os_strcpy(dialog_info->devId, devId);
+    }
+
+    if (nfcId) {
+        os_strcpy(dialog_info->nfcId, nfcId);
+    }
+
+    if (input_audio_format) {
+        os_strcpy(dialog_info->input_audio_format, input_audio_format);
+    }
+
+    dialog_info->input_audio_rate = input_audio_rate;
+
+    if (output_audio_format) {
+        os_strcpy(dialog_info->output_audio_format, output_audio_format);
+    }
+
+    dialog_info->output_audio_rate = output_audio_rate;
+    dialog_info->cloud_vad = cloud_vad;
+
+    if (source) {
+        os_strcpy(dialog_info->source, source);
+    }
+}
 
 rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb, audio_info_t *info)
 {
