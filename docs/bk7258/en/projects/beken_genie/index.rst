@@ -66,6 +66,12 @@ There are three button on the lower right side of the board, corresponding to th
         - 1.power on: Long press(>= 3 seconds) the button ``S2`` to power on.
         - 2.power off: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S2`` to power off.
 
+    LLMs Switch
+        - 1.Fisrt time boot and wakeup, default use Large Language Model
+        - 2.click the button ``S2`` to switch to Image Recognition Large Model
+        - 3.click the button ``S2`` again to switch to Large Language Model
+        - 4.Loop operation between step 2 and step 3
+
     Network Provisioning
         - 1.Network Provisioning: When the system is in the powered - on state, long press(>= 3 seconds) the button ``S1`` to enter the state of waiting for network configuration.
 
@@ -337,12 +343,12 @@ and special reminders are signaled by alternating red and green light blinking. 
     +----------------------------------------+----------------+---------------+----------------+
 
 
-2.5 BLE Netowkr Provisioning and Agent Policy Customization Guide
+2.5 BLE Network Provisioning and Agent Policy Customization Guide
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
- The BLE Netowkr Provisioning and Agent-Startup code are mainly distributed in the directory:"projects/common_components/bk_boarding_service" and "projects/common_components/bk_smart_config". Customers can refer to the following instructions to customize their own solutions.
+ The BLE Network Provisioning and Agent-Startup code are mainly distributed in the directory:"projects/common_components/bk_boarding_service" and "projects/common_components/bk_smart_config". Customers can refer to the following instructions to customize their own solutions.
 
-1.bk_sconf_prepare_for_smart_config: Entering BLE Netowkr Provisioning mode
+1.bk_sconf_prepare_for_smart_config: Entering BLE Network Provisioning mode
 
 .. code::
 
@@ -353,7 +359,7 @@ and special reminders are signaled by alternating red and green light blinking. 
     #if CONFIG_STA_AUTO_RECONNECT
         first_time_for_network_provisioning = true;
     #endif
-        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);//Enter Netowkr Provisioning – indicated by alternating red and green lights.
+        app_event_send_msg(APP_EVT_NETWORK_PROVISIONING, 0);//Enter Network Provisioning – indicated by alternating red and green lights.
         network_reconnect_stop_timeout_check();             //Disable reconnect timeout check
         bk_sconf_trans_stop();                              //Close Rtc on device and Multimedia Services
         bk_wifi_sta_stop();                                 //Stop wifi
@@ -375,7 +381,7 @@ and special reminders are signaled by alternating red and green light blinking. 
 
         if (!ate_is_enabled())
         {
-            bk_genie_boarding_init();                       //BLE Netowkr Provisioning init
+            bk_genie_boarding_init();                       //BLE Network Provisioning init
             wifi_boarding_adv_start();                      //BLE broadcasting enabled
         }
         ......

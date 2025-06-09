@@ -7,7 +7,7 @@ AI Dashboard
 1. Overview
 ---------------------------------
 
-This project is based on the beken_genie project and inplements a single-screen display project. The functions included in this project are the same as those of the beken_genie project. The difference is that the beken_genie project is a dual-screen display, while this project is a single-screen display. This project uses a 360X360 resolution QSPI LCD, and the IC model is ST77916.
+This project is based on the beken_genie project and implements a single-screen display project. The functions included in this project are the same as those of the beken_genie project. The difference is that the beken_genie project is a dual-screen display, while this project is a single-screen display. This project uses a 360X360 resolution QSPI LCD, and the IC model is ST77916.
 
 For detailed instructions and introductions, please refre to `Beken Genie AI Project <../../projects/beken_genie/index.html>`_
 
