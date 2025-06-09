@@ -694,16 +694,13 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     a)operate beken app as follow pictures:
 
-    .. figure:: ../../../_static/add_ai_device_1.png
+    .. figure:: ../../../_static/add_device_en.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_2.png
+    .. figure:: ../../../_static/add_devcie_ai_toy_en.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_3.png
-        :scale: 30%
-
-    .. figure:: ../../../_static/add_ai_device_4.png
+    .. figure:: ../../../_static/device_info_en.png
         :scale: 30%
 
     b)long press Key 2 for 3s to enter network provisioning mode:
@@ -713,13 +710,19 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     c)click the device scan by smart phone
 
-    .. figure:: ../../../_static/add_ai_device_5.png
+    .. figure:: ../../../_static/ble_scan_en.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_6.png
+    .. figure:: ../../../_static/select_model_en.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_7.png
+    .. figure:: ../../../_static/wifi_select_en.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/activating_en.png
+        :scale: 30%
+
+    .. figure:: ../../../_static/added_en.png
         :scale: 30%
 
     d)Say the wake-up word ``hi armino`` to the onboard mic, the device will play the prompt tone ``aha`` after waking up,
@@ -741,12 +744,12 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     a) Long press the indicated area, and a prompt box will pop up.
 
-    .. figure:: ../../../_static/remove_ai_device_1.png
+    .. figure:: ../../../_static/added_en.png
         :scale: 30%
 
     b) Click OK to complete the operation.
 
-    .. figure:: ../../../_static/remove_ai_device_2.png
+    .. figure:: ../../../_static/del_en.png
         :scale: 30%
 
 .. note::
