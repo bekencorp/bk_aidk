@@ -211,6 +211,17 @@ static int32_t wifi_boarding_gatts_cb(bk_gatts_cb_event_t event, bk_gatt_if_t ga
     }
     break;
 
+    case BK_GATTS_UNREG_EVT:
+    {
+        wboard_logi("BK_GATTS_UNREG_EVT");
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore( &s_ble_sema );
+        }
+    }
+    break;
+
     case BK_GATTS_START_EVT:
     {
         struct gatts_start_evt_param *param = (typeof(param))comm_param;
@@ -782,6 +793,21 @@ int wifi_boarding_deinit()
         os_free(s_ble_boarding_info->password_value);
     }
 
+
+    ret = bk_ble_gatts_app_unregister(s_gatts_if);
+
+    if (ret)
+    {
+        wboard_loge("unreg err %d", ret);
+    }
+
+    ret = rtos_get_semaphore(&s_ble_sema, SYNC_CMD_TIMEOUT_MS);
+
+    if (ret != kNoErr)
+    {
+        wboard_loge("rtos_get_semaphore unreg err %d", ret);
+    }
+
     os_memset(s_ble_boarding_info, 0, sizeof(*s_ble_boarding_info));
 
     if (s_ble_sema)
@@ -796,6 +822,8 @@ int wifi_boarding_deinit()
 
         s_ble_sema = NULL;
     }
+
+    bk_ble_gatts_register_callback(NULL);
 
     s_gatts_if = 0;
     s_prop_cli_config = 0;
