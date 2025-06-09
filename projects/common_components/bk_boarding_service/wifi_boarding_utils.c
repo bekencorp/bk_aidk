@@ -705,6 +705,22 @@ static void dm_ble_gap_common_cb(bk_ble_gap_cb_event_t event, bk_ble_gap_cb_para
     }
     break;
 
+    case BK_BLE_GAP_EXT_ADV_SET_REMOVE_COMPLETE_EVT:
+    {
+        struct ble_adv_set_remove_cmpl_evt_param *pm = (typeof(pm))param;
+
+        if (pm->status)
+        {
+            wboard_loge("remove adv set err %d", pm->status);
+        }
+
+        if (s_ble_sema != NULL)
+        {
+            rtos_set_semaphore(&s_ble_sema);
+        }
+    }
+    break;
+
     default:
         break;
     }
@@ -1055,7 +1071,9 @@ int wifi_boarding_adv_stop(void)
         return BK_FAIL;
     }
 
-    const uint8_t ext_adv_inst[] = {0};
+    wboard_logi("");
+
+    const uint8_t ext_adv_inst[] = {ADV_HANDLE};
     ret = bk_ble_gap_adv_stop(sizeof(ext_adv_inst) / sizeof(ext_adv_inst[0]), ext_adv_inst);
 
     if (ret)
@@ -1069,6 +1087,22 @@ int wifi_boarding_adv_stop(void)
     if (ret != kNoErr)
     {
         wboard_loge("wait stop adv err %d", ret);
+        return -1;
+    }
+
+    ret = bk_ble_gap_adv_set_remove(ADV_HANDLE);
+
+    if (ret)
+    {
+        wboard_loge("bk_ble_gap_adv_set_remove err %d", ret);
+        return -1;
+    }
+
+    ret = rtos_get_semaphore(&s_ble_sema, SYNC_CMD_TIMEOUT_MS);
+
+    if (ret != kNoErr)
+    {
+        wboard_loge("wait remove adv err %d", ret);
         return -1;
     }
 

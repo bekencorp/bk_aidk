@@ -413,6 +413,7 @@ extern bk_err_t bk_modem_deinit(void);
     if (!ate_is_enabled())
     {
         bk_genie_boarding_init();
+        wifi_boarding_adv_stop();
         wifi_boarding_adv_start();
     }
     else
