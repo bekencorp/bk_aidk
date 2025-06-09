@@ -62,9 +62,10 @@ static void lvgl_label_timer_cb(lv_timer_t *timer)
         LOGD("temp_pos = %d, current_pos = %d\r\n", temp_pos, font_info->current_pos);
 
         if (font_info->current_pos < font_info->text_length) {
-            if (temp_pos > 270) {
-                reset_pos = temp_pos;
+            if (temp_pos >= 270) {
+                reset_pos = font_info->current_pos;
                 lv_label_set_text(label, "");
+                lv_timer_set_period(label_timer, 500);
                 return;
             }
 
