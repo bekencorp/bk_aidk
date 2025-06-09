@@ -23,9 +23,9 @@ The design includes reference solutions and demos for common peripherals, such a
 1.1 Hardware Reference
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-   * `AI Toy Dev Board SCH <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E5%8E%9F%E7%90%86%E5%9B%BE.pdf>`_
-   * `AI Toy Dev Board Bottom <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E5%BA%95%E5%B1%82%E4%BD%8D%E5%8F%B7%E5%9B%BE.pdf>`_
-   * `AI Toy Dev Board Top <https://docs.bekencorp.com/HW/BK7258/AIDK_AI%E7%8E%A9%E5%85%B7%E5%BC%80%E5%8F%91%E6%9D%BF_%E9%A1%B6%E5%B1%82%E4%BD%8D%E5%8F%B7%E5%9B%BE.pdf>`_
+   * `AI Toy Dev Board SCH <https://docs.bekencorp.com/HW/BK7258/AIDK_AI_TOY_DEV_BOARD_SCH.pdf>`_
+   * `AI Toy Dev Board Bottom <https://docs.bekencorp.com/HW/BK7258/AIDK_AI_TOY_DEV_BOARD_BOTTOM.pdf>`_
+   * `AI Toy Dev Board Top <https://docs.bekencorp.com/HW/BK7258/AIDK_AI_TOY_DEV_BOARD_TOP.pdf>`_
 
 1.2 Features
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
