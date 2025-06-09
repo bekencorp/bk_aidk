@@ -142,7 +142,10 @@ CONFIG_USB_MAILBOX_MASTER_CPU1_TO_CPU2=n
 CONFIG_USB_MAILBOX_SLAVE=n
 #@ Udisk Device specific macro switch,unable to coexist with Host
 CONFIG_USBD_MSC=y
-
+#@ Enable Usb Cdc
+CONFIG_USB_CDC=y
+#@ This macro needs to be opened on cp0 and cp1 when USB in cp1.
+CONFIG_USB_CDC_MODEM=y
 
 #
 # LVGL configuration
