@@ -2,8 +2,8 @@
 # The occupied space is: bin size*34/32(and 68K aligned),,,,,
 #Name,Offset,Size,Type,Read,Write
 bootloader,,68k,code,TRUE,FALSE
-app,,2856k,code,TRUE,FALSE
-app1,,680k,code,TRUE,FALSE
+app,,2652k,code,TRUE,FALSE
+app1,,884k,code,TRUE,FALSE
 app2,,476k,code,TRUE,FALSE
 s_app,,4012k,data,TRUE,
 usr_config,,64K,data,TRUE,
