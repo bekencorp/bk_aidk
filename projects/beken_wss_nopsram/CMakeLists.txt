@@ -5,10 +5,8 @@ cmake_minimum_required(VERSION 3.5)
 set(EXTRA_COMPONENTS_DIRS 
     $ENV{ARMINO_PATH}/../components
     $ENV{ARMINO_PATH}/../components/audio_algorithms
-    $ENV{ARMINO_PATH}/../components/codec/
-    $ENV{ARMINO_PATH}/../components/codec/legacy 
-    $ENV{ARMINO_PATH}/../components/codec/legacy/media/audio
-    $ENV{ARMINO_PATH}/../components/codec/legacy/media
+    $ENV{ARMINO_PATH}/../components/codec/image_convert
+    $ENV{ARMINO_PATH}/../components/include/avdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/agora-iot-sdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty
     $ENV{ARMINO_PATH}/../components/multimedia

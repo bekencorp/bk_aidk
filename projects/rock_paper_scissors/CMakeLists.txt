@@ -7,9 +7,7 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../components/bk_audio
     $ENV{ARMINO_PATH}/../components/bk_audio/audio_streams
     $ENV{ARMINO_PATH}/../components/codec/
-    $ENV{ARMINO_PATH}/../components/codec/legacy
-    $ENV{ARMINO_PATH}/../components/codec/legacy/media/audio
-    $ENV{ARMINO_PATH}/../components/codec/legacy/media
+	$ENV{ARMINO_PATH}/../components/include/avdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
     $ENV{ARMINO_PATH}/../components/bk_thirdparty
 	$ENV{ARMINO_PATH}/../components/audio_play

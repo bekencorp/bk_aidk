@@ -9,7 +9,6 @@ extern "C" {
 #include "audio_transfer.h"
 #include "audio_config.h"
 #include "audio_dump_data.h"
-#include "aud_intf.h"
 #include <modules/audio_process.h>
 
 
