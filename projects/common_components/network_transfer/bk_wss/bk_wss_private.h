@@ -17,6 +17,7 @@ extern "C" {
 #include "bk_wss_config.h"
 #include "bk_websocket_client.h"
 #include "cJSON.h"
+#include "media_app.h"
 
 /** Error code. */
 typedef enum {
@@ -459,15 +460,22 @@ typedef struct {
     uint32_t dec_node_size;
 } audio_info_t;
 
+typedef struct
+{
+    beken_thread_t thread;
+    beken_queue_t queue;
+} wss_evt_info_t;
+
 typedef struct {
 	transport bk_rtc_client;
 	db_channel_t *rtc_channel_t;
 	beken_mutex_t rtc_mutex;
-	data_buffer_t *opus_buffer;
+	data_buffer_t *ring_buffer;
 	data_buffer_fixed_t *ab_buffer;
 	beken_timer_t data_read_tmr;
 	audio_info_t audio_info;
 	int disconnecting_state;
+	wss_evt_info_t wss_evt_info;
 }rtc_session;
 
 typedef struct {
@@ -485,16 +493,46 @@ typedef struct error_info {
     char *error_desc;
 } error_info_t;
 
+typedef enum
+{
+    WSS_EVT_SERVER_HELLO           = 0,
+    WSS_EVT_SERVER_SESSION_UPDATED,
+    WSS_EVT_SERVER_BUF_COMMITED,
+    WSS_EVT_SERVER_RSP_CREATED,
+    WSS_EVT_SERVER_RSP_AUDIO_DONE,
+
+    WSS_EVT_HELLO,
+    WSS_EVT_SESSION_UPDATE,
+    WSS_EVT_AUDIO_BUF_APPEND,
+    WSS_EVT_AUDIO_BUF_CLEAR,
+    WSS_EVT_AUDIO_BUF_COMMIT,
+    WSS_EVT_RSP_CREATE,
+    WSS_EVT_SUBTITLE_DISPLAY,
+    WSS_EVT_EXIT,
+} wss_evt_type_t;
+
+typedef struct
+{
+    uint32_t event;
+    uint32_t param;
+} wss_evt_msg_t;
+
 #define HEAD_SIZE_TOTAL             (sizeof(db_trans_head_t))
 #define HEAD_MAGIC_CODE             (0xF0D5)
 #define HEAD_FLAGS_CRC              (1 << 0)
 #define CRC8_INIT_VALUE 0xFF
 rtc_session *__get_beken_rtc(void);
+extern dialog_session_t dialog_info;
+#if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
+extern uint8_t lvgl_app_init_flag;
+#endif
+
 rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_user_audio_rx_data_handle_cb cb, audio_info_t *info);
 bk_err_t rtc_websocket_stop(rtc_session *rtc_session);
 int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len);
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len);
-void rtc_websocket_audio_receive_data_opus(rtc_session *rtc_session, uint8 *data, uint32_t len);
+void rtc_websocket_audio_receive_text(rtc_session *rtc_session, uint8 *data, uint32_t len);
+void rtc_websocket_audio_receive_data_general(rtc_session *rtc_session, uint8 *data, uint32_t len);
 int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype);
 int rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
@@ -509,6 +547,7 @@ void parse_audio_done(text_info_t *info, cJSON *root);
 void rtc_fill_dialog_info(dialog_session_t *dialog_info, char *devId, char *nfcId,
                                 char *input_audio_format, uint32_t input_audio_rate,
                                 char *output_audio_format, uint32_t output_audio_rate, uint32_t cloud_vad, char *source);
+bk_err_t websocket_event_send_msg(uint32_t event, uint32_t param);
 #ifdef __cplusplus
 }
 #endif

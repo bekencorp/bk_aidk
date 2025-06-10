@@ -20,6 +20,9 @@
 #include <common/bk_include.h>
 #include "components/bluetooth/bk_dm_bluetooth.h"
 #include "app_main.h"
+#if (CONFIG_SYS_CPU0 && (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM))
+#include "bk_wss/bk_wss_private.h"
+#endif
 
 
 #define TAG "key_service"

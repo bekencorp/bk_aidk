@@ -52,10 +52,6 @@ extern bool rx_spk_data_flag;
 #endif
 #define AEC_ENABLE              (1)
 
-bool g_connected_flag = false;
-static bool audio_en = false;
-static bool video_en = false;
-bool g_button_flag = false;
 #if 0
 static media_camera_device_t camera_device =
 {
@@ -80,6 +76,10 @@ static media_camera_device_t camera_device =
 #endif
 };
 #endif
+bool g_connected_flag = false;
+static bool audio_en = false;
+static bool video_en = false;
+bool g_button_flag = false;
 static beken_thread_t  rtc_thread_hdl = NULL;
 static beken_semaphore_t rtc_sem = NULL;
 bool rtc_runing = false;
@@ -97,111 +97,6 @@ extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 extern app_aud_para_t app_aud_cust_para;
 
-#if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
-extern uint8_t lvgl_app_init_flag;
-#endif
-
-#if CONFIG_BK_WSS_TRANS_NOPSRAM
-typedef struct
-{
-    beken_thread_t thread;
-    beken_queue_t queue;
-} wss_evt_info_t;
-
-typedef struct
-{
-    uint32_t event;
-    uint32_t param;
-} wss_evt_msg_t;
-
-static wss_evt_info_t wss_evt_info;
-
-bk_err_t websocket_event_send_msg(uint32_t event, uint32_t param)
-{
-    bk_err_t ret;
-    wss_evt_msg_t msg;
-
-    msg.event = event;
-    msg.param = param;
-
-    ret = rtos_push_to_queue(&wss_evt_info.queue, &msg, BEKEN_NO_WAIT);
-    if (BK_OK != ret)
-    {
-        LOGE("%s, %d : %d fail \n", __func__, __LINE__, event);
-        return BK_FAIL;
-    }
-
-    return BK_FAIL;
-}
-
-static void wss_event_thread(beken_thread_arg_t data)
-{
-    int ret = BK_OK;
-
-    while (1)
-    {
-        wss_evt_msg_t msg;
-
-        ret = rtos_pop_from_queue(&wss_evt_info.queue, &msg, BEKEN_WAIT_FOREVER);
-
-        if (ret == BK_OK)
-        {
-            switch (msg.event)
-            {
-                case WSS_EVT_SERVER_HELLO:
-                    LOGI("hello from server\n");
-                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_SESSION_UPDATE);
-                    break;
-                case WSS_EVT_SERVER_SESSION_UPDATED:
-                    LOGI("updated from server\n");
-                    break;
-                case WSS_EVT_AUDIO_BUF_COMMIT:
-                    LOGI("audio buf commit\n");
-                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT);
-                    break;
-                case WSS_EVT_SERVER_BUF_COMMITED:
-                    rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_RESPONSE_CREATE);
-                    break; 
-            }
-        }
-    }
-    LOGI("%s, exit\r\n", __func__);
-    rtos_delete_thread(NULL);
-
-}
-
-void wss_event_init(void)
-{
-    int ret = BK_FAIL;
-
-    os_memset(&wss_evt_info, 0, sizeof(wss_evt_info_t));
-
-    ret = rtos_init_queue(&wss_evt_info.queue,
-                          "wss_event_queue",
-                          sizeof(wss_evt_info_t),
-                          15);
-
-    if (ret != BK_OK)
-    {
-        LOGE("%s, init queue failed\r\n", __func__);
-        return;
-    }
-
-    ret = rtos_create_thread(&wss_evt_info.thread,
-                             BEKEN_DEFAULT_WORKER_PRIORITY - 1,
-                             "wsse_thread",
-                             (beken_thread_function_t)wss_event_thread,
-                             1024 * 4,
-                             NULL);
-
-    if (ret != BK_OK)
-    {
-        LOGE("%s, init thread failed\r\n", __func__);
-        return;
-    }
-
-}
-#endif
 
 #if CONFIG_WIFI_ENABLE
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
@@ -353,7 +248,8 @@ int rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const 
     return ret;
 }
 
-void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
+void rtc_websocket_msg_handle(char *json_text, unsigned int size)
+{
     cJSON *root = cJSON_Parse(json_text);
     if (root == NULL) {
         LOGE("Error: Failed to parse JSON text:%s\n", json_text);
@@ -383,15 +279,9 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size) {
 			LOGE("join WebSocket server fail\r\n");
 		}
     } else if ((strcmp(type->valuestring, "reply_text") == 0) || (strcmp(type->valuestring, "request_text") == 0)) {
-        text_info_t info = {0};
-        info.text_type = (strcmp(type->valuestring, "request_text") == 0) ? 0:1;
-        rtc_websocket_parse_text(&info, root);
-        LOGE("text: type:%s data:%s\n", info.text_type ? "reply":"request", info.text_data);
-
+		LOGE("%s receive text...\r\n", __func__);
 #if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
-        if (lvgl_app_init_flag == 1) {
-            media_app_lvgl_send_data(&info);
-        }
+		rtc_websocket_audio_receive_text(__get_beken_rtc(), (uint8_t *)json_text, size);
 #endif
     } 
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
@@ -442,14 +332,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
         case WEBSOCKET_EVENT_DATA:
 			LOGD("data from WebSocket server, len:%d op:%d\r\n", data->data_len, data->op_code);
 			if (data->op_code == WS_TRANSPORT_OPCODES_BINARY) {
-				if(0 == os_strcmp(audio_info.decoding_type,"opus"))
-				{
-					rtc_websocket_audio_receive_data_opus(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
-				}
-				else
-				{
-					rtc_websocket_audio_receive_data(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
-				}
+				rtc_websocket_audio_receive_data_general(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
 			}
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
