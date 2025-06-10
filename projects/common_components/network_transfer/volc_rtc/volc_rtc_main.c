@@ -68,8 +68,6 @@ static uart_util_t g_byte_spk_uart_util = {0};
 #define BYTE_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif  //BYTE_RX_SPK_DATA_DUMP
 
-#define VIDEO_FRAME_INTERVAL            500000
-
 bool g_connected_flag = false;
 bool g_agent_offline = true;
 static bool audio_en = false;
@@ -235,14 +233,13 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
         }
         info.data_type = VIDEO_DATA_TYPE_H264;
         info.frame_type = VIDEO_FRAME_AUTO_DETECT;
-        info.frame_rate = 1000000/VIDEO_FRAME_INTERVAL;
     }
     else
     {
         LOGE("not support format: %d \r\n", frame->fmt);
     }
 
-    if (curr > before && before && curr - before >= VIDEO_FRAME_INTERVAL)
+    if (curr > before && before && curr - before >= 500000)
     {
         LOGI("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
 

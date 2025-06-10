@@ -232,7 +232,6 @@ int main(void)
         void nfc_get_id_task(void);
         nfc_get_id_task();
 #endif
-        wss_event_init();
         volume_init();
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE

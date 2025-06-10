@@ -154,7 +154,7 @@ static void __on_user_offline(byte_rtc_engine_t engine, const char *room, const 
 
     rtc->b_user_joined = false;
 
-    msg.code = BYTE_RTC_MSG_USER_OFFLINE;
+    msg.code = BYTE_RTC_MSG_USER_JOINED;
 	os_strcpy(msg.user, user_name);
     __send_message_2_user(rtc, &msg);
 }
