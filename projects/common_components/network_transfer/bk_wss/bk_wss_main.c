@@ -227,13 +227,15 @@ int rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const 
     #if CONFIG_DEBUG_DUMP
     if(rx_spk_data_flag)
     {
-        #if 0
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_RX_SPK,1);
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_RX_SPK,0,DUMP_FILE_TYPE_G722,size);
-        #else
+        uint32_t decoder_type = bk_aud_get_decoder_type();
+        uint8_t dump_file_type = dbg_dump_get_dump_file_type((uint8_t)decoder_type);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DUMP_FILE_TYPE(DUMP_TYPE_RX_SPK,0,dump_file_type);
         DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_RX_SPK,0,size);
-        #endif
         DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_RX_SPK);
+        #if CONFIG_DEBUG_DUMP_DATA_TYPE_EXTENSION
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_SAMP_RATE(DUMP_TYPE_RX_SPK,0,bk_aud_get_dac_sample_rate());
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_FRAME_IN_MS(DUMP_TYPE_RX_SPK,0,bk_aud_get_dec_frame_len_in_ms());
+        #endif
         DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_RX_SPK);
         DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_RX_SPK);
         DEBUG_DATA_DUMP_BY_UART_DATA(data, size);
@@ -365,7 +367,7 @@ void beken_rtc_main(void)
     }
 #endif
 	websocket_client_input_t websocket_cfg = {0};
-	websocket_cfg.uri = "wss://ai.aclsemi.com:9016";
+	websocket_cfg.uri = "wss://ai.aclsemi.com:9015";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
 	audio_tras_register_tx_data_func(rtc_websocket_audio_send_data);
 	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);

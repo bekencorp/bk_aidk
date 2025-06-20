@@ -31,9 +31,7 @@ static uart_util_t g_audio_spk_uart_util = {0};
 
 #if CONFIG_SYS_CPU1
 extern bool aec_all_data_flag;
-#if CONFIG_AUD_INTF_SUPPORT_OPUS
-bool tx_mic_data_flag = false;
-#endif
+extern bool dec_data_flag;
 extern void aud_set_production_mode(int val);
 #endif  //ONFIG_SYS_CPU1
 
@@ -123,25 +121,24 @@ void cli_beken_aud_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
             aec_all_data_flag = false;
         }
     }
-    #if CONFIG_AUD_INTF_SUPPORT_OPUS
-    else if (os_strcmp(argv[1], "dump_mic_data") == 0)
+    else if (os_strcmp(argv[1], "dump_dec_data") == 0)
     {
         if (os_strtoul(argv[2], NULL, 10))
         {
-            dump_flag |= (1<<DUMP_TYPE_TX_MIC);
-            tx_mic_data_flag = true;
-            os_printf("dump beken tx mic data\n!");
+            dump_flag |= (1<<DUMP_TYPE_DEC_OUT_DATA);
+            dec_data_flag = true;
+            os_printf("dump beken aud dec data\n!");
         }
         else
         {
-            dump_flag &= (~(1<<DUMP_TYPE_TX_MIC));
-            tx_mic_data_flag = false;
+            dump_flag &= (~(1<<DUMP_TYPE_DEC_OUT_DATA));
+            dec_data_flag = false;
         }
     }
-    #endif
     else if (os_strcmp(argv[1], "dump_stop") == 0)
     {
         aec_all_data_flag = false;
+        dec_data_flag = false;
         dump_flag = 0;
         os_printf("dump stop\n!");
     }

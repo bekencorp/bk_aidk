@@ -89,14 +89,15 @@ static int send_audio_frame(uint8_t *data, unsigned int len)
     #if CONFIG_DEBUG_DUMP
     if (tx_mic_data_flag)
     {
-        //TX_MIC_DATA_DUMP_DATA(data, len);
-        #if 0
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_TX_MIC,1);
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_TX_MIC,0,DUMP_FILE_TYPE_G722,len);
-        #else
+        uint32_t encoder_type = bk_aud_get_encoder_type();
+        uint8_t dump_file_type = dbg_dump_get_dump_file_type((uint8_t)encoder_type);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DUMP_FILE_TYPE(DUMP_TYPE_TX_MIC,0,dump_file_type);
         DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_TX_MIC,0,len);
-        #endif
         DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_TX_MIC);
+        #if CONFIG_DEBUG_DUMP_DATA_TYPE_EXTENSION
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_SAMP_RATE(DUMP_TYPE_TX_MIC,0,bk_aud_get_adc_sample_rate());
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_FRAME_IN_MS(DUMP_TYPE_TX_MIC,0,bk_aud_get_enc_frame_len_in_ms());
+        #endif
         DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_TX_MIC);
         DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_TX_MIC);
         DEBUG_DATA_DUMP_BY_UART_DATA(data, len);

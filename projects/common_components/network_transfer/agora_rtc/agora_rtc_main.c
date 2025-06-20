@@ -226,14 +226,15 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
     #if CONFIG_DEBUG_DUMP
     if(rx_spk_data_flag)
     {
-        //AGORA_RX_SPK_DATA_DUMP_DATA(data, size);
-        #if 0
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_NUM(DUMP_TYPE_RX_SPK,1);
-        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW(DUMP_TYPE_RX_SPK,0,DUMP_FILE_TYPE_G722,size);
-        #else
+        uint32_t decoder_type = bk_aud_get_decoder_type();
+        uint8_t dump_file_type = dbg_dump_get_dump_file_type((uint8_t)decoder_type);
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DUMP_FILE_TYPE(DUMP_TYPE_RX_SPK,0,dump_file_type);
         DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_LEN(DUMP_TYPE_RX_SPK,0,size);
-        #endif
         DEBUG_DATA_DUMP_UPDATE_HEADER_TIMESTAMP(DUMP_TYPE_RX_SPK);
+        #if CONFIG_DEBUG_DUMP_DATA_TYPE_EXTENSION
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_SAMP_RATE(DUMP_TYPE_RX_SPK,0,bk_aud_get_dac_sample_rate());
+        DEBUG_DATA_DUMP_UPDATE_HEADER_DATA_FLOW_FRAME_IN_MS(DUMP_TYPE_RX_SPK,0,bk_aud_get_dec_frame_len_in_ms());
+        #endif
         DEBUG_DATA_DUMP_BY_UART_HEADER(DUMP_TYPE_RX_SPK);
         DEBUG_DATA_DUMP_UPDATE_HEADER_SEQ_NUM(DUMP_TYPE_RX_SPK);
         DEBUG_DATA_DUMP_BY_UART_DATA(data, size);
