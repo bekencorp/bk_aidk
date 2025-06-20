@@ -33,6 +33,8 @@ typedef struct{
     bk_hidd_protocol_mode_t protocol_mode;
 }hdidd_demo_param_t;
 
+extern uint8_t s_pan_state;
+
 static uint8_t keyboard_report[9] = {KEY_BOARD_REPORT_ID, 0U,0U,0U,0U,0U,0U,0U,0U};
 static uint8_t report_flag = 0;
 
@@ -246,7 +248,10 @@ static void bt_hidd_callback(bk_hidd_cb_event_t event, bk_hidd_cb_param_t *param
                                 param->open.bd_addr[4],
                                 param->open.bd_addr[5]);
                     os_memcpy(hd_param.addr, param->open.bd_addr, BK_BD_ADDR_LEN);
-                    bk_bt_pan_connect(param->open.bd_addr, BK_PAN_ROLE_PANU, BK_PAN_ROLE_NAP);
+                    if (BK_BTPAN_STATE_DISCONNECTED == s_pan_state)
+                    {
+                        bk_bt_pan_connect(param->open.bd_addr, BK_PAN_ROLE_PANU, BK_PAN_ROLE_NAP);
+                    }
                 }
             }
         break;
