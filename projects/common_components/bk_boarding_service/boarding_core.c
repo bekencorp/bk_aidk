@@ -44,6 +44,7 @@ typedef struct
 } bk_genie_info_t;
 
 bk_genie_info_t *db_info = NULL;
+bool enable_ble_split_pkt = false;
 
 const bk_genie_service_interface_t *bk_genie_current_service = NULL;
 
@@ -138,29 +139,39 @@ static int bk_genie_wlan_scan_done_handler(void *arg, event_module_t event_modul
 								  int event_id, void *event_data)
 {
     wifi_scan_result_t scan_result = {0};
-    char payload[200] = {0};
+    char payload[200];
     uint16 len = 0;
-    int i;
+    int i = 0, j = 0;
 
     BK_LOG_ON_ERR(bk_wifi_scan_get_result(&scan_result));
     if (scan_result.ap_num == 0)
         goto exit;
-    //BK_LOG_ON_ERR(bk_wifi_scan_dump_result(&scan_result));
-    //generate scan result as json array, ["ssid1", "ssid2", ......]
+
+again:
+    os_memset(payload, 0, 200);
     len = os_snprintf(payload, 200, "[");
-    for (i = 0; i < scan_result.ap_num; i++) {
+    for (i = j; i < scan_result.ap_num; i++) {
         if (!os_strlen(scan_result.aps[i].ssid))
             continue;
-        if ((len + 5 + os_strlen(scan_result.aps[i].ssid)) > 200)
+        if ((len + 5 + os_strlen(scan_result.aps[i].ssid)) > 200) {
+            j = i;
             break;
+        }
         if ((i != 0) && (len != 1))
             len += os_snprintf(payload+len, 200, ",");
         len += os_snprintf(payload+len, 200, "\"%s\"", scan_result.aps[i].ssid);
+        j = i + 1;
     }
     len += os_snprintf(payload+len, 200, "]");
-    LOGI("upload scan_rst %s, num:%d\r\n", payload, i+1);
+    LOGI("upload scan_rst %s, sended:%d, total:%d\r\n", payload, j, scan_result.ap_num);
+    if ((j >= scan_result.ap_num) || (enable_ble_split_pkt == false))
+        bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_WIFI_SCAN, 0, payload, len);
+    else {
+        bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_WIFI_SCAN, 1, payload, len);
+        goto again;
+    }      
+
 exit:
-    bk_genie_boarding_event_notify_with_data(BOARDING_OP_START_WIFI_SCAN, 0, payload, len);
     bk_wifi_scan_free_result(&scan_result);
 
     return BK_OK;
@@ -210,6 +221,11 @@ static void bk_genie_message_handle(void)
                 case BOARDING_OP_START_WIFI_SCAN:
                 {
                     LOGI("BOARDING_OP_START_WIFI_SCAN\n");
+			if (msg.param) {
+                        if (*(uint8_t *)msg.param == 1)
+                            enable_ble_split_pkt = true;
+                        os_free((void *)(msg.param));
+			}
                     bk_event_register_cb(EVENT_MOD_WIFI, EVENT_WIFI_SCAN_DONE,
                     						   bk_genie_wlan_scan_done_handler, NULL);
                     BK_LOG_ON_ERR(bk_wifi_scan_start(NULL));
@@ -230,6 +246,8 @@ static void bk_genie_message_handle(void)
                 {
                     LOGI("BOARDING_OP_AGENT_RSP\n");
                     bk_sconf_prase_agent_info((char *)msg.param, 1);
+                    if (msg.param)
+                        os_free((void *)(msg.param));
                 }
                 break;
 
@@ -265,6 +283,8 @@ static void bk_genie_message_handle(void)
                     LOGI("BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME, %d\r\n", *(uint8_t *)(msg.param));
                     if (*(uint8_t *)(msg.param))
                         first_time_for_network_provisioning = false;
+                    if (msg.param)
+                        os_free((void *)(msg.param));
                 }
                 break;
 #endif

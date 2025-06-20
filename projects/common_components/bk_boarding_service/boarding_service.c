@@ -86,7 +86,6 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
     {
         case BOARDING_OP_STATION_START:
         case BOARDING_OP_SOFT_AP_START:
-        case BOARDING_OP_START_WIFI_SCAN:
         case BOARDING_OP_SERVICE_UDP_START:
         case BOARDING_OP_SERVICE_TCP_START:
         case BOARDING_OP_BLE_DISABLE:
@@ -103,15 +102,19 @@ static void bk_genie_boarding_operation_handle(uint16_t opcode, uint16_t length,
         }
         break;
 
+        case BOARDING_OP_START_WIFI_SCAN:
 #if CONFIG_STA_AUTO_RECONNECT
         case BOARDING_OP_NETWORK_PROVISIONING_FIRST_TIME:
 #endif
         case BOARDING_OP_AGENT_RSP:
         {
-            char *payload = os_zalloc(length + 1);
+            if (length > 0) {
+                char *payload = os_zalloc(length + 1);
 
-            os_memcpy(payload, data, length);
-            msg.param = (uint32_t)payload;
+                os_memcpy(payload, data, length);
+                msg.param = (uint32_t)payload;
+            } else
+                msg.param = 0;
             bk_genie_send_msg(&msg);
         }
         break;

@@ -24,6 +24,7 @@
 static ble_boarding_info_t *s_ble_boarding_info = NULL;
 static beken_semaphore_t s_ble_sema = NULL;
 static bk_gatt_if_t s_gatts_if = 0;
+extern bool enable_ble_split_pkt;
 
 #define SYNC_CMD_TIMEOUT_MS 4000
 #define ADV_HANDLE 0
@@ -733,7 +734,7 @@ int wifi_boarding_init(ble_boarding_info_t *info)
     bt_err_t ret = BK_FAIL;
 
     s_ble_boarding_info = info;
-
+    enable_ble_split_pkt = false;
     if(!s_ble_sema)
     {
         ret = rtos_init_semaphore(&s_ble_sema, 1);
@@ -1150,7 +1151,7 @@ int wifi_boarding_init(ble_boarding_info_t *info)
     bt_err_t ret = BK_FAIL;
 
     wboard_logi("%s\n", __func__);
-
+    enable_ble_split_pkt = false;
     ret = ble_boarding_init(info);
     return ret;
 }

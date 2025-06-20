@@ -1050,7 +1050,7 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
     if (!json)
     {
         BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
-        goto fail;
+        return;
     }
     if (app_id_record)
     {
@@ -1095,7 +1095,6 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
         }
     }
-fail:
 #else
     bk_config_sync_flash_safely();
     agora_auto_run(reset);
@@ -1104,8 +1103,6 @@ fail:
         app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
 #endif
-    if (payload)
-        os_free(payload);
 }
 
 //image recognition mode switch
