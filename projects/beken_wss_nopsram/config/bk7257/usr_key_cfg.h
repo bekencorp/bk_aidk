@@ -7,7 +7,7 @@ extern "C" {
 
 #include <driver/hal/hal_gpio_types.h>
 
-#define KEY_GPIO_20   GPIO_20
+#define KEY_GPIO_0    GPIO_0
 #define KEY_GPIO_21   GPIO_21
 #define KEY_GPIO_43   GPIO_43
 
@@ -15,7 +15,7 @@ extern "C" {
 #define KEY_DEFAULT_CONFIG_TABLE \
 { \
     { \
-        .gpio_id = KEY_GPIO_20, \
+        .gpio_id = KEY_GPIO_0, \
         .active_level = LOW_LEVEL_TRIGGER, \
         .short_event = VOLUME_UP, \
         .double_event = VOLUME_UP,  \
