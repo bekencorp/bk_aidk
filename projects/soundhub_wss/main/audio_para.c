@@ -5,7 +5,6 @@
 
 // hardware speaker has two version, the new black speaker box is set to 1, else set  HARDWARE_SPEAKER_VER to 0 in kconfig.projbuild
 /// customer eq parameter
-#if (CONFIG_HARDWARE_SPEAKER_VER == 1)
 
 #define EQ0 1
 #define EQ0A0   -1668050
@@ -32,38 +31,6 @@
 #define EQSAMP   0x3e80
 #define EQGAIN   0x4000
 #define EQFGAIN  0x00000000
-
-
-#else
-
-#define EQ0 1
-#define EQ0A0   -1668050
-#define EQ0A1    734106
-#define EQ0B0    934084
-#define EQ0B1   -1715174
-#define EQ0B2    801474
-#define EQ0FREQ  0x44160000
-#define EQ0GAIN  0xc1700000
-#define EQ0QVAL  0x3f800000
-#define EQ0FTYPE 0x01
-
-#define EQ1 1
-#define EQ1A0    -1764715
-#define EQ1A1     784980
-#define EQ1B0     1034243
-#define EQ1B1    -1764715
-#define EQ1B2     799312
-#define EQ1FREQ   0x442f0000
-#define EQ1GAIN   0xbf800000
-#define EQ1QVAL   0x3f800000
-#define EQ1FTYPE  0x0
-
-#define EQSAMP   0x3e80
-#define EQGAIN   0x4000
-#define EQFGAIN  0x00000000
-
-
-#endif
 
 #define FILTER_PREGAIN_FRA_BITS (14)
 
@@ -127,13 +94,14 @@
     .ns_level = 0x5,                                                          \
     .ns_para = 0x2,                                                            \
     .ns_filter = 0x7,                                                          \
-    .ai_ns_enable = 1,                                                             \
+    .ns_type = NS_AI,                                                             \
     .vad_enable = 1,                                                             \
     .vad_start_threshold = 480,                                               \
     .vad_stop_threshold = 960,                                                  \
     .vad_silence_threshold = 320,                                             \
     .vad_eng_threshold =2000,                                                  \
     .dual_mic_enable = 0,                                                         \
+    .dual_mic_distance = 21,                                                       \
 }
 #else
 #define CUST_AEC_CONFIG_VOICE()                                              \
@@ -149,13 +117,14 @@
     .ns_level = 0x5,                                                          \
     .ns_para = 0x2,                                                            \
     .ns_filter = 0x3,                                                          \
-    .ai_ns_enable = 0,                                                             \
+    .ns_type = NS_CLOSE,                                                             \
     .vad_enable = 0,                                                             \
     .vad_start_threshold = 480,                                               \
     .vad_stop_threshold = 960,                                                  \
     .vad_silence_threshold = 320,                                             \
     .vad_eng_threshold =2000,                                                  \
     .dual_mic_enable = 0,                                                         \
+    .dual_mic_distance = 21,                                                       \
 }
 #endif
 
@@ -168,8 +137,10 @@
     .speaker_chan0_digital_gain = 0x1E,                                      \
     .speaker_chan0_analog_gain = 0xF,                                         \
     .main_mic_select = 0,                                                      \
-    .dual_mic_enable = 0,                                                      \
     .dmic_enable = 0,                                                          \
+    .mic_mode = 0,                                                             \
+    .spk_mode = 0,                                                             \
+    .mic_vbias = 0,                                                            \
 }
 
 
