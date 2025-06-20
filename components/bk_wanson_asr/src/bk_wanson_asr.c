@@ -38,7 +38,7 @@ Fst fst_1;
 Fst fst_2;
 static unsigned char asr_curr_group_id; // 当前使用的分组ID
 #endif
-
+static uint8_t wanson_fst_group_select = 0;
 
 typedef enum {
     WANSON_ASR_IDLE = 0,
@@ -204,6 +204,13 @@ static void wanson_asr_task_main(beken_thread_arg_t param_data)
             read_size = rb_read(wanson_asr->pool_rb, (char *)mic_data, RAW_READ_SIZE, 40);
             if (read_size == RAW_READ_SIZE)
             {
+                if(wanson_fst_group_select == 1)
+                {
+                    wanson_fst_group_change(1);
+                }else if(wanson_fst_group_select == 2)
+                {
+                    wanson_fst_group_change(2);
+                }
                 wanson_asr->rs = Wanson_ASR_Recog((short*)mic_data, 480, (const char **)&wanson_asr->text, &wanson_asr->score);
                 if (wanson_asr->rs == 1)
                 {
@@ -473,11 +480,11 @@ void bk_wanson_asr_set_spk_play_flag(uint8 spk_play_flag)
 {
     if(spk_play_flag)
     {
-        wanson_fst_group_change(1);
+        wanson_fst_group_select =  1;
     }
     else
     {
-        wanson_fst_group_change(2);
+        wanson_fst_group_select = 2;
     }
 }
 
