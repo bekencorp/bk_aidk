@@ -62,22 +62,22 @@ static void lvgl_label_timer_cb(lv_timer_t *timer)
         LOGD("temp_pos = %d, current_pos = %d\r\n", temp_pos, font_info->current_pos);
 
         if (font_info->current_pos < font_info->text_length) {
-            if (temp_pos >= 270) {
+            if (temp_pos >= 96) {
                 reset_pos = font_info->current_pos;
                 lv_label_set_text(label, "");
-                lv_timer_set_period(label_timer, 500);
+                lv_timer_set_period(label_timer, 400);
                 return;
             }
 
             int char_len = lv_get_utf8_char_length(&font_info->text_data[font_info->current_pos]);
             os_strncpy(font_buffer, font_info->text_data + reset_pos, font_info->current_pos - reset_pos + char_len);
             lv_label_set_text(label, font_buffer);
-            lv_timer_set_period(label_timer, 210);
+            lv_timer_set_period(label_timer, 150);
             font_info->current_pos += char_len;
         } else {
             list_empty_count = 0;
             reset_pos = 0;
-            lv_timer_set_period(label_timer, 400);
+            lv_timer_set_period(label_timer, 320);
             lv_comm_list_remove(g_lv_font_list, font_info);
         }
     } else {
@@ -123,7 +123,7 @@ bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
 
     if (label_timer == NULL) {
         lv_vendor_disp_lock();
-        label_timer = lv_timer_create(lvgl_label_timer_cb, 210, NULL);
+        label_timer = lv_timer_create(lvgl_label_timer_cb, 150, NULL);
         lv_vendor_disp_unlock();
     }
 

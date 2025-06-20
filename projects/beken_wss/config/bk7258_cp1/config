@@ -151,7 +151,7 @@ CONFIG_USB_CDC_MODEM=y
 #@ Enable Lvgl
 CONFIG_LVGL=y
 #@ Set lvgl task priority
-CONFIG_LVGL_TASK_PRIORITY=6
+CONFIG_LVGL_TASK_PRIORITY=5
 #@ Enable LVGL use customized image decoding method
 CONFIG_LV_IMG_UTILITY_CUSTOMIZE=y
 #@ Enable TP
