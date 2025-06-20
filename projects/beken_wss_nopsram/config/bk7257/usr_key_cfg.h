@@ -9,7 +9,7 @@ extern "C" {
 
 #define KEY_GPIO_0    GPIO_0
 #define KEY_GPIO_21   GPIO_21
-#define KEY_GPIO_43   GPIO_43
+#define KEY_GPIO_1    GPIO_1
 
 
 #define KEY_DEFAULT_CONFIG_TABLE \
@@ -30,7 +30,7 @@ extern "C" {
         .long_press_up_event = AUDIO_BUF_COMMIT \
     },\
     { \
-        .gpio_id = KEY_GPIO_43, \
+        .gpio_id = KEY_GPIO_1, \
         .active_level = LOW_LEVEL_TRIGGER, \
         .short_event = VOLUME_DOWN, \
         .double_event = VOLUME_DOWN, \
