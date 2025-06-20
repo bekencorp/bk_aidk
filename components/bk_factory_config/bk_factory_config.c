@@ -372,12 +372,26 @@ static void bk_reboot_sync_config(void)
     rtos_enable_int(int_mask);
 }
 
+#define BLE_ERASE_WAIT_TIMES_MAX 3000
 bk_err_t bk_config_sync_flash_safely(void)
 {
-    if (is_ble_erase_flash_ready() != BK_TRUE) {
-        LOGE("check flash fail, do not sync config to flash.\r\n");
+    uint32_t i = 0;
+    uint32_t ble_erase_wait_times_max = BLE_ERASE_WAIT_TIMES_MAX;
+
+    for (i = 0; i < ble_erase_wait_times_max; i++) {
+        if(is_ble_erase_flash_ready() != BK_TRUE) {
+            rtos_delay_milliseconds(2);
+        } else {
+            break;
+        }
+    }
+
+    if(i >= ble_erase_wait_times_max)
+    {
+        LOGE("wait ble sleep period timeout, do not sync config to flash.\r\n");
         return BK_FAIL;
     }
+
     bk_config_sync_flash();
     return BK_OK;
 }
