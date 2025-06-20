@@ -32,7 +32,7 @@ enum
 typedef void (*btm_gap_event_cb)(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param);
 typedef void (*btm_start_profile_connect_cb)(uint8_t *remote_addr);
 typedef void (*btm_start_profile_disconnect_cb)(uint8_t *remote_addr);
-typedef void (*btm_stop_profile_connect_cb)();
+typedef void (*btm_stop_profile_connect_cb)(void);
 typedef struct
 {
     btm_gap_event_cb gap_cb;
@@ -46,9 +46,9 @@ int bt_manager_register_callback(btm_callback_s *cb);
 void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate);
 void bt_manager_set_mode(uint8_t mode);
 int bt_manager_init(uint8_t is_visible);
-uint8_t bt_manager_get_connect_state();
+uint8_t bt_manager_get_connect_state(void);
 void bt_manager_set_connect_state(uint8_t state);
-uint8_t *bt_manager_get_reconnect_device();
-uint8_t *bt_manager_get_connected_device();int bt_manager_deinit(void);
+void bt_manager_get_reconnect_device(uint8_t *addr);
+uint8_t *bt_manager_get_connected_device(void);int bt_manager_deinit(void);
 void bt_clear_reconnect_info(void);
 void bk_bt_enter_pairing_mode(uint8_t is_visible);

@@ -152,14 +152,17 @@ void bt_manager_set_mode(uint8_t mode)
 
 void link_timeout_start_reconnect_timer_hdl(void *param, unsigned int ulparam)
 {
+    LOGI("%s\n", __func__);
+
     rtos_deinit_oneshot_timer(&btm_env.recon_tmr);
 
-    for (int i = 0; i < MAX_PROFILE_NUM; i++)
+    for(int i=0; i<MAX_PROFILE_NUM; i++)
     {
-        if (btm_cbs[i].start_connect_cb)
+        if(btm_cbs[i].start_connect_cb)
         {
+            LOGI("%s i %d %p\n", __func__, i, btm_cbs[i].start_connect_cb);
             btm_cbs[i].start_connect_cb(btm_env.recon_addr);
-            if (btm_env.connect_state == BT_STATE_WAIT_FOR_RECONNECT)
+            if(btm_env.connect_state == BT_STATE_WAIT_FOR_RECONNECT)
             {
                 return;
             }
@@ -172,6 +175,8 @@ void link_timeout_start_reconnect_timer_hdl(void *param, unsigned int ulparam)
 void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
 {
     uint32_t time_ms = 200;
+    int32_t ret = 0;
+
 #if CONFIG_NET_PAN
     if (btm_env.recon_count >= CONFIG_MAX_RECONN_COUNT)
     {
@@ -191,8 +196,37 @@ void bt_manager_start_reconnect(uint8_t *addr, uint8_t immediate)
 
     if (!rtos_is_oneshot_timer_init(&btm_env.recon_tmr))
     {
-        rtos_init_oneshot_timer(&btm_env.recon_tmr, time_ms, (timer_2handler_t)link_timeout_start_reconnect_timer_hdl, NULL, 0);
-        rtos_start_oneshot_timer(&btm_env.recon_tmr);
+        ret = rtos_init_oneshot_timer(&btm_env.recon_tmr, time_ms, (timer_2handler_t)link_timeout_start_reconnect_timer_hdl, NULL, 0);
+
+        if(ret)
+        {
+            LOGE("%s init oneshot timer err %d\n", __func__, ret);
+            return;
+        }
+    }
+    else
+    {
+        LOGW("%s timer already init\n", __func__);
+    }
+
+    if(rtos_is_oneshot_timer_running(&btm_env.recon_tmr))
+    {
+        LOGW("%s timer already run, stop it\n", __func__);
+
+        ret = rtos_stop_oneshot_timer(&btm_env.recon_tmr);
+
+        if(ret)
+        {
+            LOGE("%s stop oneshot timer err %d\n", __func__, ret);
+        }
+    }
+
+    ret = rtos_start_oneshot_timer(&btm_env.recon_tmr);
+
+    if(ret)
+    {
+        LOGE("%s start oneshot timer err %d\n", __func__, ret);
+        return;
     }
 }
 
@@ -498,7 +532,7 @@ int bt_manager_register_callback(btm_callback_s *cb)
     return MAX_PROFILE_NUM;
 }
 
-uint8_t bt_manager_get_connect_state()
+uint8_t bt_manager_get_connect_state(void)
 {
     return btm_env.connect_state;
 }
@@ -512,12 +546,12 @@ void bt_manager_set_connect_state(uint8_t state)
     }
 }
 
-uint8_t *bt_manager_get_reconnect_device()
+void bt_manager_get_reconnect_device(uint8_t *addr)
 {
-    return btm_env.recon_addr;
+    os_memcpy(addr, btm_env.recon_addr, sizeof(btm_env.recon_addr));
 }
 
-uint8_t *bt_manager_get_connected_device()
+uint8_t *bt_manager_get_connected_device(void)
 {
     return btm_env.peer_addr;
 }

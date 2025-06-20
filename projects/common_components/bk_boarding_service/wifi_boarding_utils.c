@@ -795,7 +795,7 @@ int wifi_boarding_init(ble_boarding_info_t *info)
     return BK_OK;
 }
 
-int wifi_boarding_deinit()
+int wifi_boarding_deinit(void)
 {
     int32_t ret = 0;
 

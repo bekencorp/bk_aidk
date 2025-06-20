@@ -796,7 +796,7 @@ static void bt_audio_sink_demo_main(void *arg)
 
             case BT_AUDIO_WIFI_STATE_UPDATE_MSG:
             {
-                LOGI("BT_AUDIO_WIFI_STATE_UPDATE_MSG \r\n");
+                LOGI("BT_AUDIO_WIFI_STATE_UPDATE_MSG %d %d\n", s_bt_env.wifi_state, bt_manager_get_connect_state());
                 uint8_t reconn_addr[8] = {0};
                 bt_manager_get_reconnect_device(reconn_addr);
 
@@ -1894,7 +1894,7 @@ static void bk_bt_a2dp_connect(uint8_t *remote_addr)
     bk_bt_a2dp_sink_connect(remote_addr);
 }
 
-static void bk_bt_a2dp_stop_connect()
+static void bk_bt_a2dp_stop_connect(void)
 {
     if (rtos_is_oneshot_timer_init(&s_bt_env.avrcp_connect_tmr))
     {
