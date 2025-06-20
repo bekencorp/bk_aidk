@@ -94,6 +94,12 @@ uint32_t audio_codec_type_mapping_str2int(char *codec_type)
         aud_codec_type = AUD_INTF_VOC_DATA_TYPE_OPUS;
     }
     #endif
+    #if CONFIG_AUD_INTF_SUPPORT_MP3
+    else if(0 == os_strcmp("MP3", codec_type))
+    {
+        aud_codec_type = AUD_INTF_VOC_DATA_TYPE_MP3;
+    }
+    #endif
     else
     {
         AUDE_LOGE("%s unknown codec type:%s \r\n", __func__,codec_type);
@@ -129,6 +135,12 @@ char * get_name_by_codec_type(uint32_t codec_type)
         case AUD_INTF_VOC_DATA_TYPE_OPUS:
         {
             return "opus";
+        }
+        #endif
+        #if CONFIG_AUD_INTF_SUPPORT_MP3
+        case AUD_INTF_VOC_DATA_TYPE_MP3:
+        {
+            return "mp3";
         }
         #endif
         default:
@@ -216,9 +228,16 @@ bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
             break;
         }
         #endif
+        #if CONFIG_AUD_INTF_SUPPORT_MP3
+        case AUD_INTF_VOC_DATA_TYPE_MP3:
+        {
+            AUDE_LOGI("%s audio decoder type:%d \r\n", __func__,input_para->decoder_type);
+            break;
+        }
+        #endif
         default:
         {
-            AUDE_LOGE("%s invalid audio decoder type:%d \r\n", __func__,input_para->encoder_type);
+            AUDE_LOGE("%s invalid audio decoder type:%d \r\n", __func__,input_para->decoder_type);
             ret = BK_ERR_AUD_INTF_FAIL;
             break;
         }
