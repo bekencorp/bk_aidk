@@ -39,3 +39,18 @@ set(EXTRA_COMPONENTS_DIRS
 
 include($ENV{ARMINO_PATH}/tools/build_tools/cmake/project.cmake)
 project(beken_genie)
+
+set(project_compile_options
+    "-ffunction-sections"
+    "-fdata-sections"
+)
+
+armino_build_set_property(COMPILE_OPTIONS "${project_compile_options}" APPEND)
+
+set(project_link_options
+    "--specs=nano.specs"
+    "--specs=nosys.specs"
+    "-Os"
+)
+
+armino_build_set_property(LINK_OPTIONS "${project_link_options}" APPEND)
