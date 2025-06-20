@@ -19,7 +19,7 @@
 #include "modules/wifi_types.h"
 
 
-#define TAG "RTC_WSS"
+#define TAG "BEKEN_WSS"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
