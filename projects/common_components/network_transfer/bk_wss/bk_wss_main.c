@@ -320,6 +320,11 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
             rtc_websocket_send_text(client, (void *)(&dialog_info), BEKEN_RTC_SEND_HELLO);
 #endif
 			break;
+		case WEBSOCKET_EVENT_CLOSED:
+			LOGE("WEBSOCKET_EVENT_CLOSED\r\n");
+			if(__get_beken_rtc()) {
+				__get_beken_rtc()->bk_rtc_client = NULL;
+			}
         case WEBSOCKET_EVENT_DISCONNECTED:
 			LOGE("Disconnected from WebSocket server\r\n");
 			g_connected_flag = false;
@@ -337,9 +342,6 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
 				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
 			}
-			break;
-		case WEBSOCKET_EVENT_CLOSED:
-			LOGE("WEBSOCKET_EVENT_CLOSED\r\n");
 			break;
 		default:
 			break;

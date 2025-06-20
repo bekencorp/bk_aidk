@@ -19,7 +19,7 @@
 #include "modules/wifi_types.h"
 
 
-#define TAG "beken_rtc"
+#define TAG "RTC_WSS"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -86,7 +86,7 @@ data_buffer_fixed_t *fixed_data_buffer_init(size_t buffer_size) {
 #endif
 	if (ab == NULL)
 	{
-		BK_LOGE(TAG, "malloc ab fail\n");
+		LOGE("malloc ab fail\n");
 		return NULL;
 	}
 	memset(ab, 0, sizeof(data_buffer_fixed_t));
@@ -97,7 +97,7 @@ data_buffer_fixed_t *fixed_data_buffer_init(size_t buffer_size) {
 #endif
 	if (ab->buffer == NULL)
 	{
-		BK_LOGE(TAG, "malloc data buffer fail\n");
+		LOGE("malloc data buffer fail\n");
 		return NULL;
 	}
 	memset(ab->buffer, 0, buffer_size);
@@ -111,7 +111,7 @@ data_buffer_fixed_t *fixed_data_buffer_init(size_t buffer_size) {
 void fixed_data_buffer_deinit(data_buffer_fixed_t *ab) {
 	if (ab == NULL)
 	{
-		BK_LOGE(TAG, "buffer deinit already\n");
+		LOGE("buffer deinit already\n");
 		return;
 	}
 	memset(ab->buffer, 0, ab->size);
@@ -188,9 +188,9 @@ void fixed_data_check(void *param)
 		rtos_lock_mutex(&session->rtc_mutex);
 		if (session->ab_buffer && fixed_data_buffer_read(session->ab_buffer, packet, (session->audio_info.dec_node_size + HEAD_SIZE_TOTAL)) && session) {
 			_rtc_websocket_audio_receive_data(session, packet, (session->audio_info.dec_node_size + HEAD_SIZE_TOTAL), session->rtc_channel_t->cb);
-			BK_LOGD(TAG, "data coming...\n");
+			LOGD("data coming...\n");
 		} else {
-			BK_LOGD(TAG, "Buffer empty, waiting for data...\n");
+			LOGD("Buffer empty, waiting for data...\n");
 		}
 		rtos_unlock_mutex(&session->rtc_mutex);
 	}
@@ -205,7 +205,7 @@ data_buffer_t *data_buffer_init (size_t buffer_size, size_t length_buffer_size) 
 #endif
 	if (rb == NULL)
 	{
-		BK_LOGE(TAG, "malloc rb fail\n");
+		LOGE("malloc rb fail\n");
 		return NULL;
 	}
 	memset(rb, 0, sizeof(data_buffer_t));
@@ -216,7 +216,7 @@ data_buffer_t *data_buffer_init (size_t buffer_size, size_t length_buffer_size) 
 #endif
 	if (rb->buffer == NULL)
 	{
-		BK_LOGE(TAG, "malloc buffer_size fail\n");
+		LOGE("malloc buffer_size fail\n");
 		os_free(rb);
 		return NULL;
 	}
@@ -232,7 +232,7 @@ data_buffer_t *data_buffer_init (size_t buffer_size, size_t length_buffer_size) 
 #endif
 	if (rb->length_buffer == NULL)
 	{
-		BK_LOGE(TAG, "malloc length_buffer fail\n");
+		LOGE("malloc length_buffer fail\n");
 		os_free(rb);
 		os_free(rb->buffer);
 		return NULL;
@@ -241,7 +241,7 @@ data_buffer_t *data_buffer_init (size_t buffer_size, size_t length_buffer_size) 
 	rb->length_read_index = 0;
 	rb->length_write_index = 0;
 	rb->buffer_count = length_buffer_size;
-	BK_LOGE(TAG, "ringbuffer size:%d ringbuffer max count:%d\n", buffer_size, length_buffer_size);
+	LOGE("ringbuffer size:%d ringbuffer max count:%d\n", buffer_size, length_buffer_size);
 	return rb;
 }
 
@@ -249,7 +249,7 @@ void data_buffer_deinit(data_buffer_t *rb) {
 
 	if (rb == NULL)
 	{
-		BK_LOGE(TAG, "buffer deinit already\n");
+		LOGE("buffer deinit already\n");
 		return;
 	}
 
@@ -274,7 +274,7 @@ void data_buffer_write (data_buffer_t* rb, const uint8_t *data, size_t data_len)
 
 	size_t remaining = rb->size - rb->write_index;
     if ((rb->length_write_index + 1) % rb->buffer_count == rb->length_read_index) {
-		BK_LOGE(TAG, "%s, write buffer fail length_write_index:%d write_index:%d read_index:%d data_len:%d\r\n",
+		LOGE("%s, write buffer fail length_write_index:%d write_index:%d read_index:%d data_len:%d\r\n",
 			__func__, rb->length_write_index, rb->write_index, rb->read_index, data_len);
         return;
     }
@@ -319,7 +319,7 @@ size_t data_buffer_read(data_buffer_t *rb, uint8_t *output) {
 		}
 	}
 	rb->length_read_index = (rb->length_read_index + 1) % rb->buffer_count;
-	BK_LOGD(TAG, "%s length_read_index:%d length_write_index:%d write_index:%d read_index:%d available:%d data_len:%d\r\n",
+	LOGD("%s length_read_index:%d length_write_index:%d write_index:%d read_index:%d available:%d data_len:%d\r\n",
 		__func__, rb->length_read_index, rb->length_write_index, rb->write_index, rb->read_index, available, data_len);
 	return data_len;
 }
@@ -437,7 +437,7 @@ int wss_event_init(wss_evt_info_t *wss_evt_info)
 
 void wss_event_deinit(wss_evt_info_t *wss_evt_info)
 {
-	BK_LOGE(TAG, "wss_event_deinit\n");
+	LOGI("wss_event_deinit\n");
 	if (wss_evt_info && wss_evt_info->queue) {
 		rtos_deinit_queue(&wss_evt_info->queue);
 		wss_evt_info->queue = NULL;
@@ -452,7 +452,7 @@ void data_check(void *param)
 {
 	rtc_session *session = (rtc_session *) param;
 	if(session == NULL) {
-		BK_LOGE(TAG, "session null...\n");
+		LOGE("session null...\n");
 		return;
 	}
 	uint8_t *packet = NULL;
@@ -471,9 +471,9 @@ void data_check(void *param)
 			{
 				_rtc_websocket_audio_receive_data(session, packet, size, session->rtc_channel_t->cb);
 			}
-			BK_LOGD(TAG, "data coming...\n");
+			LOGD("data coming...\n");
 		} else {
-			BK_LOGD(TAG, "Buffer empty, waiting for data...\n");
+			LOGD("Buffer empty, waiting for data...\n");
 		}
 		rtos_unlock_mutex(&session->rtc_mutex);
 	}
@@ -485,16 +485,16 @@ void data_start_timeout_check(uint32_t timeout, void *param)
 	bk_err_t err = kNoErr;
 	rtc_session *session = (rtc_session *) param;
 	if(session == NULL) {
-		BK_LOGE(TAG, "client null...\n");
+		LOGE("client null...\n");
 		return;
 	}
-	BK_LOGI(TAG,"ring_data status timer start!!! dectype:%s\n", session->audio_info.decoding_type);
+	LOGI("ring_data status timer start!!! dectype:%s\n", session->audio_info.decoding_type);
 	err = rtos_init_timer(&session->data_read_tmr, timeout, (timer_handler_t)data_check, param);
 
 	BK_ASSERT(kNoErr == err);
 	err = rtos_start_timer(&session->data_read_tmr);
 	BK_ASSERT(kNoErr == err);
-	BK_LOGI(TAG,"ring_data status timer:%d\n", timeout);
+	LOGI("ring_data status timer:%d\n", timeout);
 
 	return;
 }
@@ -502,7 +502,7 @@ void data_start_timeout_check(uint32_t timeout, void *param)
 void data_stop_timeout_check(beken_timer_t *data_read_tmr)
 {
 	if(!data_read_tmr->handle) {
-		BK_LOGE(TAG, "data_read_tmr deinit already...\n");
+		LOGE("data_read_tmr deinit already...\n");
 		return;
 	}
 
@@ -914,14 +914,14 @@ void _rtc_websocket_audio_receive_text(cJSON *root)
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
 	if (rtc_session->ab_buffer && (!fixed_data_buffer_write(rtc_session->ab_buffer, data, len))) {
-		BK_LOGE(TAG, "Buffer full, dropping packet!\n");
+		LOGE("Buffer full, dropping packet!\n");
 	}
 }
 
 void rtc_websocket_audio_receive_data_general(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
 	if (len > (rtc_session->audio_info.dec_node_size + HEAD_SIZE_TOTAL)) {
-		BK_LOGE(TAG, "data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.dec_node_size);
+		LOGE("data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.dec_node_size);
 		return;
 	}
 	if (rtc_session->ring_buffer) {
@@ -932,7 +932,7 @@ void rtc_websocket_audio_receive_data_general(rtc_session *rtc_session, uint8 *d
 void rtc_websocket_audio_receive_text(rtc_session *rtc_session, uint8 *data, uint32_t len)
 {
 	if (len > rtc_session->audio_info.dec_node_size) {
-		BK_LOGE(TAG, "data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.dec_node_size);
+		LOGE("data too large, dropping packet!!!!! len:%d limit:%d\n", len, rtc_session->audio_info.dec_node_size);
 		return;
 	}
 	if (rtc_session->ring_buffer) {
@@ -945,7 +945,11 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 	rtc_session *rtc_session = __get_beken_rtc();
 
 	if (!rtc_session) {
-		BK_LOGE("WebSocket", "rtc_session need to be init\r\n");
+		LOGE("rtc_session need to be init\r\n");
+		return -1;
+	}
+	if (rtc_session->disconnecting_state) {
+		LOGE("wss disconnecting, not send data\r\n");
 		return -1;
 	}
 	rtos_lock_mutex(&rtc_session->rtc_mutex);
@@ -955,7 +959,7 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 	rtc_client_transmission_pack(rtc_channel_t, data_ptr, data_len);
 	int ret = websocket_client_send_binary(bk_rtc_ws, (const char *)rtc_channel_t->tbuf, (data_len + HEAD_SIZE_TOTAL), 10*1000);
 	if (!rtc_session || !rtc_session->rtc_mutex) {
-		BK_LOGE("WebSocket", "websocket send binary fail! err:%d\r\n", ret);
+		LOGE("websocket send binary fail! err:%d\r\n", ret);
 		return ret;
 	}
 	rtos_unlock_mutex(&rtc_session->rtc_mutex);
@@ -964,13 +968,13 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 
 int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype) {
 	if (web_socket == NULL) {
-		BK_LOGE("WebSocket", "Invalid arguments\r\n");
+		LOGE("Invalid arguments\r\n");
 		return -1;
 	}
-	BK_LOGE("WebSocket", "add extra str: %s\r\n", str ? "yes":"no need");
+	LOGI("add extra str: %s\r\n", str ? "yes":"no need");
 	char *buf = NULL;
 	if (NULL == (buf = (char *)os_zalloc(BEKEN_RTC_TXT_SIZE))) {
-		BK_LOGE("WebSocket", "alloc user context fail\r\n");
+		LOGE("alloc user context fail\r\n");
 		return -1;
 	}
 	int n = 0;
@@ -981,14 +985,14 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
 				"{\"type\":\"hello\",\"config\":{\"version\": 2,\"audio\":{\"to_server\":{\"format\":\"%s\", \"sample_rate\":%u, \"channels\":1, \"frame_duration\":%u}, \"from_server\":{\"format\":\"%s\", \"sample_rate\":%u, \"channels\":1, \"frame_duration\":%u}}}}",
 				((audio_info_t *)str)->encoding_type, ((audio_info_t *)str)->adc_samp_rate, ((audio_info_t *)str)->enc_samp_interval,
 						((audio_info_t *)str)->decoding_type, ((audio_info_t *)str)->dac_samp_rate, ((audio_info_t *)str)->dec_samp_interval);
-			BK_LOGE("WebSocket", "Sending: %s\r\n", buf);
+			LOGI("Sending: %s\r\n", buf);
 			websocket_client_send_text(web_socket, buf, n, 10*1000);
 			break;
 #else
 		case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
                         "{\"type\":\"hello\",\"interact_mode\":3}");
-            BK_LOGE("WebSocket", "Hello Sending: %s\r\n", buf);
+            LOGI("Hello Sending: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
         case BEKEN_RTC_SESSION_UPDATE:
@@ -1010,39 +1014,39 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
                         ((dialog_session_t *)str)->input_audio_format, ((dialog_session_t *)str)->input_audio_rate,
                         ((dialog_session_t *)str)->output_audio_format, ((dialog_session_t *)str)->output_audio_rate,
                         ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source);
-            BK_LOGI("WebSocket", "Session_Update: %s\r\n", buf);
+            LOGI("Session_Update: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_APPEND:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.append\"}");
-            BK_LOGI("WebSocket", "Audio_Buf_Commit: %s\r\n", buf);
+            LOGI("Audio_Buf_Commit: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_CLEAR:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.clear\"}");
-            BK_LOGI("WebSocket", "Audio_Buf_Clear: %s\r\n", buf);
+            LOGI("Audio_Buf_Clear: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.commit\"}");
-            BK_LOGI("WebSocket", "Audio_Buf_Commit: %s\r\n", buf);
+            LOGI("Audio_Buf_Commit: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
         case BEKEN_RTC_RESPONSE_CREATE:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
                         "{\"type\":\"response.create\",\"data_type\":\"binary\"}");
-            BK_LOGI("WebSocket", "Response_Create: %s\r\n", buf);
+            LOGI("Response_Create: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
          case BEKEN_RTC_ERROR:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"error\", \"error\":\"%s\"}", ((error_info_t *)str)->error_desc);
-            BK_LOGE("WebSocket", "Error: %s\r\n", buf);
+            LOGI("Error: %s\r\n", buf);
             websocket_client_send_text(web_socket, buf, n, 10*1000);
             break;
 #endif
 		default:
-			BK_LOGE("WebSocket", "Unsupported message type");
+			LOGI("Unsupported message type");
 			return -1;
 	}
 	if(buf)
@@ -1300,6 +1304,7 @@ bk_err_t rtc_websocket_stop(rtc_session *rtc_session)
 
 	if(rtc_session->bk_rtc_client) {
 		LOGE("%s stop websocket client\r\n", __func__);
+		rtc_session->disconnecting_state++;
 		rtc_session->bk_rtc_client->ws_event_handler = NULL;
 		websocket_client_destroy((transport)rtc_session->bk_rtc_client);
 		rtc_session->bk_rtc_client = NULL;
