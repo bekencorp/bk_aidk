@@ -4,33 +4,39 @@
 extern "C" {
 #endif
 
-#if !CONFIG_USR_KEY_CFG_EN
+
+#include <driver/hal/hal_gpio_types.h>
+
+#define KEY_GPIO_20   GPIO_20
+#define KEY_GPIO_21   GPIO_21
+#define KEY_GPIO_43   GPIO_43
+
+
 #define KEY_DEFAULT_CONFIG_TABLE \
 { \
     { \
-        .gpio_id = KEY_GPIO_13, \
+        .gpio_id = KEY_GPIO_20, \
         .active_level = LOW_LEVEL_TRIGGER, \
         .short_event = VOLUME_UP, \
-        .double_event = VOLUME_UP,	\
+        .double_event = VOLUME_UP,  \
         .long_event = CONFIG_NETWORK \
     }, \
     { \
-        .gpio_id = KEY_GPIO_12, \
+        .gpio_id = KEY_GPIO_21, \
         .active_level = LOW_LEVEL_TRIGGER, \
         .short_event = IR_MODE_SWITCH, \
         .double_event = POWER_ON, \
-        .long_event = SHUT_DOWN \
+        .long_event = AUDIO_BUF_APPEND, \
+        .long_press_up_event = AUDIO_BUF_COMMIT \
     },\
     { \
-        .gpio_id = KEY_GPIO_8, \
+        .gpio_id = KEY_GPIO_43, \
         .active_level = LOW_LEVEL_TRIGGER, \
         .short_event = VOLUME_DOWN, \
         .double_event = VOLUME_DOWN, \
         .long_event = FACTORY_RESET \
     } \
 }
-
-#endif
 
 #ifdef __cplusplus
 }

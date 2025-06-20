@@ -15,6 +15,9 @@
 #include "bk_smart_config.h"
 #endif
 #endif
+#if (CONFIG_USR_KEY_CFG_EN)
+#include "usr_key_cfg.h"
+#endif
 
 #include "app_event.h"
 #include <common/bk_include.h>

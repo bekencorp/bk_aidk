@@ -266,7 +266,7 @@ CONFIG_PIN_SDIO_GROUP_1=y
 #@ GPIO_10 as default wakeup source
 CONFIG_DEFAULT_WAKEUP_SOURCE=n
 CONFIG_LDO3V3_ENABLE=y
-CONFIG_LDO3V3_CTRL_GPIO=52
+CONFIG_LDO3V3_CTRL_GPIO=42
 #@ Enable SDcard auto powerdown when idle
 CONFIG_SDCARD_POWER_GPIO_CTRL_AUTO_POWERDOWN_WHEN_IDLE=n
 #@ Enable user-defined GPIO config for each project
