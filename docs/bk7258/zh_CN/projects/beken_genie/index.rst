@@ -688,15 +688,19 @@ Beken Genie AI
 
     .. figure:: ../../../_static/select_model_zh.png
         :scale: 30%
+	
+    .. figure:: ../../../_static/ai_activate_type_zh.png
+        :scale: 30%
 
     .. figure:: ../../../_static/wifi_select_zh.png
         :scale: 30%
 
     .. figure:: ../../../_static/activating_zh.png
         :scale: 30%
-
+		
     .. figure:: ../../../_static/added_zh.png
-        :scale: 30%		
+        :scale: 30%
+
 
     d)对板载mic说唤醒词 ``hi armino`` 或 ``嗨阿米诺``，设备唤醒后会播放提示音 ``啊哈`` ，然后可以进行AI对话
 

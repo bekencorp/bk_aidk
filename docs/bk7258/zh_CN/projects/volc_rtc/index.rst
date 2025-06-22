@@ -259,16 +259,13 @@ SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-refe
 
     a)手机进入如下界面，按照图片步骤操作
 
-    .. figure:: ../../../_static/add_ai_device_1.png
+    .. figure:: ../../../_static/add_device_zh.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_2.png
+    .. figure:: ../../../_static/add_devcie_ai_toy_zh.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_3.png
-        :scale: 30%
-
-    .. figure:: ../../../_static/add_ai_device_4.png
+    .. figure:: ../../../_static/device_info_zh.png
         :scale: 30%
 
     b)手机开始BLE扫描后，长按下图配网键3s，板子进入配网模式
@@ -278,14 +275,26 @@ SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-refe
 
     c)手机端扫到如下设备，点击设备开始配网
 
-    .. figure:: ../../../_static/add_ai_device_5.png
+
+    .. figure:: ../../../_static/ble_scan_zh.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_6.png
+    .. figure:: ../../../_static/select_model_zh.png
+        :scale: 30%
+	
+    .. figure:: ../../../_static/ai_activate_type_zh.png
         :scale: 30%
 
-    .. figure:: ../../../_static/add_ai_device_7.png
+    .. figure:: ../../../_static/wifi_select_zh.png
         :scale: 30%
+
+    .. figure:: ../../../_static/activating_zh.png
+        :scale: 30%
+		
+    .. figure:: ../../../_static/added_zh.png
+        :scale: 30%
+
+
 
 2.4.1 重新配网
 +++++++++++++++++++++++++++++++++
@@ -300,12 +309,12 @@ SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-refe
 
     a)长按图示区域，会弹出提示框。
 
-    .. figure:: ../../../_static/remove_ai_device_1.png
+    .. figure:: ../../../_static/added_zh.png
         :scale: 30%
 
     b)点击确认，完成操作。
 
-    .. figure:: ../../../_static/remove_ai_device_2.png
+    .. figure:: ../../../_static/del_zh.png
         :scale: 30%
 
 .. note::

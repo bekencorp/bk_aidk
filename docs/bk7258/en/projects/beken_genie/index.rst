@@ -715,13 +715,16 @@ and special reminders are signaled by alternating red and green light blinking. 
 
     .. figure:: ../../../_static/select_model_en.png
         :scale: 30%
+	
+    .. figure:: ../../../_static/ai_activate_type_en.png
+        :scale: 30%
 
     .. figure:: ../../../_static/wifi_select_en.png
         :scale: 30%
 
     .. figure:: ../../../_static/activating_en.png
         :scale: 30%
-
+		
     .. figure:: ../../../_static/added_en.png
         :scale: 30%
 
