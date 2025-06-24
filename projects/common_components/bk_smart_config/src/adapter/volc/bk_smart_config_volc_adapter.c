@@ -557,12 +557,11 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
         BK_LOGE(TAG, "[Error] not find msg\n");
     }
     cJSON_Delete(json);
-
-    byte_auto_run(reset);
     if (!bk_sconf_is_net_pan_configured())
     {
-    	app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+        app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
+    byte_auto_run(reset);
 }
 
 //image recognition mode switch

@@ -37,4 +37,6 @@ void bk_sconf_trans_stop(void);
 int bk_sconf_is_net_pan_configured(void);
 uint8_t bk_sconf_get_supported_engine(void);
 uint8_t * bk_sconf_get_supported_network(uint8_t *len);
+int bk_sconf_sync_flash(void);
+void bk_sconf_sync_flash_safely(void);
 #endif

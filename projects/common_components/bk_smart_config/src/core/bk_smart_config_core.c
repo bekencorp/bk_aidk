@@ -557,3 +557,39 @@ uint8_t * bk_sconf_get_supported_network(uint8_t *len)
     return val;
 }
 
+beken_semaphore_t sync_flash_sema = NULL;
+
+int bk_sconf_sync_flash(void)
+{
+    int ret = -1;
+    BK_LOGD(TAG, "start to sync sconf flash\n");
+    ret = rtos_init_semaphore(&sync_flash_sema, 1);
+    if (ret)
+        goto exit;
+
+    app_event_send_msg(APP_EVT_SYNC_FLASH, 0);
+
+    if (sync_flash_sema) {
+        ret = rtos_get_semaphore(&sync_flash_sema, 5000);
+        if (ret) {
+            goto exit;
+        } else {
+            ret = 0;
+        }
+    }
+exit:
+    if(sync_flash_sema) {
+       rtos_deinit_semaphore(&sync_flash_sema);
+       sync_flash_sema = NULL;
+    }
+
+    return ret;
+}
+
+void bk_sconf_sync_flash_safely(void)
+{
+    bk_config_sync_flash_safely();
+    if (sync_flash_sema) {
+        rtos_set_semaphore(&sync_flash_sema);
+    }
+}

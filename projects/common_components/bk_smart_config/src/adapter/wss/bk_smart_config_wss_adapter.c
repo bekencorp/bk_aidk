@@ -69,10 +69,10 @@ uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
 void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
     BK_LOGI(TAG, "%s, begin beken_auto_run\n", __func__);
-    bk_config_sync_flash_safely();
-    beken_auto_run();
     if (!bk_sconf_is_net_pan_configured())
     {
-    	app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+        app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
+    bk_sconf_sync_flash();
+    beken_auto_run();
 }

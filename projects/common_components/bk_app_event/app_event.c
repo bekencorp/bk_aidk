@@ -22,9 +22,8 @@
 #include "aud_intf.h"
 #include "aud_intf_types.h"
 #endif
-#if CONFIG_BK_SMART_CONFIG
+
 #include "bk_smart_config.h"
-#endif
 
 #include "bat_monitor.h"
 #include "bk_ota_private.h"
@@ -494,7 +493,10 @@ static void app_event_thread(beken_thread_arg_t data)
                     bk_ota_reponse_state_to_audio(msg.event);
                     #endif
                     break;
-
+                case APP_EVT_SYNC_FLASH:
+                    LOGI("APP_EVT_SYNC_FLASH\n");
+                    bk_sconf_sync_flash_safely();
+                    break;
                 default:
                     break;
             }

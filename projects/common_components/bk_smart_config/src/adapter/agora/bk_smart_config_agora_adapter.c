@@ -1044,7 +1044,7 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
 #if !CONFIG_BK_DEV_STARTUP_AGENT
     cJSON *json = NULL;
-    int ret = 0;
+    int ret __maybe_unused = 0;
 
     json = cJSON_Parse(payload);
     if (!json)
@@ -1085,23 +1085,24 @@ void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
     {
         bk_sconf_save_agent_info(app_id_record, channel_name_record);
         BK_LOGI(TAG, "begin agora_auto_run\n");
-        ret = bk_config_sync_flash_safely();
-        if (ret)
-            BK_LOGE(TAG, "sync flash fail!!!\r\n");
-        agora_auto_run(reset);
 
         if (!bk_sconf_is_net_pan_configured())
         {
             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
         }
+
+        bk_sconf_sync_flash();
+        agora_auto_run(reset);
     }
 #else
-    bk_config_sync_flash_safely();
-    agora_auto_run(reset);
     if (!bk_sconf_is_net_pan_configured())
     {
         app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
+
+    bk_sconf_sync_flash();
+    agora_auto_run(reset);
+
 #endif
 }
 
