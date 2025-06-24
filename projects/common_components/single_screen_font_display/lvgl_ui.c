@@ -82,6 +82,7 @@ static void lvgl_label_timer_cb(lv_timer_t *timer)
         }
     } else {
         list_empty_count++;
+        reset_pos = 0;
 
         if (list_empty_count == 20) {
             lv_label_set_text(label, "");
