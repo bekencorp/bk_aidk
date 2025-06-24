@@ -46,7 +46,7 @@ Beken AI SDK
 
 
 For the complete solution, please refer to the documentation:
-https://docs.bekencorp.com/arminodoc/bk_aidk/bk7258/zh_CN/v2.0.1/projects/beken_genie/index.html
+https://docs.bekencorp.com/arminodoc/bk_aidk/bk7258/en/v2.0.1/projects/beken_genie/index.html
 
 
 3. Armino AIDK SDK Code Download
@@ -103,4 +103,4 @@ Armino supports firmware flashing on Windows/Linux platforms. Please refer to th
 Taking Windows as an example, Armino currently supports UART flashing.
 
 Please refer to the following documentation for the specific flashing process:
- https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/index.html
+ https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/get-started/index.html#burn-code
