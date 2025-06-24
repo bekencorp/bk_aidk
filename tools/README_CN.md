@@ -2,6 +2,8 @@ Beken AI SDK
 =================================
 
 
+* [English Version](./README.md)
+
 
 1. 简介
 ---------------------------------
@@ -19,7 +21,7 @@ Beken AI SDK
     包含常用外设的参考设计以及Demo，比如，陀螺仪，NFC，按键，震动马达，Nand Flash，LED灯效，充电管理，DVP camera，双QPSI屏。
 
 
-2 规格
+2. 规格
 ---------------------------------
 
     * 硬件配置：
@@ -46,7 +48,7 @@ Beken AI SDK
 https://docs.bekencorp.com/arminodoc/bk_aidk/bk7258/zh_CN/v2.0.1/projects/beken_genie/index.html
 
 
-Armino AIDK SDK代码下载
+3. Armino AIDK SDK代码下载
 ---------------------------------
 
 您可从 gitlab 上下载 Armino AIDK SDK, 分支信息如下::
@@ -70,8 +72,8 @@ AIDK在gitlab上的分支是ai_release/v2.0.1, 如果需要取特定的版本, �
     git clone --recurse-submodules git@github.com:bekencorp/bk_aidk.git -b ai_release/v2.0.1
 
 
-Armino AIDK SDK在github上的仓库
----------------------------------
+4. Armino AIDK SDK在github上的仓库
+------------------------------------
 
 github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使用上述git clone --recurse-submodules命令下载bk_aidk仓库即可::
 
@@ -81,8 +83,17 @@ github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使�
             |____bk_idk_ai
 
 
+5. 软件编译
+------------------------------------
 
-环境配置及烧录代码
+以 beken_genie 工程为例, 编译方法如下::
+
+
+    cd ~/armino/bk_aidk
+    make bk7258 PROJECT=beken_genie
+
+
+6. 环境配置及固件烧录
 ---------------------------------
 
 Armino 支持在 Windows/Linux 平台进行固件烧录, 烧录方法参考烧录工具中指导文档。
