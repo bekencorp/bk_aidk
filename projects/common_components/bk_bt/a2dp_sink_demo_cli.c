@@ -362,6 +362,19 @@ static void cmd_headset_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         CLI_LOGI("%s path_test %d\n", __func__, path);
         a2dp_sink_demo_set_path(path);
     }
+    else if(os_strcmp(argv[1], "mix_channel") == 0 && argc >= 3)
+    {
+        uint8_t enable = 0;
+
+        ret = sscanf(argv[2], "%hhu", &enable);
+
+        if (ret != 1)
+        {
+            goto __error;
+        }
+
+        a2dp_sink_demo_set_mix(enable);
+    }
     else
     {
         goto __usage;

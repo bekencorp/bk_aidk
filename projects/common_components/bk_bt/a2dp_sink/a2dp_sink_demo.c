@@ -186,6 +186,7 @@ static beken_mutex_t s_a2dp_play_vote_mutex;
 static uint32_t s_headset_a2dp_data_path = 1;
 static uint8_t s_avrcp_play_status = BK_AVRCP_PLAYBACK_STOPPED;
 static int8_t s_avrcp_play_pending_status = -1;
+static uint8_t s_mix_multi_channel = 1;
 
 #if USE_COMPLEX_VOTE_PLAY
     static AUDIO_SOURCE_ENTRY_STATUS s_audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_IDLE;
@@ -2301,6 +2302,7 @@ static void speaker_task(void *arg)
 
                     int16_t *dst = (int16_t *)bt_audio_sink_sbc_decoder.pcm_sample;
                     int16_t w_len = bt_audio_sink_sbc_decoder.pcm_length *bt_audio_sink_sbc_decoder.channel_number * 2;
+                    uint8_t mix = s_mix_multi_channel;
 
                     if (CONFIG_BOARD_AUDIO_CHANNLE_NUM == 1)
                     {
@@ -2308,7 +2310,15 @@ static void speaker_task(void *arg)
                         {
                             for (int i = 0; i < bt_audio_sink_sbc_decoder.pcm_length * 2; i++)
                             {
-                                dst[i] = dst[i * 2];
+                                if(mix == 1)
+                                {
+                                    uint16_t tmp_sam = (typeof(tmp_sam))(((uint32_t)(dst[i * 2]) + (uint32_t)(dst[i * 2 + 1]) + 1) / 2.0);
+                                    dst[i] = (typeof(dst[i]))tmp_sam;
+                                }
+                                else
+                                {
+                                    dst[i] = dst[i * 2];
+                                }
                             }
                         }
 
@@ -2525,6 +2535,11 @@ int32_t wait_a2dp_speaker_task_end(void)
 void a2dp_sink_demo_set_path(uint32_t path)
 {
     s_headset_a2dp_data_path = path;
+}
+
+void a2dp_sink_demo_set_mix(uint8_t enable)
+{
+    s_mix_multi_channel = enable;
 }
 
 bk_err_t a2dp_sink_demo_vote_enable_leagcy(uint8_t enable)

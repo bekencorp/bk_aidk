@@ -24,7 +24,7 @@ int a2dp_sink_demo_init(uint8_t aac_supported);
 void a2dp_sink_demo_set_path(uint32_t path);
 int32_t bk_bt_app_avrcp_ct_get_attr(uint32_t attr);
 bk_err_t a2dp_sink_demo_vote_enable_leagcy(uint8_t enable);
-
+void a2dp_sink_demo_set_mix(uint8_t enable);
 
 void bk_bt_app_avrcp_ct_play(void);
 void bk_bt_app_avrcp_ct_pause(void);
