@@ -2,67 +2,70 @@ Beken AI SDK
 =================================
 
 
+* [中文版](./README_CN.md)
 
-1. 简介
+
+1. Overview
 ---------------------------------
 
-    本方案是基于，端对云，云对大模型的设计方案。
+    This solution is based on an end-to-cloud and cloud-to-large-model architecture.
 
-    支持双屏显示，提供视觉加语音的陪伴体验和情绪价值。
+    It supports dual-screen display and provides a companionship experience with both visual and voice interaction, offering emotional value.
 
-    支持端侧打通，各种通用大模型的设计方案，直接对接Open AI、豆包、DeepSeek等。
+    It supports end-side integration and design schemes for various general-purpose large models, allowing direct connection to OpenAI, Bao (Doubao), DeepSeek, and others.
 
-    并且能够有效，利用云的分布式部署，降低网络延迟，提高交互体验。
+    Furthermore, it effectively leverages the distributed deployment of the cloud to reduce network latency and improve the interactive experience.
 
-    支持端侧AEC，NS等音频处理算法，支持G711/G722编码格式，支持KWS关键字打断唤醒，支持提示音播放。
+    It supports end-side AEC (Acoustic Echo Cancellation), NS (Noise Suppression) and other audio processing algorithms, G711/G722 encoding formats, KWS (Keyword Spotting) interrupt wake-up, and prompt sound playback.
 
-    包含常用外设的参考设计以及Demo，比如，陀螺仪，NFC，按键，震动马达，Nand Flash，LED灯效，充电管理，DVP camera，双QPSI屏。
+    It includes reference designs and demos for common peripherals, such as gyroscopes, NFC, buttons, vibration motors, Nand Flash, LED lighting effects, charging management, and DVP cameras, as well as dual-QPSI screens.
 
 
-2 规格
+2. Specifications
 ---------------------------------
 
-    * 硬件配置：
+    * Hardware specs：
         * SPI LCD X2 (GC9D01)
-        * 麦克
-        * 喇叭
+        * Mic
+        * Speaker
         * SD NAND 60MB
         * NFC (MFRC522)
-        * 陀螺仪 (SC7A20H)
-        * 充电管理芯片 (ETA3422)
-        * 锂电池
+        * Gyroscope (SC7A20H)
+        * Battery Management Chip (ETA3422)
+        * Li-ion battery
         * DVP (gc2145)
 
-    * 软件特性：
+    * Software features：
         * AEC
         * NS
         * G722 / G711u
-        * 唤醒词定制
+        * Customizable wake word
         * WIFI Station
         * BLE
         * BT PAN
 
-完整方案文档请参考:
+
+For the complete solution, please refer to the documentation:
 https://docs.bekencorp.com/arminodoc/bk_aidk/bk7258/zh_CN/v2.0.1/projects/beken_genie/index.html
 
 
-Armino AIDK SDK代码下载
----------------------------------
+3. Armino AIDK SDK Code Download
+------------------------------------
 
-您可从 gitlab 上下载 Armino AIDK SDK, 分支信息如下::
+The Armino AIDK SDK is available for download from GitLab. The branch details are provided below::
 
 
     mkdir -p ~/armino
     cd ~/armino
     git clone --recurse-submodules https://gitlab.bekencorp.com/armino/bk_ai/bk_aidk.git -b ai_release/v2.0.1
 
-AIDK在gitlab上的分支是ai_release/v2.0.1, 如果需要取特定的版本, 可以将branch_name替换成tag::
+The AIDK branch on GitLab is ai_release/v2.0.1. To retrieve a specific version, replace branch_name with a tag::
 
 
     git clone --recurse-submodules https://gitlab.bekencorp.com/armino/bk_ai/bk_aidk.git -b ai_release/v2.0.1.x
 
 
-如果您还没有gitlab账号, 您可从 https://github.com/bekencorp/bk_aidk 下载 Armino AIDK SDK, 分支信息如下::
+If you don't have a GitLab account yet, you can download the Armino AIDK SDK from https://github.com/bekencorp/bk_aidk. Here are the branch details::
 
 
     mkdir -p ~/armino
@@ -70,10 +73,10 @@ AIDK在gitlab上的分支是ai_release/v2.0.1, 如果需要取特定的版本, �
     git clone --recurse-submodules git@github.com:bekencorp/bk_aidk.git -b ai_release/v2.0.1
 
 
-Armino AIDK SDK在github上的仓库
----------------------------------
+4. The Armino AIDK SDK repository on GitHub
+---------------------------------------------
 
-github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使用上述git clone --recurse-submodules命令下载bk_aidk仓库即可::
+bk_avdk_ai and bk_idk_ai on GitHub are sub-repositories of bk_aidk. Use git clone --recurse-submodules to download bk_aidk and its submodules::
 
 
     bk_aidk
@@ -81,11 +84,23 @@ github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使�
             |____bk_idk_ai
 
 
+5. Firmware build
+------------------------------------
 
-环境配置及烧录代码
----------------------------------
+Taking the beken_genie project as an example, the compilation method is as follows::
 
-Armino 支持在 Windows/Linux 平台进行固件烧录, 烧录方法参考烧录工具中指导文档。
-以Windows 平台为例， Armino 目前支持 UART 烧录。
 
-具体烧录流程请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/index.html
+    cd ~/armino/bk_aidk
+    make bk7258 PROJECT=beken_genie
+
+
+
+6. Environment configuration and firmware flashing
+-----------------------------------------------------
+
+Armino supports firmware flashing on Windows/Linux platforms. Please refer to the documentation within the flashing tool for instructions.
+
+Taking Windows as an example, Armino currently supports UART flashing.
+
+Please refer to the following documentation for the specific flashing process:
+ https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/index.html
