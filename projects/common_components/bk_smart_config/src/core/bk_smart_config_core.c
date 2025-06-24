@@ -267,6 +267,7 @@ void bk_sconf_gotip_and_startup_agent_by_ble(netif_if_t type)
 #if CONFIG_STA_AUTO_RECONNECT
     if (!first_time_for_network_provisioning) {
         BK_LOGI(TAG, "first_time_for_network_provisioning\r\n");
+        bk_sconf_sync_flash();
         goto skip_agent_request;
     }
 #endif
