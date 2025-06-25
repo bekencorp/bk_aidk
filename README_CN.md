@@ -99,4 +99,4 @@ github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使�
 Armino 支持在 Windows/Linux 平台进行固件烧录, 烧录方法参考烧录工具中指导文档。
 以Windows 平台为例， Armino 目前支持 UART 烧录。
 
-具体烧录流程请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/index.html
+具体烧录流程请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/get-started/index.html#burn-code
