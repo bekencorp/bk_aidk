@@ -9,7 +9,7 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../components/codec/
 	$ENV{ARMINO_PATH}/../components/include/avdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
-    $ENV{ARMINO_PATH}/../components/bk_thirdparty
+    #$ENV{ARMINO_PATH}/../components/bk_thirdparty
 	$ENV{ARMINO_PATH}/../components/audio_play
     $ENV{ARMINO_PATH}/../properties/modules
     $ENV{ARMINO_PATH}/../properties/modules/video_codec

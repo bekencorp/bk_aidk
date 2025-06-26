@@ -18,6 +18,7 @@ extern "C" {
 #include "bk_websocket_client.h"
 #include "cJSON.h"
 #include "media_app.h"
+#include "audio_engine.h"
 
 /** Error code. */
 typedef enum {
@@ -448,17 +449,6 @@ typedef struct {
     bool playback_complete;
     bool multi_turn_mode;
 } text_info_t;
-
-typedef struct {
-	char encoding_type[20];
-    char decoding_type[20];
-	uint32_t adc_samp_rate;
-	uint32_t dac_samp_rate;
-	uint32_t enc_samp_interval;
-	uint32_t dec_samp_interval;
-	uint32_t enc_node_size;
-    uint32_t dec_node_size;
-} audio_info_t;
 
 typedef struct
 {

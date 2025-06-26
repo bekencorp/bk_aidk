@@ -32,6 +32,9 @@ extern app_aud_para_t * get_app_aud_cust_para(void);
 extern uint32_t volume;
 extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 
+audio_info_t general_audio;
+static user_audio_end_func audio_notify_end = NULL;
+
 bk_err_t audio_turn_off(void)
 {
     bk_err_t ret =  BK_OK;
@@ -108,7 +111,6 @@ uint32_t audio_codec_type_mapping_str2int(char *codec_type)
     return aud_codec_type;
 }
 
-#if (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM)
 char * get_name_by_codec_type(uint32_t codec_type)
 {
     switch(codec_type)
@@ -150,7 +152,32 @@ char * get_name_by_codec_type(uint32_t codec_type)
         }
     }
 }
-#endif
+
+void bk_fill_aud_inft_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size)
+{
+	memset(info, 0, sizeof(audio_info_t));
+	os_strcpy(info->encoding_type, enctype);
+    os_strcpy(info->decoding_type, dectype);
+	info->adc_samp_rate = adc_rate;
+	info->dac_samp_rate = dac_rate;
+	info->enc_samp_interval = enc_ms;
+	info->dec_samp_interval = dec_ms;
+	info->enc_node_size = enc_size;
+    info->dec_node_size = dec_size;
+}
+
+void bk_get_aud_inft_info(audio_info_t *audio_info, aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name)
+{
+    bk_fill_aud_inft_info(audio_info,
+                        encoder_name,
+                        decoder_name,
+                        aud_intf_voc_setup->aud_codec_setup_input.adc_samp_rate,
+                        aud_intf_voc_setup->aud_codec_setup_input.dac_samp_rate,
+                        aud_intf_voc_setup->aud_codec_setup_input.enc_frame_len_in_ms,
+                        aud_intf_voc_setup->aud_codec_setup_input.dec_frame_len_in_ms,
+                        bk_aud_get_enc_output_size_in_byte(),
+                        bk_aud_get_dec_input_size_in_byte());
+}
 
 bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
 {
@@ -246,13 +273,32 @@ bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
     return ret;
 }
 
+void audio_register_play_finish_func(user_audio_end_func func)
+{
+	audio_notify_end = func;
+}
+
+int audio_play_data_end_notify(void *param)
+{
+	AUDE_LOGI("audio_play_data_end_notify\r\n");
+	int rval = BK_OK;
+	if (audio_notify_end)
+    {
+        rval = audio_notify_end(param);
+    }
+    else
+    {
+        AUDE_LOGE("audio_play_data_end_notify failed, invalid audio_tx_func\n");
+        return BK_FAIL;
+    }
+	return rval;
+}
+
 bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
-    #if (CONFIG_BK_WSS_TRANS || CONFIG_BK_WSS_TRANS_NOPSRAM)
     char * encoder_name;
     char * decoder_name;
-    #endif
     
     AUDE_LOGI("%s\n", __func__);
 
@@ -284,7 +330,9 @@ bk_err_t audio_turn_on(void)
     aud_intf_voc_setup.spk_gain   = g_volume_gain[volume];
     aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
     aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
-
+#if CONFIG_AUD_INTF_SUPPORT_SPK_PLAY_FINISH_NOTIFY
+	aud_intf_voc_setup.spk_play_finish_notify = audio_play_data_end_notify;
+#endif
     bk_aud_intf_aud_codec_init(&aud_intf_voc_setup.aud_codec_setup_input);
 
     audio_tras_init();
@@ -311,16 +359,12 @@ bk_err_t audio_turn_on(void)
         AUDE_LOGE("bk_aud_intf_voc_init fail, ret:%d \r\n", ret);
     }
 
-#if CONFIG_BK_WSS_TRANS
     encoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.encoder_type);
     decoder_name = get_name_by_codec_type(aud_intf_voc_setup.aud_codec_setup_input.decoder_type);
-
-    rtc_get_aud_inft_info(&aud_intf_voc_setup,encoder_name,decoder_name);
-
-#endif
+    bk_get_aud_inft_info(&general_audio, &aud_intf_voc_setup,encoder_name,decoder_name);
 
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
-    rtc_get_dialog_info(&aud_intf_voc_setup, encoder_name, decoder_name);
+	rtc_get_dialog_info(&aud_intf_voc_setup, encoder_name, decoder_name);
 #endif
 
     ret = bk_aud_intf_voc_start();

@@ -370,6 +370,7 @@ void beken_rtc_main(void)
 	websocket_cfg.uri = "wss://ai.aclsemi.com:9015";
 	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
 	audio_tras_register_tx_data_func(rtc_websocket_audio_send_data);
+	os_memcpy(&audio_info, &general_audio, sizeof(general_audio));
 	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);
     if (rtc_session == NULL)
     {

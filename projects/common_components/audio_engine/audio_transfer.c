@@ -527,7 +527,11 @@ bk_err_t audio_tras_init(void)
                              3,
                              "audio_tras",
                              (beken_thread_function_t)aud_tras_main,
+#if CONFIG_LINGXIN_AI_EN
+                             2048*2,
+#else
                              2048,
+#endif
                              NULL);
     if (ret != kNoErr)
     {

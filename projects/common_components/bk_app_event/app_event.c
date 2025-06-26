@@ -31,6 +31,9 @@
 #if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
 #include "app_audio_arbiter.h"
 #endif
+#if (CONFIG_SYS_CPU0 && CONFIG_LINGXIN_AI_EN)
+#include "voice_chat_machine.h"
+#endif
 
 #define TAG "app_evt"
 
@@ -220,6 +223,11 @@ static void app_event_thread(beken_thread_arg_t data)
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
+#if (CONFIG_SYS_CPU0 && CONFIG_LINGXIN_AI_EN)
+					os_printf("%s line:%d State_Event_Wakeup_Detected\r\n", __func__, __LINE__);
+					state_machine_run_event(State_Event_Wakeup_Detected);
+#endif
+
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
@@ -571,7 +579,7 @@ void app_event_init(void)
                              BEKEN_DEFAULT_WORKER_PRIORITY - 1,
                              "ae_thread",
                              (beken_thread_function_t)app_event_thread,
-                             1024 * 2,
+                             1024 * 5,
                              NULL);
 
     if (ret != BK_OK)

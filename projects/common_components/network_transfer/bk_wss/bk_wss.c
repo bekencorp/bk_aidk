@@ -1094,21 +1094,6 @@ void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint3
     info->dec_node_size = dec_size;
 }
 
-void rtc_get_aud_inft_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name)
-{
-    extern audio_info_t audio_info;
-    rtc_fill_audio_info(&audio_info, 
-                        encoder_name, 
-                        decoder_name, 
-                        aud_intf_voc_setup->aud_codec_setup_input.adc_samp_rate,
-                        aud_intf_voc_setup->aud_codec_setup_input.dac_samp_rate,
-                        aud_intf_voc_setup->aud_codec_setup_input.enc_frame_len_in_ms, 
-                        aud_intf_voc_setup->aud_codec_setup_input.dec_frame_len_in_ms,
-                        bk_aud_get_enc_output_size_in_byte(), 
-                        bk_aud_get_dec_input_size_in_byte());
-
-}
-
 void rtc_get_dialog_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name)
 {
     uint8_t devId_mac[6];

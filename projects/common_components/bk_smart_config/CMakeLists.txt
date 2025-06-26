@@ -25,6 +25,12 @@ list(APPEND srcs
 )
 endif()
 
+if (CONFIG_LINGXIN_AI_EN)
+list(APPEND srcs
+	src/adapter/lingxin/bk_smart_config_lingxin_adapter.c
+)
+endif()
+
 endif()
 endif()
 
