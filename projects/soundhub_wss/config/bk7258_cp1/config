@@ -85,7 +85,7 @@ CONFIG_AUD_INTF_SUPPORT_MULTIPLE_SPK_SOURCE_TYPE=y
 #@ Enable supoort prompt tone
 CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE=y
 #@ Enable supoort bluetooth a2dp music
-CONFIG_AUD_INTF_SUPPORT_BLUETOOTH_A2DP=y
+CONFIG_AUD_INTF_SUPPORT_MUSIC_SPK_SOURCE=y
 #@ Enable AI ASR run in cpu2
 CONFIG_AI_ASR_MODE_CPU2=y
 #@ need connect speaker to mic2
