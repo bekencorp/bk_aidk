@@ -22,6 +22,9 @@
 #include "aud_intf.h"
 #include "aud_intf_types.h"
 #endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+#include "prompt_tone.h"
+#endif
 
 #include "bk_smart_config.h"
 
@@ -44,6 +47,66 @@
 
 static app_event_handler_t *s_event_handlers = NULL;
 static beken_mutex_t s_event_mutex = NULL;
+
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+static prompt_tone_url_info_t s_event_prompt_tone_info = {0};
+
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+#if CONFIG_PROMPT_TONE_CODEC_MP3
+static char asr_wakeup_prompt_tone_path[] = "/asr_wakeup_16k_mono_16bit_en.mp3";
+static char asr_standby_prompt_tone_path[] = "/asr_standby_16k_mono_16bit_en.mp3";
+static char network_provision_prompt_tone_path[] = "/network_provision_16k_mono_16bit_en.mp3";
+static char network_provision_success_prompt_tone_path[] = "/network_provision_success_16k_mono_16bit_en.mp3";
+static char network_provision_fail_prompt_tone_path[] = "/network_provision_fail_16k_mono_16bit_en.mp3";
+static char reconnect_network_prompt_tone_path[] = "/reconnect_network_16k_mono_16bit_en.mp3";
+static char reconnect_network_success_prompt_tone_path[] = "/reconnect_network_success_16k_mono_16bit_en.mp3";
+static char reconnect_network_fail_prompt_tone_path[] = "/reconnect_network_fail_16k_mono_16bit_en.mp3";
+static char rtc_connection_lost_prompt_tone_path[] = "/rtc_connection_lost_16k_mono_16bit_en.mp3";
+static char agent_joined_prompt_tone_path[] = "/agent_joined_16k_mono_16bit_en.mp3";
+static char agent_offline_prompt_tone_path[] = "/agent_offline_16k_mono_16bit_en.mp3";
+static char low_voltage_prompt_tone_path[] = "/low_voltage_16k_mono_16bit_en.mp3";
+static char ota_update_success_prompt_tone_path[] = "/ota_update_success_16k_mono_16bit_en.mp3";
+static char ota_update_fail_prompt_tone_path[] = "/ota_update_fail_16k_mono_16bit_en.mp3";
+static char agent_start_fail_prompt_tone_path[] = "/agent_start_fail_16k_mono_16bit_en.mp3";
+#endif
+
+#if CONFIG_PROMPT_TONE_CODEC_WAV
+static char asr_wakeup_prompt_tone_path[] = "/asr_wakeup_16k_mono_16bit_en.wav";
+static char asr_standby_prompt_tone_path[] = "/asr_standby_16k_mono_16bit_en.wav";
+static char network_provision_prompt_tone_path[] = "/network_provision_16k_mono_16bit_en.wav";
+static char network_provision_success_prompt_tone_path[] = "/network_provision_success_16k_mono_16bit_en.wav";
+static char network_provision_fail_prompt_tone_path[] = "/network_provision_fail_16k_mono_16bit_en.wav";
+static char reconnect_network_prompt_tone_path[] = "/reconnect_network_16k_mono_16bit_en.wav";
+static char reconnect_network_success_prompt_tone_path[] = "/reconnect_network_success_16k_mono_16bit_en.wav";
+static char reconnect_network_fail_prompt_tone_path[] = "/reconnect_network_fail_16k_mono_16bit_en.wav";
+static char rtc_connection_lost_prompt_tone_path[] = "/rtc_connection_lost_16k_mono_16bit_en.wav";
+static char agent_joined_prompt_tone_path[] = "/agent_joined_16k_mono_16bit_en.wav";
+static char agent_offline_prompt_tone_path[] = "/agent_offline_16k_mono_16bit_en.wav";
+static char low_voltage_prompt_tone_path[] = "/low_voltage_16k_mono_16bit_en.wav";
+static char ota_update_success_prompt_tone_path[] = "/ota_update_success_16k_mono_16bit_en.wav";
+static char ota_update_fail_prompt_tone_path[] = "/ota_update_fail_16k_mono_16bit_en.wav";
+static char agent_start_fail_prompt_tone_path[] = "/agent_start_fail_16k_mono_16bit_en.wav";
+#endif
+
+#if CONFIG_PROMPT_TONE_CODEC_PCM
+static char asr_wakeup_prompt_tone_path[] = "/asr_wakeup_16k_mono_16bit_en.pcm";
+static char asr_standby_prompt_tone_path[] = "/asr_standby_16k_mono_16bit_en.pcm";
+static char network_provision_prompt_tone_path[] = "/network_provision_16k_mono_16bit_en.pcm";
+static char network_provision_success_prompt_tone_path[] = "/network_provision_success_16k_mono_16bit_en.pcm";
+static char network_provision_fail_prompt_tone_path[] = "/network_provision_fail_16k_mono_16bit_en.pcm";
+static char reconnect_network_prompt_tone_path[] = "/reconnect_network_16k_mono_16bit_en.pcm";
+static char reconnect_network_success_prompt_tone_path[] = "/reconnect_network_success_16k_mono_16bit_en.pcm";
+static char reconnect_network_fail_prompt_tone_path[] = "/reconnect_network_fail_16k_mono_16bit_en.pcm";
+static char rtc_connection_lost_prompt_tone_path[] = "/rtc_connection_lost_16k_mono_16bit_en.pcm";
+static char agent_joined_prompt_tone_path[] = "/agent_joined_16k_mono_16bit_en.pcm";
+static char agent_offline_prompt_tone_path[] = "/agent_offline_16k_mono_16bit_en.pcm";
+static char low_voltage_prompt_tone_path[] = "/low_voltage_16k_mono_16bit_en.pcm";
+static char ota_update_success_prompt_tone_path[] = "/ota_update_success_16k_mono_16bit_en.pcm";
+static char ota_update_fail_prompt_tone_path[] = "/ota_update_fail_16k_mono_16bit_en.pcm";
+static char agent_start_fail_prompt_tone_path[] = "/agent_start_fail_16k_mono_16bit_en.pcm";
+#endif
+#endif  //CONFIG_PROMPT_TONE_SOURCE_VFS
+#endif  //CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_FONT_DISPLAY)
 extern void lvgl_app_init(void);
@@ -128,6 +191,202 @@ static uint8_t battery_event_callback(evt_battery event_param)
     return 0;
 }
 
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+static bk_err_t app_play_prompt_tone(app_evt_type_t event)
+{
+    bool play_flag = true;
+    bk_err_t ret = BK_FAIL;
+
+    switch (event)
+    {
+        case APP_EVT_ASR_WAKEUP:
+            LOGI("[prompt_tone] ASR_WAKEUP\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = asr_wakeup_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)asr_wakeup_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(asr_wakeup_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_ASR_STANDBY:
+            LOGI("[prompt_tone] ASR_STANDBY\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = asr_standby_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)asr_standby_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(asr_standby_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_NETWORK_PROVISIONING:
+            LOGI("[prompt_tone] NETWORK_PROVISION\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = network_provision_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)network_provision_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(network_provision_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_NETWORK_PROVISIONING_SUCCESS:
+            LOGI("[prompt_tone] NETWORK_PROVISION_SUCCESS\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = network_provision_success_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)network_provision_success_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(network_provision_success_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_NETWORK_PROVISIONING_FAIL:
+            LOGI("[prompt_tone] NETWORK_PROVISION_FAIL\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = network_provision_fail_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)network_provision_fail_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(network_provision_fail_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_RECONNECT_NETWORK:
+            LOGI("[prompt_tone] RECONNECT_NETWORK\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = reconnect_network_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)reconnect_network_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(reconnect_network_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_RECONNECT_NETWORK_SUCCESS:
+            LOGI("[prompt_tone] RECONNECT_NETWORK_SUCCESS\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = reconnect_network_success_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)reconnect_network_success_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(reconnect_network_success_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_RECONNECT_NETWORK_FAIL:
+            LOGI("[prompt_tone] RECONNECT_NETWORK_FAIL\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = reconnect_network_fail_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)reconnect_network_fail_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(reconnect_network_fail_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_RTC_CONNECTION_LOST:
+            LOGI("[prompt_tone] CONNECTION_LOST\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = rtc_connection_lost_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)rtc_connection_lost_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(rtc_connection_lost_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_AGENT_JOINED:
+            LOGI("[prompt_tone] AGENT_JOINED\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = agent_joined_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)agent_joined_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(agent_joined_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_AGENT_OFFLINE:
+            LOGI("[prompt_tone] AGENT_OFFLINE\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = agent_offline_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)agent_offline_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(agent_offline_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_LOW_VOLTAGE:
+            LOGI("[prompt_tone] LOW_VOLTAGE\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = low_voltage_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)low_voltage_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(low_voltage_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_OTA_SUCCESS:
+            LOGI("[prompt_tone] OTA_UPDATE_SUCCESS\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = ota_update_success_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)ota_update_success_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(ota_update_success_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_OTA_FAIL:
+            LOGI("[prompt_tone] OTA_UPDATE_FAIL\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = ota_update_fail_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)ota_update_fail_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(ota_update_fail_prompt_tone_array);
+#endif
+            break;
+
+        case APP_EVT_AGENT_START_FAIL:
+            LOGI("[prompt_tone] AGENT_START_FAIL\n");
+#if CONFIG_PROMPT_TONE_SOURCE_VFS
+            s_event_prompt_tone_info.url = agent_start_fail_prompt_tone_path;
+#endif
+#if CONFIG_PROMPT_TONE_SOURCE_ARRAY
+            s_event_prompt_tone_info.url = (char *)agent_start_fail_prompt_tone_array;
+            s_event_prompt_tone_info.total_len = sizeof(agent_start_fail_prompt_tone_array);
+#endif
+            break;
+
+        default:
+            LOGE("%s, %d, event: %d not support fail\n", __func__, __LINE__, event);
+            play_flag = false;
+            break;
+    }
+
+    if (play_flag)
+    {
+        ret = bk_aud_intf_voc_play_prompt_tone(&s_event_prompt_tone_info);
+        if (ret != BK_OK)
+        {
+            LOGE("%s, %d, play event prompt tone fail\n", __func__, __LINE__);
+        }
+    }
+    else
+    {
+        ret = BK_OK;
+    }
+
+    return ret;
+}
+#endif
+
 #if CONFIG_OTA_DISPLAY_PICTURE_DEMO
 extern bk_err_t audio_turn_on(void);
 bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
@@ -144,12 +403,12 @@ bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
 	{
 		case APP_EVT_OTA_SUCCESS : //success
 			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_SUCCESS);
+            ret = app_play_prompt_tone(APP_EVT_OTA_SUCCESS);
 			#endif
 		break;
 		case APP_EVT_OTA_FAIL : //fail
 			#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-			ret = bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_OTA_UPDATE_FAIL);
+            ret = app_play_prompt_tone(APP_EVT_OTA_FAIL);
 			#endif
 		break;
 		default:
@@ -159,7 +418,6 @@ bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
 	return ret;
 }
 #endif
-
 
 static void app_event_thread(beken_thread_arg_t data)
 {
@@ -212,7 +470,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_WAKEUP);
+                    app_play_prompt_tone(APP_EVT_ASR_WAKEUP);
 #endif
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
@@ -235,7 +493,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_STANDBY\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE && !(CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_ASR_STANDBY);
+                    app_play_prompt_tone(APP_EVT_ASR_STANDBY);
 #endif
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_FONT_DISPLAY)
                     lvgl_app_deinit();
@@ -264,7 +522,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION);
+                    app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING);
 #endif
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
                     media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT);
@@ -283,7 +541,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_SUCCESS);
+                    app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING_SUCCESS);
 #endif
                     break;
 
@@ -300,7 +558,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_NETWORK_PROVISION_FAIL);
+                    app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING_FAIL);
 #endif
                     break;
 
@@ -314,7 +572,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK);
+                    app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK);
 #endif
                     break;
 
@@ -340,7 +598,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_SUCCESS);
+                    app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK_SUCCESS);
 #endif
                     break;
 
@@ -355,7 +613,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RECONNECT_NETWORK_FAIL);
+                    app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK_FAIL);
 #endif
                     break;
 
@@ -368,7 +626,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_RTC_CONNECTION_LOST);
+                    app_play_prompt_tone(APP_EVT_RTC_CONNECTION_LOST);
 #endif
                     break;
 
@@ -400,7 +658,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_JOINED);
+                    app_play_prompt_tone(APP_EVT_AGENT_JOINED);
 #endif
                     break;
                 case APP_EVT_AGENT_OFFLINE:
@@ -414,7 +672,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_OFFLINE);
+                    app_play_prompt_tone(APP_EVT_AGENT_OFFLINE);
 #endif
                     break;
 
@@ -427,7 +685,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_AGENT_START_FAIL);
+                    app_play_prompt_tone(APP_EVT_AGENT_START_FAIL);
 #endif
                     break;
 
@@ -450,7 +708,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
                                     app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
 #endif
-                    bk_aud_intf_voc_play_prompt_tone(AUD_INTF_VOC_LOW_VOLTAGE);
+                    app_play_prompt_tone(APP_EVT_LOW_VOLTAGE);
 #endif
                     break;
 

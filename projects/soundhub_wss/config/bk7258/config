@@ -68,6 +68,10 @@ CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE=y
 CONFIG_AUD_INTF_SUPPORT_MULTIPLE_SPK_SOURCE_TYPE=y
 #@ Enable supoort prompt tone
 CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE=y
+#@ Select Prompt Tone stored in vfs file system
+CONFIG_PROMPT_TONE_SOURCE_VFS=y
+#@ Select WAV Prompt Tone
+CONFIG_PROMPT_TONE_CODEC_WAV=y
 #@ default audio frame duration in ms
 CONFIG_AUDIO_FRAME_DURATION_MS=60
 #@ ADC sample rate
