@@ -51,9 +51,27 @@ void bk_sconf_begin_to_switch_ir_mode(void)
 
 uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
 {
-    return 0;
+    unsigned char uid[32] = {0};
+    char uid_str[65] = {0};
+    uint16 len = 0;
+
+    bk_uid_get_data(uid);
+    for (int i = 0; i < 24; i++)
+    {
+        sprintf(uid_str + i * 2, "%02x", uid[i]);
+    }
+    len = os_snprintf(payload, max_len, "{\"channel\":\"%s\"}", uid_str);
+    BK_LOGI(TAG, "ori channel name:%s, %d\r\n", uid_str, len);
+    return len;
 }
 
 void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
+    BK_LOGI(TAG, "%s, begin beken_auto_run\n", __func__);
+    if (!bk_sconf_is_net_pan_configured())
+    {
+        app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
+    }
+    bk_sconf_sync_flash();
+    beken_auto_run();
 }

@@ -9,4 +9,5 @@ soundhub               2025/3/25    基于beken_genie除去pan，加入a2dp的�
 volc_rtc               2025/4/10    适配火山rtc引擎                                       NA
 tflite_micro           2025/2/14    基于Tensorflow Lite Micro框架搭建的AI识别示例         gesture_detection：手势（石头剪刀布）识别示例
                                                                                           micro_speech：语言识别示例
+lingxin                2025/6/26    适配阿里灵芯引擎                                      NA
 
