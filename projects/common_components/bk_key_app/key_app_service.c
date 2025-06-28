@@ -249,6 +249,7 @@ uint32_t volume_get_level_count()
 
 void volume_set_abs(uint8_t level, uint8_t has_precision)
 {
+#define PRECISION_GUARANTEE_GAIN 2
     bk_err_t ret = 0;
 
     BK_LOGI(TAG, "%s volume abs %d %d\n", __func__, level, has_precision);
@@ -261,8 +262,9 @@ void volume_set_abs(uint8_t level, uint8_t has_precision)
 
     if(level == 0 && has_precision)
     {
-        BK_LOGW(TAG, "%s set raw gain 2 because precision\n", __func__);
-        ret = bk_aud_intf_set_spk_gain(2);
+        uint8_t final = (PRECISION_GUARANTEE_GAIN < g_volume_gain[1] ? PRECISION_GUARANTEE_GAIN: g_volume_gain[1]);
+        BK_LOGW(TAG, "%s set raw gain %d because precision\n", __func__, final);
+        ret = bk_aud_intf_set_spk_gain(final);
     }
     else
     {
