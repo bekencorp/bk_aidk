@@ -725,6 +725,7 @@ static void app_event_thread(beken_thread_arg_t data)
                     break;
 
                 case APP_EVT_CLOSE_BLUETOOTH:
+                    rtos_delay_milliseconds(100);
 #if CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO
                     LOGI("APP_EVT_CLOSE_BLUETOOTH no need to close !!!\n");
 #else
