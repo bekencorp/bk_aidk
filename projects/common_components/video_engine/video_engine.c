@@ -37,8 +37,8 @@ static media_camera_device_t camera_device =
     .fmt  = PIXEL_FMT_H264,
 #endif
     /* expect the width and length */
-    .info.resolution.width  = 1280,//640,//864,
-    .info.resolution.height = 720,
+    .info.resolution.width  = CONFIG_VIDEO_ENGINE_RESOLUTION_WIDTH,//640,//864,
+    .info.resolution.height = CONFIG_VIDEO_ENGINE_RESOLUTION_HEIGHT,
     .info.fps = FPS25,
 #elif (CONFIG_VIDEO_ENGINE_USE_DVP_CAMERA)
     /* DVP Camera */ 
@@ -52,8 +52,8 @@ static media_camera_device_t camera_device =
     .fmt  = PIXEL_FMT_H264,
 #endif
     /* expect the width and length */
-    .info.resolution.width  = 1280,
-    .info.resolution.height = 720,
+    .info.resolution.width  = CONFIG_VIDEO_ENGINE_RESOLUTION_WIDTH,
+    .info.resolution.height = CONFIG_VIDEO_ENGINE_RESOLUTION_HEIGHT,
     .info.fps = FPS20,
 #endif
 };

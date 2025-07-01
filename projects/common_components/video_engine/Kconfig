@@ -28,6 +28,20 @@ menu "video_engine"
 		bool "Select H264 image format"
 		help
 			Select H264 image format
+		
+		config VIDEO_ENGINE_RESOLUTION_WIDTH
+		int "Default size of the width"
+		range 1 2000
+		default 1280
+		help
+			Set the size of the resolution width, The recommended value is 1280 .
+		
+		config VIDEO_ENGINE_RESOLUTION_HEIGHT
+		int "Default size of the height"
+		range 1 2000
+		default 720
+		help
+			Set the size of the resolution height, The recommended value is 720 .
 	endchoice
 
 endmenu

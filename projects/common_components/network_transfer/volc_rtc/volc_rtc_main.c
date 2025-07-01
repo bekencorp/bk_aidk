@@ -231,7 +231,7 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
     {
         if ((frame->h264_type & (1 << H264_NAL_I_FRAME)) == 0)
         {
-            LOGI("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
+            //LOGI("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
             return;
         }
         info.data_type = VIDEO_DATA_TYPE_H264;
@@ -245,7 +245,7 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
 
     if (curr > before && before && curr - before >= VIDEO_FRAME_INTERVAL)
     {
-        LOGI("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
+        //LOGI("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
 
 #if (CONFIG_IMAGE_DEBUG_DUMP)
         do {

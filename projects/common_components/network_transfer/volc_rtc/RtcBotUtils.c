@@ -40,9 +40,9 @@ int start_voice_bot(rtc_room_info_t* room_info) {
     cJSON_AddStringToObject(post_jobj, "voice_type", DEFAULT_VOICE_TYPE);
     cJSON_AddStringToObject(post_jobj, "audio_codec", "OPUS");
     cJSON_AddNumberToObject(post_jobj, "asr_type", 1);
-    //cJSON_AddBoolToObject(post_jobj, "vision_enable", true);
-    //cJSON_AddNumberToObject(post_jobj, "image_height", 480);
-    //cJSON_AddStringToObject(post_jobj, "image_detail", "high");
+    cJSON_AddBoolToObject(post_jobj, "vision_enable", true);
+    cJSON_AddNumberToObject(post_jobj, "image_height", CONFIG_VIDEO_ENGINE_RESOLUTION_HEIGHT);
+    cJSON_AddStringToObject(post_jobj, "image_detail", "high");
     const char* json_str = cJSON_Print(post_jobj);
     strcpy(post_data, json_str);
     cJSON_Delete(post_jobj);

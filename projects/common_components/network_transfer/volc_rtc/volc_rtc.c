@@ -149,7 +149,7 @@ static void __on_user_offline(byte_rtc_engine_t engine, const char *room, const 
 {
 	byte_rtc_msg_t msg;
 
-    LOGD("engine: %p, room: %p, user: %p, reason: %d \n", engine, room, user_name, reason);
+    LOGE("engine: %p, room: %p, user: %p, reason: %d \n", engine, room, user_name, reason);
     byte_rtc_t *rtc = __get_rtc_instance();
 
     rtc->b_user_joined = false;
