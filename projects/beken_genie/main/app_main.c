@@ -168,6 +168,10 @@ void user_app_main(void)
     voide_engine_init();
     network_transfer_init();
 #endif
+
+#if (CONFIG_SYS_CPU1)
+    voide_engine_init();
+#endif
 }
 
 int main(void)
