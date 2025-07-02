@@ -12,7 +12,7 @@ Beken Genie火山RTC版本
     * 并且能够有效，利用云的分布式部署，降低网络延迟，提高交互体验。
     * 支持端侧AEC，NS等音频处理算法，支持G711/G722编码格式，支持KWS关键字打断唤醒，支持提示音播放。
     * 包含常用外设的参考设计以及Demo，比如，陀螺仪，NFC，按键，震动马达，Nand Flash，LED灯效，充电管理，DVP camera，双QPSI屏。
-    * **本工程使用火山RTC** 
+    * **本工程使用火山RTC**
 
 **1.1 硬件原理图**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -74,7 +74,7 @@ Beken Genie火山RTC版本
     - 关机状态复位：单击 ``K1`` 按钮，系统从关机状态开机
     - 开机状态复位：单击 ``K1`` 按钮，系统从开机状态硬重启
 
-按键功能开发请参考  :doc:`../../thirdparty/volc/index` 
+按键功能开发请参考  :doc:`../../thirdparty/volc/index`
 
 **1.4 灯效**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -122,6 +122,7 @@ Beken Genie火山RTC版本
         - GPIO51负责检测是否为充电状态，GPIO51为高时，存在外部供电输入，反之，则没有。
         - GPIO26为高时，则表示电池正在充电中。为低时，则表示电池已经充满电。
         - 注意：该功能需要确认硬件上R14电阻是否已经焊接，如无焊接，需额外焊接。
+        - 具体硬件信息以该项目原理图为准。
     - 5.使能充电管理功能需配置CONFIG_BAT_MONITOR=y，使能充电管理的测试用例需配置CONFIG_BATTERY_TEST=y。
     - 6.配置电池测试命令使能后，可以通过battery命令对电池的信息进行获取。
         - 比如“battery init”可以对电池监控任务进行初始化。
@@ -141,6 +142,8 @@ Beken Genie火山RTC版本
     - 12.在我们的SDK中，我们提供了电流、电压和电量的API函数。目前，电池仅支持电压和电量的检测功能。需要注意的是，电流检测的API接口虽然已保留，但目前尚未实现，因此如果用户的设备支持电流检测，需要自行对电流的API进行实现。
     - 13.由于目前硬件仅支持非充电状态下的电量检测，若用户需要充电期间检测电压，硬件上需要进行改造。去除D6二极管和R21电阻即可。
     - 14 按键旁边的USB口既是充电口又是串口。
+    - 15.电量采样的ADC接口为芯片内部的ADC0，外部不需要接电阻分压电路再加ADC通道采集。ADC0与VBAT监控通道直连，该接口为芯片内部专用接口，没有外部连线。
+    - 16.注意：电池最高检测电压为4.35V。高于该电压存在烧坏系统的风险。
 
 **1.8 唤醒词**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -202,7 +205,7 @@ Beken Genie火山RTC版本
 **1.12 火山RTC**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-火山RTC，参考文档  :doc:`../../thirdparty/volc/index` 
+火山RTC，参考文档  :doc:`../../thirdparty/volc/index`
 
 
 **2. 工程使用介绍**
@@ -243,7 +246,7 @@ Beken Genie火山RTC版本
 +++++++++++++++++++++++++++++++++
 
 将 ``<source code>/project/common_components/resource`` 目录音视频文件拷贝到AIDK开发版的SD NAND中。
-SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-reference/nand_disk_note.html>`_ 
+SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-reference/nand_disk_note.html>`_
 
 2.3.3 上电
 +++++++++++++++++++++++++++++++++
@@ -281,7 +284,7 @@ SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-refe
 
     .. figure:: ../../../_static/select_model_zh.png
         :scale: 30%
-	
+
     .. figure:: ../../../_static/ai_activate_type_zh.png
         :scale: 30%
 
@@ -290,7 +293,7 @@ SD NAND具体使用方法可参考 `Nand磁盘使用注意事项 <../../api-refe
 
     .. figure:: ../../../_static/activating_zh.png
         :scale: 30%
-		
+
     .. figure:: ../../../_static/added_zh.png
         :scale: 30%
 
@@ -444,14 +447,14 @@ GPIO按键注意事项
 BLE配网及agent相关代码主要分布在  ``/projects/common_components/bk_boarding_service`` 目录及 ``/projects/common_components/bk_smart_config`` 目录，客户可以参考如下说明定制自己的方案
 
 核心代码如下：
- - 进入BLE配网模式，请参考 ``bk_sconf_prepare_for_smart_config(void)`` 实现 
- - 手机app通过BLE交互配网信息，参考代码 ``bk_genie_message_handle(void)`` 
- - 将Agent配置参数发送给手机app，参考代码 ``bk_sconf_send_agent_info(char *payload, uint16_t max_len)`` 
- - 解析服务器启动Agent参数，参考代码 ``bk_sconf_prase_agent_info(char *payload, uint8_t reset)`` 
- - 启动Agent和RTC，参考代码 ``bk_sconf_wakeup_agent(uint8_t reset)`` 
- - wifi连上后启动agent、保存wifi及agent信息及配网，参考代码 ``bk_sconf_netif_event_cb`` 
+ - 进入BLE配网模式，请参考 ``bk_sconf_prepare_for_smart_config(void)`` 实现
+ - 手机app通过BLE交互配网信息，参考代码 ``bk_genie_message_handle(void)``
+ - 将Agent配置参数发送给手机app，参考代码 ``bk_sconf_send_agent_info(char *payload, uint16_t max_len)``
+ - 解析服务器启动Agent参数，参考代码 ``bk_sconf_prase_agent_info(char *payload, uint8_t reset)``
+ - 启动Agent和RTC，参考代码 ``bk_sconf_wakeup_agent(uint8_t reset)``
+ - wifi连上后启动agent、保存wifi及agent信息及配网，参考代码 ``bk_sconf_netif_event_cb``
  - 保持（存flash）/擦除/获取Agent信息相关函数接口， ``bk_sconf_erase_agent_info`` ``bk_sconf_save_agent_info`` ``bk_sconf_get_agent_info``
- - 按键切换多模态，参考代码 ``ir_mode_switch_main`` 
+ - 按键切换多模态，参考代码 ``ir_mode_switch_main``
  - 启动火山agent及设备端rtc，参考代码 ``bk_sconf_start_volc_rtc``, reset参数用来通知beken服务器是否强制切回初始agent配置
 
 

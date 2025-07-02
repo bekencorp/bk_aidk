@@ -160,6 +160,8 @@ Beken Genie AI
         - 13.由于目前硬件仅支持非充电状态下的电量检测，若用户需要充电期间检测电压，硬件上需要进行改造。
             - 仅去除D6二极管和R21电阻即可。
         - 14 按键旁边的USB口既是充电口又是串口。
+        - 15.电量采样的ADC接口为芯片内部的ADC0，外部不需要接电阻分压电路再加ADC通道采集。ADC0与VBAT监控通道直连，该接口为芯片内部专用接口，没有外部连线。
+        - 16.注意：电池最高检测电压为4.35V。高于该电压存在烧坏系统的风险。
 
 1.8 唤醒词
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -688,7 +690,7 @@ Beken Genie AI
 
     .. figure:: ../../../_static/select_model_zh.png
         :scale: 30%
-	
+
     .. figure:: ../../../_static/ai_activate_type_zh.png
         :scale: 30%
 
@@ -697,7 +699,7 @@ Beken Genie AI
 
     .. figure:: ../../../_static/activating_zh.png
         :scale: 30%
-		
+
     .. figure:: ../../../_static/added_zh.png
         :scale: 30%
 

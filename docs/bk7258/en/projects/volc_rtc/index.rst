@@ -20,7 +20,7 @@ The solution supports edge-side AEC (Acoustic Echo Cancellation) and NS (Noise S
 
 The design includes reference solutions and demos for common peripherals, such as gyroscopes, NFC, buttons, vibration motors, Nand Flash, LED light effects, power management, DVP cameras, and dual QPSI screens.
 
-**This project is powered by Volcengine RTC** 
+**This project is powered by Volcengine RTC**
 
 **1.1 Hardware Reference**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -132,6 +132,7 @@ Please refer to led_blink.c to get more development guide.
             - GPIO51 is responsible for detecting the charging status. When GPIO51 is high, there is an external power supply input; otherwise, there is none.
             - GPIO26 indicates whether the battery is charging. When GPIO26 is high, the battery is charging; when it is low, the battery is fully charged.
             - Note: This function requires confirming whether the R14 resistor is soldered on the hardware. If not, additional soldering is needed.
+            - The specific hardware information is subject to the schematic diagram of the project.
         - 5.To enable the charging management function, configure CONFIG_BAT_MONITOR=y. To enable the test cases for charging management, configure CONFIG_BATTERY_TEST=y.
         - 6.After enabling the battery test commands, battery information can be obtained using the battery command:
             - "battery init" initializes the battery monitoring task.
@@ -153,7 +154,8 @@ Please refer to led_blink.c to get more development guide.
         - 13.Since the hardware currently only supports battery level detection in a non-charging state, hardware modifications are needed to detect voltage during charging:
             - Removing the D6 diode and R21 resistor will enable voltage detection during charging.
         - 14.The USB port next to the button serves as both a charging port and a serial port for interaction.
-
+        - 15.The ADC interface for power sampling is the ADC0 inside the chip, and there is no need to connect the resistor voltage divider circuit and add ADC channel acquisition externally. ADC0 is directly connected to the VBAT monitoring channel, which is a dedicated interface within the chip, and there is no external connection.
+        - 16.Note: The maximum detection voltage of the battery is 4.35V. Above this voltage there is a risk of burning out the system.
 
 **1.8 ASR**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -220,7 +222,7 @@ Please refer to led_blink.c to get more development guide.
 **1.12 Volcengene RTC**
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-Volcengene RTC reference doc: :doc:`../../thirdparty/volc/index` 
+Volcengene RTC reference doc: :doc:`../../thirdparty/volc/index`
 
 
 **2. Demo Project Introducation**
@@ -260,7 +262,7 @@ Please refer to below document for detail `Firmware Burning <https://docs.bekenc
 +++++++++++++++++++++++++++++++++
 
 Copy video and audio files at ``<source code>/project/common_components/resource`` to SD-Nand。
-More detail about SD-Nand please refer to `Guide for SD-Nand <../../api-reference/nand_disk_note.html>`_ 
+More detail about SD-Nand please refer to `Guide for SD-Nand <../../api-reference/nand_disk_note.html>`_
 
 2.3.3 Power Up
 +++++++++++++++++++++++++++++++++
@@ -297,7 +299,7 @@ Power up system after burning。
 
     .. figure:: ../../../_static/select_model_en.png
         :scale: 30%
-	
+
     .. figure:: ../../../_static/ai_activate_type_en.png
         :scale: 30%
 
@@ -306,7 +308,7 @@ Power up system after burning。
 
     .. figure:: ../../../_static/activating_en.png
         :scale: 30%
-		
+
     .. figure:: ../../../_static/added_en.png
         :scale: 30%
 
@@ -481,14 +483,14 @@ GPIO Button Precautions
 The BLE network configuration and agent-related code are mainly distributed in the  ``/projects/common_components/bk_boarding_service`` directory and the ``/projects/common_components/bk_smart_config`` directory, Customers can refer to the following instructions to customize their own scheme.
 
 Core code:
- - To enter BLE network configuration mode, please refer to the implementation of  ``bk_sconf_prepare_for_smart_config(void)``  
- - The mobile app interacts with the BLE configuration information, referencing the code ``bk_genie_message_handle(void)`` 
- - Send Agent configuration parameters to the mobile app, referencing the code ``bk_sconf_send_agent_info(char *payload, uint16_t max_len)`` 
- - Parse server startup Agent parameters, referencing the code ``bk_sconf_prase_agent_info(char *payload, uint8_t reset)`` 
- - Start Agent and RTC, referencing the code ``bk_sconf_wakeup_agent(uint8_t reset)`` 
- - After WiFi connection, start Agent, save WiFi and Agent information, and configure the network, referencing the code ``bk_sconf_netif_event_cb`` 
+ - To enter BLE network configuration mode, please refer to the implementation of  ``bk_sconf_prepare_for_smart_config(void)``
+ - The mobile app interacts with the BLE configuration information, referencing the code ``bk_genie_message_handle(void)``
+ - Send Agent configuration parameters to the mobile app, referencing the code ``bk_sconf_send_agent_info(char *payload, uint16_t max_len)``
+ - Parse server startup Agent parameters, referencing the code ``bk_sconf_prase_agent_info(char *payload, uint8_t reset)``
+ - Start Agent and RTC, referencing the code ``bk_sconf_wakeup_agent(uint8_t reset)``
+ - After WiFi connection, start Agent, save WiFi and Agent information, and configure the network, referencing the code ``bk_sconf_netif_event_cb``
  - Functions for maintaining (saving to flash)/erasing/getting Agent information ``bk_sconf_erase_agent_info`` ``bk_sconf_save_agent_info`` ``bk_sconf_get_agent_info``
- - Press the key to switch between multiple modes, referencing the code ``ir_mode_switch_main`` 
+ - Press the key to switch between multiple modes, referencing the code ``ir_mode_switch_main``
  - Start the Volcano agent and device-side RTC, referencing the code ``bk_sconf_start_volc_rtc``. The reset parameter is used to notify the Beken server whether to force a switch back to the initial Agent configuration.
 
 
