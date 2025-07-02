@@ -187,17 +187,17 @@ bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
     {
         case AUD_INTF_VOC_DATA_TYPE_G711A:
         {
-            input_para->enc_bitrate = 64000;//sample rate 8000,1/2 coderate
+            input_para->enc_bitrate = input_para->adc_samp_rate*input_para->enc_data_depth_in_byte*8/2;//64000;//sample rate 8000,1/2 coderate
             break;
         }
         case AUD_INTF_VOC_DATA_TYPE_PCM:
         {
-            input_para->enc_bitrate = 256000;//sample rate 16000,no encode
+            input_para->enc_bitrate = input_para->adc_samp_rate*input_para->enc_data_depth_in_byte*8;//256000;//sample rate 16000,no encode
             break;
         }
         case AUD_INTF_VOC_DATA_TYPE_G711U:
         {
-            input_para->enc_bitrate = 64000;//sample rate 8000,1/2 coderate
+            input_para->enc_bitrate = input_para->adc_samp_rate*input_para->enc_data_depth_in_byte*8/2;//64000;//sample rate 8000,1/2 coderate
             break;
         }
         #if CONFIG_AUD_INTF_SUPPORT_G722
@@ -227,17 +227,17 @@ bk_err_t audio_codec_para_update(aud_codec_setup_input_t *input_para)
     {
         case AUD_INTF_VOC_DATA_TYPE_G711A:
         {
-            input_para->dec_bitrate = 64000;//sample rate 8000,1/2 coderate
+            input_para->dec_bitrate = input_para->dac_samp_rate*input_para->dec_data_depth_in_byte*8/2;//64000;//sample rate 8000,1/2 coderate
             break;
         }
         case AUD_INTF_VOC_DATA_TYPE_PCM:
         {
-            input_para->dec_bitrate = 256000;//sample rate 16000,no encode
+            input_para->dec_bitrate = input_para->dac_samp_rate*input_para->dec_data_depth_in_byte*8;//256000;//sample rate 16000,no encode
             break;
         }
         case AUD_INTF_VOC_DATA_TYPE_G711U:
         {
-            input_para->dec_bitrate = 64000;//sample rate 8000,1/2 coderate
+            input_para->dec_bitrate = input_para->dac_samp_rate*input_para->dec_data_depth_in_byte*8/2;//64000;//sample rate 8000,1/2 coderate
             break;
         }
         #if CONFIG_AUD_INTF_SUPPORT_G722
