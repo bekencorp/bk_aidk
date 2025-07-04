@@ -74,13 +74,13 @@ extern char *channel_name_record;
 extern uint8_t network_disc_evt_posted;
 static int bk_genie_wifi_sta_connect(char *ssid, char *key)
 {
-    int len;
+    int ssid_len, key_len;
 
     wifi_sta_config_t sta_config = {0};
 
-    len = os_strlen(key);
+    ssid_len = os_strlen(ssid);
 
-    if (32 < len)
+    if (32 < ssid_len)
     {
         LOGE("ssid name more than 32 Bytes\r\n");
         return BK_FAIL;
@@ -88,16 +88,20 @@ static int bk_genie_wifi_sta_connect(char *ssid, char *key)
 
     os_strcpy(sta_config.ssid, ssid);
 
-    len = os_strlen(key);
+    key_len = os_strlen(key);
 
-    if (64 < len)
+    if (64 < key_len || key_len < 8)
     {
-        LOGE("key more than 64 Bytes\r\n");
+        LOGE("Invalid passphrase, expected: 8..63\r\n");
         return BK_FAIL;
     }
 
     os_strcpy(sta_config.password, key);
     network_disc_evt_posted = 0;
+#if CONFIG_STA_AUTO_RECONNECT
+    sta_config.auto_reconnect_count = 5;
+    sta_config.disable_auto_reconnect_after_disconnect = true;
+#endif
     LOGE("ssid:%s key:%s\r\n", sta_config.ssid, sta_config.password);
     BK_LOG_ON_ERR(bk_wifi_sta_set_config(&sta_config));
     BK_LOG_ON_ERR(bk_wifi_sta_start());
