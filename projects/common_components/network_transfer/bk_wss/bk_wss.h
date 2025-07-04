@@ -16,6 +16,7 @@ extern "C" {
 
 void rtc_get_aud_inft_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name);
 void rtc_get_dialog_info(aud_intf_voc_setup_t *aud_intf_voc_setup, char *encoder_name, char *decoder_name);
+void rtc_websocket_rx_data_clean(void);
 
 
 #ifdef __cplusplus

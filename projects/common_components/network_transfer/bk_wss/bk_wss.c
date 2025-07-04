@@ -324,6 +324,19 @@ size_t data_buffer_read(data_buffer_t *rb, uint8_t *output) {
 	return data_len;
 }
 
+void data_buffer_clean(data_buffer_t *rb)
+{
+	size_t available = (rb->write_index >= rb->read_index)? (rb->write_index - rb->read_index) : (rb->size - rb->read_index + rb->write_index);
+	LOGI("%s available:%d\r\n", __func__, available);
+	memset(rb->buffer, 0, rb->size);
+	memset(rb->length_buffer, 0, (rb->buffer_count * sizeof (size_t)));
+	rb->read_index = 0;
+	rb->write_index = 0;
+	rb->length_read_index = 0;
+	rb->length_write_index = 0;
+	return;
+}
+
 bk_err_t websocket_event_send_msg(uint32_t event, uint32_t param)
 {
 	bk_err_t ret;
@@ -915,6 +928,14 @@ void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uin
 {
 	if (rtc_session->ab_buffer && (!fixed_data_buffer_write(rtc_session->ab_buffer, data, len))) {
 		LOGE("Buffer full, dropping packet!\n");
+	}
+}
+
+void rtc_websocket_rx_data_clean(void)
+{
+	rtc_session *rtc_sess = __get_beken_rtc();
+	if (rtc_sess && rtc_sess->ring_buffer) {
+		data_buffer_clean(rtc_sess->ring_buffer);
 	}
 }
 
