@@ -26,6 +26,7 @@ static lv_ft_info_t info;
 static lv_style_t style;
 static uint32_t *file_content = NULL;
 static lv_comm_list_t *g_lv_font_list = NULL;
+static uint32_t reset_pos = 0;
 
 typedef struct {
     uint8_t text_type;
@@ -52,7 +53,6 @@ static int lv_get_utf8_char_length(const char *str)
 static void lvgl_label_timer_cb(lv_timer_t *timer)
 {
     static uint16_t list_empty_count = 0;
-    static uint32_t reset_pos = 0;
 
     if (!lv_comm_list_is_empty(g_lv_font_list)) {
         lv_font_info_t *font_info = lv_comm_list_front(g_lv_font_list);
@@ -101,6 +101,14 @@ bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
 
     if (text_info->text_type == 0) {
         lv_comm_list_clear(g_lv_font_list);
+        lv_vendor_disp_lock();
+        reset_pos = 0;
+        lv_label_set_text(label, "");
+        if (label_timer) {
+            lv_timer_del(label_timer);
+            label_timer = NULL;
+        }
+        lv_vendor_disp_unlock();
     }
 
     lv_font_info_t *font = os_malloc(sizeof(lv_font_info_t));
