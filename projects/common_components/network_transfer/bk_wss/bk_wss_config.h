@@ -10,7 +10,7 @@
 //#define CONFIG_USE_G711A_CODEC
 #endif
 
-#define SPK_GAIN_MAX        (0X15)
+//#define SPK_GAIN_MAX        (0X15)
 #define SPK_VOLUME_LEVEL (11) //[0,10]
 
 #define BANDWIDTH_ESTIMATE_MIN_BITRATE   (500000)

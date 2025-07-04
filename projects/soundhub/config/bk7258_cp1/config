@@ -88,8 +88,8 @@ CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE=y
 CONFIG_AUD_INTF_SUPPORT_MUSIC_SPK_SOURCE=y
 #@ Enable AI ASR run in cpu2
 CONFIG_AI_ASR_MODE_CPU2=y
-#@ Enable AEC V2 Version
-CONFIG_AEC_VERSION_V2=y
+#@ Enable AEC Version
+CONFIG_AEC_VERSION_V3=y
 #@ need connect speaker to mic2
 CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE=y
 #@ Select Prompt Tone stored in vfs file system
