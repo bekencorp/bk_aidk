@@ -1121,8 +1121,10 @@ extern uint8_t lvgl_app_init_flag;
 #endif
 void ir_mode_switch_main(void)
 {
+    __maybe_unused uint8_t ir_timeout = 0;
+
     if (!agora_runing) {
-        BK_LOGW(TAG, "Please Run AgoraRTC First!");
+        BK_LOGW(TAG, "Please Run AgoraRTC First!\r\n");
         goto exit;
     }
 
@@ -1137,6 +1139,12 @@ void ir_mode_switch_main(void)
                 goto exit;
             }
             rtos_delay_milliseconds(100);
+            ir_timeout++;
+            // 2s timeout, fail
+            if (ir_timeout >= 20) {
+                BK_LOGW(TAG, "Image recognition mode switch timeout\r\n");
+                goto exit;
+            }
         }
         video_turn_on();
 
