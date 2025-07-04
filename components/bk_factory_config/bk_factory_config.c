@@ -364,6 +364,10 @@ void bk_config_sync_flash(void)
 
 static void bk_reboot_sync_config(void)
 {
+    if (rtos_is_in_interrupt_context()) {
+        LOGE("in interrupt context, not sync config\r\n");
+        return;
+    }
     void bk_ef_set_check_lock(bool state);
     uint32_t int_mask = rtos_disable_int();
     bk_ef_set_check_lock(BK_FALSE);
