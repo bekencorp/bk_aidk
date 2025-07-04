@@ -32,7 +32,7 @@
 
 #include "audio_engine.h"
 #include "video_engine.h"
-#include "timer_util.h"
+#include <driver/aon_rtc.h>
 
 #define TAG "agora_main"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -45,7 +45,7 @@
 extern bool rx_spk_data_flag;
 #endif//CONFIG_DEBUG_DUMP
 
-
+#define VIDEO_FRAME_INTERVAL_MS            500
 
 
 bool g_connected_flag = false;
@@ -69,7 +69,6 @@ extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 extern app_aud_para_t app_aud_cust_para;
 
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-static uint32_t video_interval = 500;   //ms
 static bool video_lock = false;
 #endif
 
@@ -163,17 +162,14 @@ static void memory_free_show(void)
 static void app_media_read_frame_callback(frame_buffer_t *frame)
 {
     video_frame_info_t info = { 0 };
-    static uint32_t before = 0, curr = 0;
-    curr = bk_get_current_timer();
+    static uint64_t before = 0, curr = 0;
+    curr = bk_aon_rtc_get_ms();
 
     if (false == g_connected_flag)
     {
         /* agora rtc is not running, do not send video. */
         return;
     }
-
-    if (before == 0)
-        before = curr;
 
     info.stream_type = VIDEO_STREAM_HIGH;
     if (frame->fmt == PIXEL_FMT_JPEG)
@@ -185,7 +181,7 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
     {
         if ((frame->h264_type & (1 << H264_NAL_I_FRAME)) == 0)
         {
-            LOGW("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
+            LOGW("%s, ####not i frame, 0x%8x%08x - 0x%8x%08x : 0x%8%08x###\n", __func__, (uint32_t)(curr>>32), (uint32_t)curr, (uint32_t)(before>>32), (uint32_t)before, (uint32_t)((curr - before)>>32), (uint32_t)(curr - before));
             return;
         }
         info.data_type = VIDEO_DATA_TYPE_H264;
@@ -201,9 +197,9 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
         LOGE("not support format: %d \r\n", frame->fmt);
     }
 
-    if (curr > before && before && curr - before >= 500000)
+    if (curr > before && curr - before >= VIDEO_FRAME_INTERVAL_MS)
     {
-        LOGW("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
+        LOGI("##########send frame: 0x%x%08x - 0x%x%08x : 0x%x%08x######################\n", (uint32_t)(curr>>32), (uint32_t)curr, (uint32_t)(before>>32), (uint32_t)before, (uint32_t)((curr - before)>>32), (uint32_t)(curr - before));
 #if (CONFIG_IMAGE_DEBUG_DUMP)
         do {
 #endif
@@ -211,12 +207,11 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
 
             /* send two frame images per second */
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-            rtos_delay_milliseconds(video_interval);
         } while (video_lock);
 #endif
-
         before = curr;
     }
+
 }
 
 static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const audio_frame_info_t *info_ptr)
@@ -515,10 +510,6 @@ void cli_agora_rtc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
         agora_stop();
     }
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-    else if (os_strcmp(argv[1], "video_interval") == 0)
-    {
-        video_interval = os_strtoul(argv[2], NULL, 10);
-    }
     else if (os_strcmp(argv[1], "video_lock") == 0)
     {
         if (os_strtoul(argv[2], NULL, 10))

@@ -37,7 +37,7 @@
 #endif
 #include "video_engine.h"
 
-#include "timer_util.h"
+#include <driver/aon_rtc.h>
 
 #define TAG "volc_main"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -68,7 +68,7 @@ static uart_util_t g_byte_spk_uart_util = {0};
 #define BYTE_RX_SPK_DATA_DUMP_DATA(data_buf, len)
 #endif  //BYTE_RX_SPK_DATA_DUMP
 
-#define VIDEO_FRAME_INTERVAL            500000
+#define VIDEO_FRAME_INTERVAL            500
 
 bool g_connected_flag = false;
 bool g_agent_offline = true;
@@ -213,9 +213,8 @@ static int byte_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int 
 static void app_media_read_frame_callback(frame_buffer_t *frame)
 {
     video_frame_info_t info = { 0 };
-    
-    static uint32_t before = 0, curr = 0;
-    curr = bk_get_current_timer();
+    static uint64_t before = 0, curr = 0;
+    curr = bk_aon_rtc_get_ms();
 
     if (false == g_connected_flag)
     {
@@ -223,29 +222,26 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
         return;
     }
 
-    if (before == 0)
-         before = curr;
-
     info.stream_type = VIDEO_STREAM_HIGH;
     if (frame->fmt == PIXEL_FMT_H264)
     {
         if ((frame->h264_type & (1 << H264_NAL_I_FRAME)) == 0)
         {
-            //LOGI("%s, ####not i frame, %d-%d:%d###\n", __func__, curr, before, curr - before);
+            //LOGI("%s, ####not i frame, 0x%x%08x - 0x%x%08x : 0x%x%08x###\n", __func__, (uint32_t)(curr>>32), (uint32_t)curr, (uint32_t)(before>>32), (uint32_t)before, (uint32_t)((curr - before)>>32), (uint32_t)(curr - before));
             return;
         }
         info.data_type = VIDEO_DATA_TYPE_H264;
         info.frame_type = VIDEO_FRAME_AUTO_DETECT;
-        info.frame_rate = 1000000/VIDEO_FRAME_INTERVAL;
+        info.frame_rate = 1000/VIDEO_FRAME_INTERVAL;
     }
     else
     {
         LOGE("not support format: %d \r\n", frame->fmt);
     }
 
-    if (curr > before && before && curr - before >= VIDEO_FRAME_INTERVAL)
+    if (curr > before && curr - before >= VIDEO_FRAME_INTERVAL)
     {
-        //LOGI("##########send frame: %d-%d:%d######################\n", curr, before, curr - before);
+        //LOGI("##########send frame: 0x%x%08x - 0x%x%08x : 0x%x%08x######################\n", (uint32_t)(curr>>32), (uint32_t)curr, (uint32_t)(before>>32), (uint32_t)before, (uint32_t)((curr - before)>>32), (uint32_t)(curr - before));
 
 #if (CONFIG_IMAGE_DEBUG_DUMP)
         do {
@@ -253,10 +249,9 @@ static void app_media_read_frame_callback(frame_buffer_t *frame)
             bk_byte_rtc_video_data_send((uint8_t *)frame->frame, (size_t)frame->length, &info);
             /* send two frame images per second */
 #if (CONFIG_IMAGE_DEBUG_DUMP)
-            rtos_delay_milliseconds(video_interval);
         } while (video_lock);
 #endif
-            before = curr;
+        before = curr;
     }
 }
 
