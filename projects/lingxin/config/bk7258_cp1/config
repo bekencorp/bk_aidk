@@ -99,6 +99,8 @@ CONFIG_AEC_VERSION_V3=y
 CONFIG_AUD_AI_NS_SUPPORT=n
 #@ AI NS use static sram
 CONFIG_AUD_AI_NS_USE_STATIC_SRAM=n
+#@ Clear audio decode buffer after prompt tone play
+CONFIG_CLEAR_AUDIO_DEC_BUFFER_AFTER_PROMPT_TONE_PLAY=y
 
 #@ Eable image dump sended to agent
 CONFIG_IMAGE_DEBUG_DUMP=y
