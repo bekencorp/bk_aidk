@@ -401,7 +401,7 @@ exit:
     byte_runing = false;
 
     rtos_set_semaphore(&byte_sem);
-
+    LOGE("byte_main exit\n");
     rtos_delete_thread(NULL);
 }
 

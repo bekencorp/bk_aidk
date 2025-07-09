@@ -14,6 +14,9 @@ extern "C" {
 #define MAX_USERID_LEN      64
 #define MAX_TOKEN_LEN       256
 
+#define BYTE_RTC_WAIT_FINI_INTERVAL_MS                  2
+#define BYTE_RTC_WAIT_FINI_TOT_CNT                      50
+
 typedef enum
 {
     BYTE_RTC_MSG_JOIN_CHANNEL_SUCCESS = 0,
@@ -119,6 +122,7 @@ typedef struct
 
     byte_rtc_config_t byte_rtc_config;
     byte_rtc_option_t byte_rtc_option;
+    bool fini_notifyed;
 } byte_rtc_t;
 
 

@@ -85,15 +85,17 @@ static void __register_message_router(byte_rtc_t *rtc, byte_rtc_msg_notify_cb me
 
 static void __on_join_room_success(byte_rtc_engine_t engine, const char *room, int elapsed_ms, bool rejoin)
 {
-	byte_rtc_msg_t msg;
+    byte_rtc_msg_t msg;
+
     LOGI("join room success, engine: %p, room: %s, elapsed_ms: %d, rejoin: %d \n", engine, room, elapsed_ms, rejoin);
     byte_rtc_t *rtc = __get_rtc_instance();
 
     rtc->b_channel_joined = true;
-	if (!rejoin)
-    	msg.code = BYTE_RTC_MSG_JOIN_CHANNEL_SUCCESS;
-	else
-		msg.code = BYTE_RTC_MSG_REJOIN_CHANNEL_SUCCESS;
+    if (!rejoin)
+        msg.code = BYTE_RTC_MSG_JOIN_CHANNEL_SUCCESS;
+    else
+        msg.code = BYTE_RTC_MSG_REJOIN_CHANNEL_SUCCESS;
+
     __send_message_2_user(rtc, &msg);
 
     __rtc_started(rtc);
@@ -133,7 +135,7 @@ static void __on_error(byte_rtc_engine_t engine, int code, const char *msg)
 
 static void __on_user_joined(byte_rtc_engine_t engine, const char *room, const char *user_name, int elapsed_ms)
 {
-	byte_rtc_msg_t msg;
+    byte_rtc_msg_t msg;
 
     LOGI("user_joined, engine: %p, room: %s, user: %s, elapsed_ms: %d \n", engine, room, user_name, elapsed_ms);
     byte_rtc_t *rtc = __get_rtc_instance();
@@ -179,7 +181,7 @@ static void __on_audio_data(byte_rtc_engine_t engine,const char *room, const cha
     }
     // LOGI("room=%s, user=%s sent_ts=%u codec=%u, data_ptr=%p, data_len=%d\r\n",
     //      room, user_name, sent_ts, codec, data_ptr, (int)data_len);
-	//LOGI("RTC rx audio, codec=%u, data_ptr=%p, data_len=%d\r\n", codec, data_ptr, (int)data_len);
+    //LOGI("RTC rx audio, codec=%u, data_ptr=%p, data_len=%d\r\n", codec, data_ptr, (int)data_len);
     if (rtc->audio_rx_data_handle)
     {
         rtc->audio_rx_data_handle((unsigned char *)data_ptr, data_len, codec);
@@ -242,7 +244,7 @@ static void __on_target_bitrate_changed(byte_rtc_engine_t engine,const char *roo
 
 static void __on_message_received(byte_rtc_engine_t engine,const char * room, const char * src, const uint8_t * message,int size,bool binary)
 {
-	LOGD("__on_message_received \n");
+    LOGD("__on_message_received \n");
 }
 static void __on_message_send_result(byte_rtc_engine_t engine,const char * room,int64_t msgid, int error,const char * extencontent)
 {
@@ -254,11 +256,14 @@ static void __on_token_privilege_will_expire(byte_rtc_engine_t engine,const char
 }
 static void __on_license_expire_warning(byte_rtc_engine_t engine,int daysleft)
 {
-    LOGD("__on_license_expire_warning \n");
+    LOGI("__on_license_expire_warning \n");
 }
 static void __on_fini_notify(byte_rtc_engine_t engine)
 {
-    LOGD("__on_fini_notify \n");
+    byte_rtc_t *rtc = __get_rtc_instance();
+
+    rtc->fini_notifyed = true;
+    LOGI("__on_fini_notify \n");
 }
 
 static void __register_byte_rtc_event_handler(byte_rtc_t *rtc)
@@ -275,11 +280,11 @@ static void __register_byte_rtc_event_handler(byte_rtc_t *rtc)
     //rtc->byte_rtc_event_handler.on_rejoin_room_success = __on_rejoin_room_success;
     rtc->byte_rtc_event_handler.on_user_mute_audio = __on_user_mute_audio;
     rtc->byte_rtc_event_handler.on_user_mute_video = __on_user_mute_video;
-	rtc->byte_rtc_event_handler.on_message_received = __on_message_received;
-	rtc->byte_rtc_event_handler.on_message_send_result = __on_message_send_result;
-	rtc->byte_rtc_event_handler.on_token_privilege_will_expire = __on_token_privilege_will_expire;
-	rtc->byte_rtc_event_handler.on_license_expire_warning = __on_license_expire_warning;
-	rtc->byte_rtc_event_handler.on_fini_notify = __on_fini_notify;
+    rtc->byte_rtc_event_handler.on_message_received = __on_message_received;
+    rtc->byte_rtc_event_handler.on_message_send_result = __on_message_send_result;
+    rtc->byte_rtc_event_handler.on_token_privilege_will_expire = __on_token_privilege_will_expire;
+    rtc->byte_rtc_event_handler.on_license_expire_warning = __on_license_expire_warning;
+    rtc->byte_rtc_event_handler.on_fini_notify = __on_fini_notify;
 }
 
 static void __deep_copy_items_destroy(byte_rtc_t *rtc)
@@ -299,8 +304,9 @@ static int32_t __byte_init(byte_rtc_config_t *p_config)
 
     rtc->engine = NULL;
     rtc->state = BYTE_RTC_STATE_NULL;
+    rtc->fini_notifyed = false;
 
-	rtc->audio_rx_data_handle = NULL;
+    rtc->audio_rx_data_handle = NULL;
     rtc->video_rx_data_handle = NULL;
     rtc->user_message_callback = NULL;
 
@@ -330,16 +336,16 @@ static int32_t __byte_init(byte_rtc_config_t *p_config)
     //step4. register event handler
     __register_byte_rtc_event_handler(rtc);
 
-	LOGW("byte_rtc_create appid:%s\n", rtc->byte_rtc_config.p_appid);
-	rtc->engine = byte_rtc_create(rtc->byte_rtc_config.p_appid, &rtc->byte_rtc_event_handler);
-	byte_rtc_set_log_level(rtc->engine, BYTE_RTC_LOG_LEVEL_WARN);
-	if (!rtc->engine)
-	{
-		LOGW("byte_rtc_create failed\n");
+    LOGW("byte_rtc_create appid:%s\n", rtc->byte_rtc_config.p_appid);
+    rtc->engine = byte_rtc_create(rtc->byte_rtc_config.p_appid, &rtc->byte_rtc_event_handler);
+    byte_rtc_set_log_level(rtc->engine, BYTE_RTC_LOG_LEVEL_WARN);
+    if (!rtc->engine)
+    {
+        LOGW("byte_rtc_create failed\n");
         goto init_error;
-	}
+    }
 
-	LOGW("byte_rtc_init\n");
+    LOGW("byte_rtc_init\n");
     ret = byte_rtc_init(rtc->engine);
     if (ret < 0)
     {
@@ -386,26 +392,28 @@ bk_err_t bk_byte_rtc_create(byte_rtc_config_t *p_config, byte_rtc_msg_notify_cb 
 
 bk_err_t bk_byte_rtc_destroy(void)
 {
-	int rval = 0;
-	byte_rtc_t *rtc = __get_rtc_instance();
-
-	if (!rtc)
-	{
-		LOGI("bk_byte_rtc_destroy, rtc invalid\n");
-		return BK_FAIL;
-	}
-
-	if (!rtc->engine)
-	{
-		LOGI("bk_byte_rtc_destroy, engine invalid\n");
-		return BK_FAIL;
-	}
-
-	rval = byte_rtc_fini(rtc->engine);
-    if (rval != 0)
+    byte_rtc_t *rtc = __get_rtc_instance();
+    uint16_t wait_fini_notify_cnt = 0;
+    if (!rtc)
     {
-        LOGI("byte_rtc_fini fail: %d, %s \n", rval, byte_rtc_err_2_str(rval));
+        LOGI("bk_byte_rtc_destroy, rtc invalid\n");
+        return BK_FAIL;
     }
+
+    if (!rtc->engine)
+    {
+        LOGI("bk_byte_rtc_destroy, engine invalid\n");
+        return BK_FAIL;
+    }
+
+    if ((!rtc->fini_notifyed) && (wait_fini_notify_cnt < BYTE_RTC_WAIT_FINI_TOT_CNT))
+    {
+        LOGI("bk_byte_rtc_destroy, fini_notifyed is not set yet, check 2ms later\n");
+        rtos_delay_milliseconds(BYTE_RTC_WAIT_FINI_INTERVAL_MS);
+        wait_fini_notify_cnt++;
+    }
+
+    byte_rtc_destory(rtc->engine);
 
     rtc->state = BYTE_RTC_STATE_IDLE;
 
@@ -417,7 +425,7 @@ bk_err_t bk_byte_rtc_start(byte_rtc_option_t *option)
 {
     int rval = 0;
     byte_rtc_t *rtc = __get_rtc_instance();
-	rtc_room_info_t *room;
+    rtc_room_info_t *room;
     if (!rtc)
     {
         return BK_FAIL;
@@ -436,12 +444,12 @@ bk_err_t bk_byte_rtc_start(byte_rtc_option_t *option)
         goto byte_rtc_start_fail;
     }
     os_memcpy((void *)rtc->byte_rtc_option.room, option->room, sizeof(rtc_room_info_t));
-	room = rtc->byte_rtc_option.room;
+    room = rtc->byte_rtc_option.room;
     LOGI("BYTE RTC SDK room: %s \n", room->room_id);
     //LOGI("BYTE RTC SDK token: %s \n", room->token);
 
     rtc->byte_rtc_option.audio_data_type = option->audio_data_type;
-	os_memcpy((void *)&(rtc->byte_rtc_option.room_options), &(option->room_options), sizeof(byte_rtc_room_options_t));
+    os_memcpy((void *)&(rtc->byte_rtc_option.room_options), &(option->room_options), sizeof(byte_rtc_room_options_t));
 
     // step8. join room
     rval = byte_rtc_set_audio_codec(rtc->engine, rtc->byte_rtc_option.audio_data_type);
@@ -504,7 +512,7 @@ bk_err_t bk_byte_rtc_stop(void)
         rtc->byte_rtc_config.p_appid = NULL;
     }
 
-	if (rtc->byte_rtc_option.room != NULL)
+    if (rtc->byte_rtc_option.room != NULL)
     {
         psram_free((void *)rtc->byte_rtc_option.room);
         rtc->byte_rtc_option.room = NULL;
@@ -600,7 +608,7 @@ int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len)
     info.data_type = bk_byte_rtc_audio_codec_type_mapping(bk_aud_get_encoder_type());
 
     int rval = byte_rtc_send_audio_data(rtc->engine, rtc->byte_rtc_option.room->room_id, data_ptr, data_len, &info);
-	//LOGI("rtc TX audio, data_ptr=%p, data_len=%d\r\n", data_ptr, (int)data_len);
+    //LOGI("rtc TX audio, data_ptr=%p, data_len=%d\r\n", data_ptr, (int)data_len);
     if (rval < 0)
     {
         LOGE("Failed to send audio data, reason: %s\n", byte_rtc_err_2_str(rval));
