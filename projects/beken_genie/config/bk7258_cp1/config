@@ -98,6 +98,8 @@ CONFIG_AEC_VERSION_V3=y
 CONFIG_AUD_AI_NS_SUPPORT=n
 #@ AI NS use static sram
 CONFIG_AUD_AI_NS_USE_STATIC_SRAM=n
+#@ Enable Audio Product Test
+CONFIG_AUD_SWEEP_TEST=n
 
 #@ Eable image dump sended to agent
 CONFIG_IMAGE_DEBUG_DUMP=y

@@ -142,16 +142,6 @@ void cli_beken_aud_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
         dump_flag = 0;
         os_printf("dump stop\n!");
     }
-    else if (os_strcmp(argv[1], "sweep_test_enable") == 0)
-    {
-        aud_set_production_mode(1);
-        os_printf("sweep_test_enable\n!");
-    }
-    else if (os_strcmp(argv[1], "sweep_test_disable") == 0)
-    {
-        aud_set_production_mode(0);
-        os_printf("sweep_test_disable\n!");
-    }
     else
     {
         goto cmd_fail;
@@ -184,6 +174,22 @@ cmd_fail:
 #endif//CONFIG_DEBUG_DUMP
 }
 
+#if (CONFIG_SYS_CPU1)
+void cli_beken_sweep_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+
+    if (os_strcmp(argv[1], "enable") == 0)
+    {
+        aud_set_production_mode(1);
+        os_printf("sweep_test_enable\n!");
+    }
+    else if (os_strcmp(argv[1], "disable") == 0)
+    {
+        aud_set_production_mode(0);
+        os_printf("sweep_test_disable\n!");
+    }   
+}
+#endif
 
 #if (CONFIG_SYS_CPU0)
 #define AUDIO_DUMP_CMD_CNT   (sizeof(s_audio_dump_commands) / sizeof(struct cli_command))
@@ -204,6 +210,8 @@ int audio_dump_data_cli_init(void)
 static const struct cli_command s_audio_dump_commands[] =
 {
     {"audio_dump", "audio_dump ...", cli_beken_aud_dump_cmd},
+    {"sweep_test", "sweep_test ...", cli_beken_sweep_test_cmd},
+
 };
 
 int audio_dump_data_cli_init(void)
