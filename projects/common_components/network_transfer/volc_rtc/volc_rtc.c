@@ -9,6 +9,7 @@
 
 #include "volc_rtc.h"
 #include "volc_config.h"
+#include "volc_fileio.h"
 #include "audio_transfer.h"
 #include "aud_intf.h"
 
@@ -99,6 +100,11 @@ static void __on_join_room_success(byte_rtc_engine_t engine, const char *room, i
     __send_message_2_user(rtc, &msg);
 
     __rtc_started(rtc);
+}
+
+static void __on_room_error(byte_rtc_engine_t engine, const char* room, int code, const char* msg)
+{
+    LOGI("join room error, engine: %p, room: %s, code: %d, msg: %s \n", engine, room, code, msg);
 }
 
 static void __error_msg(byte_rtc_t *rtc, byte_rtc_msg_e err)
@@ -268,6 +274,7 @@ static void __on_fini_notify(byte_rtc_engine_t engine)
 
 static void __register_byte_rtc_event_handler(byte_rtc_t *rtc)
 {
+    rtc->byte_rtc_event_handler.on_room_error = __on_room_error;
     rtc->byte_rtc_event_handler.on_join_room_success = __on_join_room_success;
     rtc->byte_rtc_event_handler.on_global_error = __on_error;
     rtc->byte_rtc_event_handler.on_user_joined = __on_user_joined;
@@ -338,6 +345,29 @@ static int32_t __byte_init(byte_rtc_config_t *p_config)
 
     LOGW("byte_rtc_create appid:%s\n", rtc->byte_rtc_config.p_appid);
     rtc->engine = byte_rtc_create(rtc->byte_rtc_config.p_appid, &rtc->byte_rtc_event_handler);
+
+#if CONFIG_VOLC_RTC_ENABLE_LICENSE
+    bool volc_license_valid = false;
+
+    volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
+    if (volc_license_valid)
+    {
+        ret = byte_rtc_set_params(rtc->engine,"{\"rtc\":{\"root_path\":\"/\"}}");
+        if (ret < 0)
+        {
+            LOGI("byte_rtc_set_params root_path failed, ret=%d error=%s\n", ret, byte_rtc_err_2_str(ret));
+            goto init_error;
+        }
+
+        ret = byte_rtc_set_params(rtc->engine,"{\"rtc\":{\"license\":{\"enable\":1}}}");
+        if (ret < 0)
+        {
+            LOGI("byte_rtc_set_params enable license failed, ret=%d error=%s\n", ret, byte_rtc_err_2_str(ret));
+            goto init_error;
+        }
+    }
+#endif
+
     byte_rtc_set_log_level(rtc->engine, BYTE_RTC_LOG_LEVEL_WARN);
     if (!rtc->engine)
     {
@@ -413,7 +443,7 @@ bk_err_t bk_byte_rtc_destroy(void)
         wait_fini_notify_cnt++;
     }
 
-    byte_rtc_destory(rtc->engine);
+    byte_rtc_destroy(rtc->engine);
 
     rtc->state = BYTE_RTC_STATE_IDLE;
 

@@ -11,6 +11,7 @@
 #include "bk_rtos_debug.h"
 #include "volc_config.h"
 #include "volc_rtc.h"
+#include "volc_device_finger_print.h"
 #include "audio_transfer.h"
 #include "aud_intf.h"
 #include "aud_intf_types.h"
@@ -99,6 +100,15 @@ static void cli_byte_rtc_help(void)
 {
     LOGI("byte_test {start|stop appid video_en channel_name}\n");
     LOGI("byte_debug {dump_mic_data value}\n");
+}
+
+static void byte_print_finger()
+{
+    volc_string_t finger;
+    volc_string_init(&finger);
+    volc_get_device_finger_print(&finger);
+    LOGI("finger length:%d capacity:%d buffer:%s\r\n", finger.length,  finger.capacity, finger.buffer);
+    volc_string_deinit(&finger);
 }
 
 static void byte_rtc_user_notify_msg_handle(byte_rtc_msg_t *p_msg)
@@ -266,6 +276,7 @@ void byte_main(void)
         return;
     }
 
+    //byte_print_finger();
     mbedtls_platform_set_calloc_free(volc_calloc, volc_free);
 
     cJSON_Hooks hook = {volc_malloc, volc_free};

@@ -31,6 +31,7 @@
 #include "volc_config.h"
 #include "volc_rtc.h"
 #include "wifi_boarding_utils.h"
+#include "volc_fileio.h"
 
 #define TAG "bk_sconf_volc"
 #define RCV_BUF_SIZE            512
@@ -276,6 +277,13 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", tmp_channel);
     //agent_param reserved for further development
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {");
+
+    bool volc_license_valid = false;
+    volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
+    if (volc_license_valid)
+    {
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"enable_license\":\"true\"");
+    }
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
@@ -341,6 +349,7 @@ int bk_sconf_upate_agent_info(char *update_info)
     int url_len = 0, data_len = 0, bytes_read = 0, resp_status = 0, ret = 0;
     uint32_t rand_flag = 0;
     char tmp_channel[128] = {0};
+    bool volc_license_valid = false;
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
@@ -375,6 +384,11 @@ int bk_sconf_upate_agent_info(char *update_info)
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", tmp_channel);
     //agent_param reserved for further development
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {\"mode\":\"%s\"", update_info);
+    volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
+    if (volc_license_valid)
+    {
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_license\":\"true\"");
+    }
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
