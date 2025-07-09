@@ -38,6 +38,10 @@
 #if CONFIG_PSRAM_AS_SYS_MEMORY
 #include "mbedtls/platform.h"
 #endif
+#include "lwip/ip_addr.h"
+#include "lwip/inet.h"
+#include "lwip/dns.h"
+#include "net.h"
 
 #define TAG "bk_sconf_core"
 bool smart_config_running = false;
@@ -294,6 +298,14 @@ static int bk_sconf_netif_event_cb(void *arg, event_module_t event_module, int e
             network_disc_evt_posted = 0;
             got_ip = (netif_event_got_ip4_t *)event_data;
             BK_LOGI(TAG, "netif_idx %d\r got ip\n", got_ip->netif_if);
+            if (got_ip->netif_if == 0) {
+                const ip_addr_t *tmp_dns_server = NULL;
+                tmp_dns_server = dns_getserver(0);
+                if (ip_addr_get_ip4_u32(tmp_dns_server) == INADDR_ANY) {
+                    bk_netif_add_dns_server (0, "8.8.8.8"); //google 1st dns
+                    bk_netif_add_dns_server (1, "9.9.9.9"); //IBM quad9 dns
+                }
+            }
 #if CONFIG_BK_MODEM
             {
              extern void ping_start(char* target_name, uint32_t times, size_t size);
