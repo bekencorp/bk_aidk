@@ -280,10 +280,20 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 
     bool volc_license_valid = false;
     volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
-    if (volc_license_valid)
+
+    // license and TTS burst function are only supported after VOLC RTC v1.0.6
+    if (BYTE_RTC_API_VERSION_NUM >= 0x1006)
     {
-        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"enable_license\":\"true\"");
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"enable_burst\":true");
+        if (volc_license_valid)
+        {
+            data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_license\":\"true\"");
+        }
     }
+
+    // subtitle is disabled by default, if subtitle is needed, please active below code
+    //data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
@@ -385,10 +395,20 @@ int bk_sconf_upate_agent_info(char *update_info)
     //agent_param reserved for further development
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {\"mode\":\"%s\"", update_info);
     volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
-    if (volc_license_valid)
+    
+    // license and TTS burst function are only supported after VOLC RTC v1.0.6
+    if (BYTE_RTC_API_VERSION_NUM >= 0x1006)
     {
-        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_license\":\"true\"");
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_burst\":true");
+        if (volc_license_valid)
+        {
+            data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_license\":\"true\"");
+        }
     }
+
+    // subtitle is disabled by default, if subtitle is needed, please active below code
+    //data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
