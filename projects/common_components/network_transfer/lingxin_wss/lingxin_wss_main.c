@@ -42,8 +42,6 @@
 extern bool rx_spk_data_flag;
 #endif//CONFIG_DEBUG_DUMP
 
-#include "voice_chat_machine.h"
-
 
 #if CONFIG_USE_G722_CODEC || CONFIG_USE_OPUS_CODEC
 #define AUDIO_SAMP_RATE         (16000)

@@ -35,7 +35,7 @@
 #include "app_audio_arbiter.h"
 #endif
 #if (CONFIG_SYS_CPU0 && CONFIG_LINGXIN_AI_EN)
-#include "voice_chat_machine.h"
+#include "chat_state_machine.h"
 #endif
 #if (CONFIG_SYS_CPU0 && CONFIG_BK_WSS_TRANS)
 #include "bk_wss.h"
