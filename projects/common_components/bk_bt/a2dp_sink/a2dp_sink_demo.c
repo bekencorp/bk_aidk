@@ -187,6 +187,7 @@ static uint32_t s_headset_a2dp_data_path = 1;
 static uint8_t s_avrcp_play_status = BK_AVRCP_PLAYBACK_STOPPED;
 static int8_t s_avrcp_play_pending_status = -1;
 static uint8_t s_mix_multi_channel = 1;
+static uint8_t s_a2dp_sink_is_inited = 0;
 
 #if USE_COMPLEX_VOTE_PLAY
     static AUDIO_SOURCE_ENTRY_STATUS s_audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_IDLE;
@@ -1916,7 +1917,13 @@ static void bk_bt_a2dp_disconnect(uint8_t *remote_addr)
 int a2dp_sink_demo_init(uint8_t aac_supported)
 {
     int ret = 0;
-    LOGI("%s\r\n", __func__);
+    LOGI("%s\n", __func__);
+
+    if (s_a2dp_sink_is_inited)
+    {
+        LOGE("%s already init\n", __func__);
+        return -1;
+    }
 
     if (aac_supported)
     {
@@ -2034,12 +2041,24 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
         return -1;
     }
 
+    s_a2dp_sink_is_inited = 1;
+
+    LOGI("%s end\n", __func__);
     return 0;
 }
 
 int a2dp_sink_demo_deinit(void)
 {
     int32_t ret = 0;
+
+    LOGI("%s\n", __func__);
+
+    if (!s_a2dp_sink_is_inited)
+    {
+        LOGE("%s already deinit\n", __func__);
+        return -1;
+    }
+
     bk_bt_enter_pairing_mode(0);
 
     rtos_delay_milliseconds(500);
@@ -2048,8 +2067,6 @@ int a2dp_sink_demo_deinit(void)
     bt_audio_sink_demo_task_deinit();
 
     bk_bt_a2dp_sink_register_data_callback(NULL);
-
-    LOGI("%s start bk_bt_a2dp_sink_deinit\n");
 
     ret = bk_bt_a2dp_sink_deinit();
 
@@ -2132,6 +2149,9 @@ int a2dp_sink_demo_deinit(void)
     s_audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_IDLE;
 #endif
 
+    s_a2dp_sink_is_inited = 0;
+
+    LOGW("%s end\n", __func__);
     return 0;
 }
 
