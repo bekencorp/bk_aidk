@@ -458,6 +458,11 @@ BLE配网及agent相关代码主要分布在  ``/projects/common_components/bk_b
  - 启动火山agent及设备端rtc，参考代码 ``bk_sconf_start_volc_rtc``, reset参数用来通知beken服务器是否强制切回初始agent配置
 
 
+**3.7 火山相关功能开发**
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+火山相关功能开发请参考 `火山RTC功能 <../../thirdparty/volc/index.html#id6>`_
+
+
 4. 问题&回答
 ---------------------------------
 

@@ -493,6 +493,9 @@ Core code:
  - Press the key to switch between multiple modes, referencing the code ``ir_mode_switch_main``
  - Start the Volcano agent and device-side RTC, referencing the code ``bk_sconf_start_volc_rtc``. The reset parameter is used to notify the Beken server whether to force a switch back to the initial Agent configuration.
 
+**3.7 Volcengine Related Function Development**
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+For Volcengine related function development, please refer to `Volcengine RTC Functions <../../thirdparty/volc/index.html#id6>`_
 
 **4. Q&A**
 ---------------------------------
