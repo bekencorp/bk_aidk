@@ -51,7 +51,7 @@ CONFIG_EASY_FLASH_FAST_DHCP=n
 #@ Enable sta use static ip
 CONFIG_STA_USE_STATIC_IP=n
 #@ Enable Aud intf support G722 data type
-CONFIG_AUD_INTF_SUPPORT_G722=n
+CONFIG_AUD_INTF_SUPPORT_G722=y
 #@ Enable Aud intf support OPUS data type
 CONFIG_AUD_INTF_SUPPORT_OPUS=y
 #@ Support prompt tone resample

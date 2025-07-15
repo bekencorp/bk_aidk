@@ -42,7 +42,7 @@ CONFIG_OVERRIDE_FLASH_PARTITION=y
 #@ Audio ring buff safe interval
 CONFIG_AUD_RING_BUFF_SAFE_INTERVAL=4
 #@ Enable Aud intf support G722 data type
-CONFIG_AUD_INTF_SUPPORT_G722=n
+CONFIG_AUD_INTF_SUPPORT_G722=y
 #@ Enable Aud intf support OPUS data type
 CONFIG_AUD_INTF_SUPPORT_OPUS=y
 #@ Support prompt tone resample

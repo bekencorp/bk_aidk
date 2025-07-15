@@ -298,7 +298,8 @@ void byte_main(void)
     // LOGI("-----start byte rtc process-----\r\n");
 
     byte_rtc_option.room = volc_room_info;
-    byte_rtc_option.audio_data_type = AUDIO_DATA_TYPE_OPUS;
+
+    byte_rtc_option.audio_data_type = bk_byte_rtc_audio_codec_type_mapping(bk_aud_get_encoder_type());
 
     ret = bk_byte_rtc_start(&byte_rtc_option);
     if (ret != BK_OK)
@@ -601,7 +602,11 @@ void byte_auto_run(uint8_t reset)
     if (!byte_runing)
     {
         audio_en = true;
+#if CONFIG_VOLC_ENABLE_VISION_BY_DEFAULT
+        video_en = true;
+#else
         video_en = false;
+#endif
         byte_start();
     }
 }

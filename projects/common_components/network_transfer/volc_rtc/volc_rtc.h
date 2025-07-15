@@ -135,7 +135,7 @@ int bk_byte_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const 
 int bk_byte_rtc_audio_data_send(uint8_t *data_ptr, size_t data_len);
 bk_err_t bk_byte_rtc_register_audio_rx_handle(byte_rtc_audio_rx_data_handle audio_rx_handle);
 bk_err_t bk_byte_rtc_register_video_rx_handle(byte_rtc_video_rx_data_handle video_rx_handle);
-
+uint8_t bk_byte_rtc_audio_codec_type_mapping(uint8_t codec_type);
 
 #ifdef __cplusplus
 }

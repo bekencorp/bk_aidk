@@ -489,9 +489,9 @@ bk_err_t bk_byte_rtc_start(byte_rtc_option_t *option)
         goto byte_rtc_start_fail;
     }
 
-    LOGI("byte_rtc_join_room, room:%s uid:%s subscribe_audio:%d publish_audio:%d subscribe_video:%d publish_video:%d\n",
+    LOGI("byte_rtc_join_room, room:%s uid:%s subscribe_audio:%d publish_audio:%d subscribe_video:%d publish_video:%d code:%d\n",
          room->room_id, room->uid, rtc->byte_rtc_option.room_options.auto_subscribe_audio, rtc->byte_rtc_option.room_options.auto_publish_audio,
-         rtc->byte_rtc_option.room_options.auto_subscribe_video, rtc->byte_rtc_option.room_options.auto_publish_video);
+         rtc->byte_rtc_option.room_options.auto_subscribe_video, rtc->byte_rtc_option.room_options.auto_publish_video, rtc->byte_rtc_option.audio_data_type);
 
     rval = byte_rtc_join_room(rtc->engine, room->room_id, room->uid, room->token, &rtc->byte_rtc_option.room_options);
     if (rval < 0)

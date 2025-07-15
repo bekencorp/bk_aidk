@@ -211,9 +211,8 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_DEV_STARTUP_AGENT
     rtc_room_info_t room_info = {0};
-
-#if CONFIG_VOLC_HTTP_STARTUP_AGENT
     bk_sconf_agent_info_t info = {0};
+
     bk_sconf_get_agent_info(&info);
     if (info.valid == 1)
         bk_volc_dev_stop_agent(&info.room_info);
@@ -222,19 +221,13 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     ret = bk_volc_dev_start_agent(&room_info);
     if (ret)
         return ret;
-#else
-    os_strcpy((char *)room_info.room_id, DEFAULT_ROOM_ID);
-    os_strcpy((char *)room_info.uid, DEFAULT_USER_ID);
-    os_strcpy((char *)room_info.app_id, DEFAULT_RTC_APP_ID);
-    os_strcpy((char *)room_info.token, DEFAULT_TOKEN);
-#endif
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
     os_memset(volc_room_info, 0, sizeof(rtc_room_info_t)+1);
     os_memcpy(volc_room_info, &room_info, sizeof(rtc_room_info_t));
     bk_sconf_save_agent_info(volc_room_info);
-    
+
     return BK_OK;
 #else
     struct webclient_session *session = NULL;
@@ -278,21 +271,33 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     //agent_param reserved for further development
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {");
 
+    #if CONFIG_VOLC_ENABLE_VISION_BY_DEFAULT
+    // enable vision by default
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"mode\":\"vision\"");
+    #else
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"mode\":\"text\"");
+    #endif
+
     bool volc_license_valid = false;
     volc_file_exists("/VolcEngineRTCLite.lic", &volc_license_valid);
 
     // license and TTS burst function are only supported after VOLC RTC v1.0.6
     if (BYTE_RTC_API_VERSION_NUM >= 0x1006)
     {
-        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"enable_burst\":true");
+        data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_burst\":true");
         if (volc_license_valid)
         {
             data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"enable_license\":\"true\"");
         }
     }
 
-    // subtitle is disabled by default, if subtitle is needed, please active below code
-    //data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"audio_codec\":\"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
+
+    #if CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULT
+    // subtitle is disabled by default, if subtitle is needed, 
+    // please enable CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULTin project volc_rtc config
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+    #endif
 
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
@@ -406,8 +411,13 @@ int bk_sconf_upate_agent_info(char *update_info)
         }
     }
 
-    // subtitle is disabled by default, if subtitle is needed, please active below code
-    //data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"audio_codec\":\"%s\"",CONFIG_AUDIO_ENCODER_TYPE);
+
+    #if CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULT
+    // subtitle is disabled by default, if subtitle is needed, 
+    // please enable CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULTin project volc_rtc config
+    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, ",\"disable_rts_subtitle\":false");
+    #endif
 
     rand_flag = bk_rand();
     data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);

@@ -3,11 +3,15 @@ menu "net_transfer"
 		bool "Enable Beken Websocket Transmit for AI"
 		default n
 
-	config VOLC_HTTP_STARTUP_AGENT
-		bool "Enable Beken Websocket Transmit for AI"
-		depends on BK_DEV_STARTUP_AGENT
-		default y
 	config BK_WSS_TRANS_NOPSRAM
 		bool "Enable Websocket Transmit for AI without PSRAM"
+		default n
+
+	config VOLC_ENABLE_VISION_BY_DEFAULT
+		bool "Enable visual recognition for volc_rtc by default"
+		default n
+
+	config VOLC_ENABLE_SUBTITLE_BY_DEFAULT
+		bool "Enable subtitle for volc_rtc by default"
 		default n
 endmenu
