@@ -1,6 +1,5 @@
 menu "BK_avi_play"
     config AVI_PLAY
-        depends on LVGL
         bool "Enable AVI Play"
         default n
 endmenu
