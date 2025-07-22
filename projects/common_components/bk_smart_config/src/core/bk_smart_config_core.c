@@ -547,7 +547,7 @@ uint8_t bk_sconf_get_supported_engine(void)
     //TODO, will be changed to 2
     return 3;
 #elif CONFIG_LINGXIN_AI_EN
-    return 3;
+    return 4;
 #else // 3 means device startup agent
     return 3;
 #endif

@@ -55,9 +55,14 @@ bool g_button_flag = false;
 extern bool smart_config_running;
 
 /* call this api when wifi autoconnect */
-void beken_auto_run(void)
+void beken_auto_run(uint8_t reset)
 {
-	os_printf("%s line:%d\r\n", __func__, __LINE__);
+#if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
+	if (bk_sconf_wakeup_agent(reset)) {
+		LOGW("bk_sconf_wakeup_agent failed");
+		return;
+	}
+#endif
 	g_connected_flag = true;
 	network_reconnect_stop_timeout_check();
 	app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
