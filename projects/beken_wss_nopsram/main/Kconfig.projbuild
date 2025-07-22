@@ -36,4 +36,9 @@ menu "Beken_Genie Project Configuration"
     config LCD1_SPI_DC_PIN
         int "Set LCD QSPI TE pin"
         default 5
+
+    config IMAGE_MAX_WIDTH
+        int "Set pipeline decode max image width"
+        default 320
+        
 endmenu
