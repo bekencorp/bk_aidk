@@ -22,12 +22,21 @@ void lvgl_app_init(void)
         return;
     }
 
+#if CONFIG_PSRAM
     ret = media_app_lvgl_open((lcd_open_t *)&lcd_open);
     if (ret != BK_OK)
     {
         os_printf("media_app_lvgl_open failed\r\n");
         return;
     }
+#else
+    ret = media_app_avi_play_start((lcd_open_t *)&lcd_open);
+    if (ret != BK_OK)
+    {
+        os_printf("media_app_avi_play_start failed\r\n");
+        return;
+    }
+#endif
 
     lvgl_app_init_flag = 1;
 }
@@ -42,12 +51,21 @@ void lvgl_app_deinit(void)
         return;
     }
 
+#if CONFIG_PSRAM
     ret = media_app_lvgl_close();
     if (ret != BK_OK)
     {
         os_printf("media_app_lvgl_close failed\r\n");
         return;
     }
+#else
+    ret = media_app_avi_play_stop();
+    if (ret != BK_OK)
+    {
+        os_printf("media_app_avi_play_stop failed\r\n");
+        return;
+    }
+#endif
 
     lvgl_app_init_flag = 0;
 }

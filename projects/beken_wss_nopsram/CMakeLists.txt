@@ -33,7 +33,7 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../../projects/common_components/audio_engine
     $ENV{ARMINO_PATH}/../../projects/common_components/video_engine
     $ENV{ARMINO_PATH}/../../projects/common_components/asr
-    $ENV{ARMINO_PATH}/../../projects/common_components/single_screen_font_display
+    $ENV{ARMINO_PATH}/../../projects/common_components/dual_screen_avi_play
     $ENV{ARMINO_PATH}/../../projects/common_components/network_transfer
     )
 

@@ -3,9 +3,11 @@ if (CONFIG_SINGLE_SCREEN_FONT_DISPLAY)
 set(incs .)
 set(srcs "")
 
+if (CONFIG_PSRAM)
 list(APPEND srcs
     ota_display.c
 )
+endif()
 
 if (CONFIG_SYS_CPU0)
 list(APPEND srcs

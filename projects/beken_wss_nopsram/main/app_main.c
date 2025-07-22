@@ -267,6 +267,10 @@ int main(void)
         battery_monitor_init();
 #endif
 
+#if CONFIG_DUAL_SCREEN_AVI_PLAY
+    extern void lvgl_app_init(void);
+    lvgl_app_init();
+#endif
 #endif
 
 #if CONFIG_USBD_MSC
