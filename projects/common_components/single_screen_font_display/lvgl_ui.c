@@ -128,7 +128,9 @@ bk_err_t lvgl_event_send_data_handle(media_mailbox_msg_t *msg)
     font->current_pos = 0;
     font->text_length = text_length;
 
-    lv_comm_list_append(g_lv_font_list, (void *)font);
+    if (g_lv_font_list) {
+        lv_comm_list_append(g_lv_font_list, (void *)font);
+    }
 
     if (label_timer == NULL) {
         lv_vendor_disp_lock();
