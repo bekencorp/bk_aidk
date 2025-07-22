@@ -41,6 +41,8 @@
 #include "bk_wss.h"
 #endif
 
+#include "audio_engine.h"
+
 #define TAG "app_evt"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -53,6 +55,7 @@ static beken_mutex_t s_event_mutex = NULL;
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
 static prompt_tone_url_info_t s_event_prompt_tone_info = {0};
+static uint8_t s_prompt_tone_status; //0 stop 1 play
 
 #if CONFIG_PROMPT_TONE_SOURCE_VFS
 #if CONFIG_PROMPT_TONE_CODEC_MP3
@@ -117,6 +120,7 @@ extern void lvgl_app_deinit(void);
 extern uint8_t lvgl_app_init_flag;
 #endif
 extern bk_err_t agora_stop(void);
+extern void a2dp_sink_demo_notify_tone_play_status(uint8_t playing);
 static app_evt_info_t app_evt_info;
 
 
@@ -200,6 +204,17 @@ static bk_err_t app_play_prompt_tone(app_evt_type_t event)
     bool play_flag = true;
     bk_err_t ret = BK_FAIL;
 
+#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
+    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
+                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
+    {
+        a2dp_sink_demo_notify_tone_play_status(1);
+    }
+    else
+    {
+        return 0;
+    }
+#endif
     switch (event)
     {
         case APP_EVT_ASR_WAKEUP:
@@ -383,6 +398,7 @@ static bk_err_t app_play_prompt_tone(app_evt_type_t event)
     }
     else
     {
+		s_prompt_tone_status = 1;
         ret = BK_OK;
     }
 
@@ -422,6 +438,17 @@ bk_err_t bk_ota_reponse_state_to_audio(int ota_state)
 }
 #endif
 
+static int tone_end_cb(void *param)
+{
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
+	s_prompt_tone_status = 0;
+#endif
+#if CONFIG_A2DP_SINK_DEMO
+	a2dp_sink_demo_notify_tone_play_status(0);
+#endif
+    return 0;
+}
+
 static void app_event_thread(beken_thread_arg_t data)
 {
 	int ret = BK_OK;
@@ -444,6 +471,8 @@ static void app_event_thread(beken_thread_arg_t data)
     battery_event_callback_register(battery_event_callback);
 #endif
     media_app_asr_evt_register_callback(app_event_asr_evt_callback);
+
+    audio_register_tone_play_finish_func(tone_end_cb);
 
     while (1)
     {
@@ -469,10 +498,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     s_active_tickets &= ~(1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_ASR_WAKEUP\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_ASR_WAKEUP);
 #endif
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
@@ -523,10 +548,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~((1<<INDICATES_AGENT_CONNECT) | (1<<INDICATES_POWER_ON) | (1<<INDICATES_WIFI_RECONNECT));
                     warning_state &= ~ (HIGH_PRIORITY_WARNING_MASK);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING);
 #endif
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
@@ -542,10 +563,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     // s_active_tickets |= (1 << COUNTDOWN_TICKET_STANDBY);
                     LOGI("APP_EVT_NETWORK_PROVISIONING_SUCCESS\n");
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING_SUCCESS);
 #endif
                     break;
@@ -559,10 +576,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     warning_state |= 1<<WARNING_PROVIOSION_FAIL;
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING_FAIL);
 #endif
                     break;
@@ -573,10 +586,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state |= (1<<INDICATES_WIFI_RECONNECT);
                     indicates_state &= ~(1<<INDICATES_POWER_ON);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK);
 #endif
                     break;
@@ -599,10 +608,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
 
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK_SUCCESS);
 #endif
                     break;
@@ -614,10 +619,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     warning_state |= 1<<WARNING_WIFI_FAIL;
                     indicates_state &= ~(1<<INDICATES_WIFI_RECONNECT);
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_RECONNECT_NETWORK_FAIL);
 #endif
                     break;
@@ -627,10 +628,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_RTC_CONNECTION_LOST\n");
                     warning_state |= 1<<WARNING_RTC_CONNECT_LOST;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_RTC_CONNECTION_LOST);
 #endif
                     break;
@@ -659,10 +656,6 @@ static void app_event_thread(beken_thread_arg_t data)
                         indicates_state |= (1<<INDICATES_STANDBY);
                     }
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_AGENT_JOINED);
 #endif
                     break;
@@ -673,10 +666,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_AGENT_OFFLINE\n");
                     warning_state |= 1<<WARNING_AGENT_OFFLINE;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_AGENT_OFFLINE);
 #endif
                     break;
@@ -686,10 +675,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     LOGI("APP_EVT_AGENT_START_FAIL\n");
                     warning_state |= 1<<WARNING_AGENT_AGENT_START_FAIL;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_AGENT_START_FAIL);
 #endif
                     break;
@@ -709,10 +694,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     skip_countdown_update = true;
                     warning_state |= 1<<WARNING_LOW_BATTERY;
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
-#if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
-                    if(app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_AI ||
-                                    app_audio_arbiter_get_current_play_entry() == AUDIO_SOURCE_ENTRY_END)
-#endif
                     app_play_prompt_tone(APP_EVT_LOW_VOLTAGE);
 #endif
                     break;

@@ -30,6 +30,7 @@ bk_err_t audio_engine_init(void);
 bk_err_t audio_turn_on(void);
 bk_err_t audio_turn_off(void);
 void audio_register_play_finish_func(user_audio_end_func func);
+void audio_register_tone_play_finish_func(user_audio_end_func func);
 
 #ifdef __cplusplus
 }

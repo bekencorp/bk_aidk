@@ -2707,7 +2707,8 @@ static int32_t a2dp_sink_demo_vote_enable(uint8_t enable, uint32_t flag)
     {
         LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ %d\n", __func__, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
 
-        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
+
+        err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, s_audio_source_arbiter_entry_status == AUDIO_SOURCE_ENTRY_STATUS_PLAY);
 
         if (err)
         {
@@ -2728,3 +2729,23 @@ end:;
 }
 
 #endif
+
+void a2dp_sink_demo_notify_tone_play_status(uint8_t playing)
+{
+	int32_t err = 0;
+	
+	if(!s_a2dp_sink_is_inited)
+	{
+		LOGE("%s a2dp not init\n", __func__);
+		return;
+	}
+	
+	LOGI("%s send EVENT_BT_NOTIFY_TONE_STATUS_REQ %d\n", __func__, playing);
+
+	err = media_send_msg_sync(EVENT_BT_NOTIFY_TONE_STATUS_REQ, playing);
+
+	if (err)
+	{
+		LOGE("%s mail box notify EVENT_BT_NOTIFY_TONE_STATUS_REQ %s err %d !!\n", __func__, err);
+	}
+}

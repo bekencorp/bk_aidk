@@ -34,6 +34,7 @@ extern uint32_t g_volume_gain[SPK_VOLUME_LEVEL];
 
 audio_info_t general_audio;
 static user_audio_end_func audio_notify_end = NULL;
+static user_audio_end_func s_audio_tone_notify_end = NULL;
 
 bk_err_t audio_turn_off(void)
 {
@@ -294,6 +295,33 @@ int audio_play_data_end_notify(void *param)
 	return rval;
 }
 
+void audio_register_tone_play_finish_func(user_audio_end_func func)
+{
+    if(s_audio_tone_notify_end)
+	{
+		AUDE_LOGW("%s cb is already reg !!! %p %p\n", __func__, s_audio_tone_notify_end, func);
+	}
+	s_audio_tone_notify_end = func;
+}
+
+static int tone_play_data_end_notify(void *param)
+{
+	AUDE_LOGI("%s\r\n", __func__);
+	int rval = BK_OK;
+
+	if (s_audio_tone_notify_end)
+    {
+        rval = s_audio_tone_notify_end(param);
+    }
+    else
+    {
+        AUDE_LOGE("%s failed, invalid cb\n", __func__);
+        return BK_FAIL;
+    }
+	return rval;
+}
+
+
 bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
@@ -333,6 +361,11 @@ bk_err_t audio_turn_on(void)
 #if CONFIG_AUD_INTF_SUPPORT_SPK_PLAY_FINISH_NOTIFY
 	aud_intf_voc_setup.spk_play_finish_notify = audio_play_data_end_notify;
 #endif
+
+#if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE_PLAY_FINISH_NOTIFY
+    aud_intf_voc_setup.prompt_tone_play_finish_notify = tone_play_data_end_notify;
+#endif
+
     bk_aud_intf_aud_codec_init(&aud_intf_voc_setup.aud_codec_setup_input);
 
     audio_tras_init();
