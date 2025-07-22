@@ -9,7 +9,11 @@ extern "C" {
 
 #define AVI_VIDEO_USE_HW_DECODE    1
 
+#if CONFIG_PSRAM
 #define AVI_VIDEO_MAX_FRAME_LEN    (30 * 1024)
+#else
+#define AVI_VIDEO_MAX_FRAME_LEN    (15 * 1024)
+#endif
 
 typedef struct
 {
