@@ -45,6 +45,26 @@ static void ai_audio_source_entry_cb(AUDIO_SOURCE_ENTRY_CB_EVT evt, void *arg)
     }
 }
 
+static void user_audio_source_entry_cb(AUDIO_SOURCE_ENTRY_CB_EVT evt, void *arg)
+{
+    LOGI("evt %d", evt);
+
+    switch (evt)
+    {
+    case AUDIO_SOURCE_ENTRY_CB_EVT_NEED_START:
+        break;
+
+    case AUDIO_SOURCE_ENTRY_CB_EVT_IGNORE:
+        break;
+
+    case AUDIO_SOURCE_ENTRY_CB_EVT_NEED_STOP:
+        break;
+
+    default:
+        break;
+    }
+}
+
 static void app_event_callback(app_evt_msg_t *msg, void *user_data)
 {
     AUDIO_SOURCE_ENTRY_STATUS audio_source_arbiter_entry_status = AUDIO_SOURCE_ENTRY_STATUS_STOP;
@@ -108,4 +128,12 @@ void app_evt_process_init(void)
     }
 
     app_audio_arbiter_reg_callback(AUDIO_SOURCE_ENTRY_AI, ai_audio_source_entry_cb, NULL);
+    app_audio_arbiter_reg_callback(AUDIO_SOURCE_ENTRY_USER, user_audio_source_entry_cb, NULL);
+}
+
+void app_evt_audio_arbiter_user_action(uint8_t enable)
+{
+    AUDIO_SOURCE_ENTRY_STATUS ret = app_audio_arbiter_report_source_req(AUDIO_SOURCE_ENTRY_USER, enable ? AUDIO_SOURCE_ENTRY_ACTION_START_REQ: AUDIO_SOURCE_ENTRY_ACTION_STOP_REQ);
+
+    LOGI("ret %d", ret);
 }

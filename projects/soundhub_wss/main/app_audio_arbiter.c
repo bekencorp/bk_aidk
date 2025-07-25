@@ -35,6 +35,7 @@ static const uint8_t s_audio_priority[AUDIO_SOURCE_ENTRY_END] =
 {
     [AUDIO_SOURCE_ENTRY_AI] = 9,
     [AUDIO_SOURCE_ENTRY_A2DP] = 8,
+    [AUDIO_SOURCE_ENTRY_USER] = 10,
 };
 
 static audio_arbiter_ctx_t s_audio_arbiter_ctx[AUDIO_SOURCE_ENTRY_END];
@@ -252,6 +253,12 @@ malloc_err:;
 
 void app_audio_arbiter_reg_callback(AUDIO_SOURCE_ENTRY_EMUM entry, audio_source_entry_cb cb, void *arg)
 {
+    if(!s_mutex)
+    {
+        LOGE("not init");
+        return;
+    }
+
     if (entry >= AUDIO_SOURCE_ENTRY_END)
     {
         LOGE("entry not valid %d", entry);

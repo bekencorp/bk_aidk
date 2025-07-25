@@ -225,9 +225,11 @@ int main(void)
         media_service_init();
 
 #if (CONFIG_SYS_CPU0)
+        extern void app_audio_arbiter_init(void);
+        app_audio_arbiter_init();
 #if (CONFIG_APP_EVT)
         app_event_init();
-		app_evt_process_init();
+        app_evt_process_init();
 #endif
 #if (CONFIG_NFC_ENABLE)
         void nfc_get_id_task(void);
@@ -254,9 +256,7 @@ int main(void)
 
 #if CONFIG_BT
         extern int bt_manager_init(uint8_t is_visible);
-        extern void app_audio_arbiter_init(void);
         bt_manager_init(1);
-        app_audio_arbiter_init();
 #if CONFIG_A2DP_SINK_DEMO
         extern int a2dp_sink_demo_init(uint8_t aac_supported);
         a2dp_sink_demo_init(0);

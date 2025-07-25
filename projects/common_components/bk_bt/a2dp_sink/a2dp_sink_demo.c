@@ -656,7 +656,7 @@ static void bt_audio_sink_demo_main(void *arg)
                 else
 #endif
                 {
-                err = a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_A2DP);
+                    err = a2dp_sink_demo_vote_enable(1, A2DP_PLAY_VOTE_FLAG_FROM_A2DP);
                 }
 #else
                 err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 1);
@@ -680,7 +680,11 @@ static void bt_audio_sink_demo_main(void *arg)
 
                 uint8 *fb = (uint8_t *)msg.data;
 
-                if (s_spk_is_started)
+                if (s_spk_is_started
+#if USE_COMPLEX_VOTE_PLAY
+                                && AUDIO_SOURCE_ENTRY_STATUS_PLAY == s_audio_source_arbiter_entry_status
+#endif
+                                )
                 {
                     if (CODEC_AUDIO_SBC == bt_audio_a2dp_sink_codec.type)
                     {
@@ -829,20 +833,35 @@ static void bt_audio_sink_demo_main(void *arg)
 
             case BT_AUDIO_D2DP_TASK_VOTE_REQ_MSG:
             {
-                LOGI("BT_AUDIO_D2DP_TASK_VOTE_REQ_MSG\n");
-                s_audio_source_arbiter_entry_status = app_audio_arbiter_report_source_req(AUDIO_SOURCE_ENTRY_A2DP, (uint8_t)(size_t)msg.data);
+                uint8_t action = (uint8_t)(size_t)msg.data;
+                uint8_t enable = 0;
+
+                switch(action)
+                {
+                case AUDIO_SOURCE_ENTRY_ACTION_START_REQ:
+                    enable = 1;
+                    break;
+
+                case AUDIO_SOURCE_ENTRY_ACTION_STOP_REQ:
+                default:
+                    enable = 0;
+                    break;
+                }
+
+                LOGI("BT_AUDIO_D2DP_TASK_VOTE_REQ_MSG action %d\n", action);
+                s_audio_source_arbiter_entry_status = app_audio_arbiter_report_source_req(AUDIO_SOURCE_ENTRY_A2DP, action);
 
                 if (s_audio_source_arbiter_entry_status != AUDIO_SOURCE_ENTRY_STATUS_PLAY)
                 {
                     LOGW("%s audio arbiter start status %d\n", __func__, s_audio_source_arbiter_entry_status);
                 }
 
-                LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ 1\n", __func__);
-                err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, 1);
+                LOGI("%s send EVENT_BT_A2DP_STATUS_NOTI_REQ %d\n", __func__, enable);
+                err = media_send_msg_sync(EVENT_BT_A2DP_STATUS_NOTI_REQ, enable);
 
                 if (err)
                 {
-                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, err);
+                    LOGE("%s mail box notify EVENT_BT_A2DP_STATUS_NOTI_REQ %d start err %d !!\n", __func__, enable, err);
                 }
 
             }
@@ -2733,13 +2752,13 @@ end:;
 void a2dp_sink_demo_notify_tone_play_status(uint8_t playing)
 {
 	int32_t err = 0;
-	
+
 	if(!s_a2dp_sink_is_inited)
 	{
 		LOGE("%s a2dp not init\n", __func__);
 		return;
 	}
-	
+
 	LOGI("%s send EVENT_BT_NOTIFY_TONE_STATUS_REQ %d\n", __func__, playing);
 
 	err = media_send_msg_sync(EVENT_BT_NOTIFY_TONE_STATUS_REQ, playing);
