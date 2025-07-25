@@ -220,7 +220,10 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     int ret = BK_FAIL;
     ret = bk_volc_dev_start_agent(&room_info);
     if (ret)
+    {
+        BK_LOGI(TAG, "bk_volc_dev_start_agent ret %d\r\n", ret);
         return ret;
+    }
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
@@ -246,6 +249,7 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     if (session == NULL)
     {
         ret = -1;
+        BK_LOGE(TAG, "wakeup agent failed, session is null\r\n");
         goto __exit;
     }
 
@@ -351,7 +355,7 @@ __exit:
     {
         os_free(post_data);
     }
-
+    BK_LOGI(TAG, "wakeup agent end, ret:%d\n", ret);
     return ret;
 #endif
 }
@@ -624,6 +628,7 @@ void ir_mode_switch_main(void)
 {
     __maybe_unused uint8_t ir_timeout = 0;
 
+    BK_LOGI(TAG, "ir_mode_switch_main start\r\n");
     if (!byte_runing) {
         BK_LOGW(TAG, "Please Run AgoraRTC First!");
         goto exit;
@@ -632,24 +637,12 @@ void ir_mode_switch_main(void)
     ir_mode_switching = 1;
 
     if (!video_started) {
+        ir_timeout = 0;
         byte_stop();
+        BK_LOGI(TAG, "byte_restart to enable vision\r\n");
         bk_sconf_upate_agent_info("vision");
-        while (g_agent_offline)
-        {
-            if (!byte_runing)
-            {
-                goto exit;
-            }
-            rtos_delay_milliseconds(100);
-            ir_timeout++;
-            // 2s timeout, fail
-            if (ir_timeout >= 20) {
-                BK_LOGW(TAG, "Image recognition mode switch timeout\r\n");
-                goto exit;
-            }
-        }
         //video_turn_on();
-	byte_restart(true);
+        byte_restart(true);
 
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)
         if (lvgl_app_init_flag == 1) {
@@ -657,8 +650,9 @@ void ir_mode_switch_main(void)
         }
 #endif
     } else {
-        //video_turn_off();
+        ir_timeout = 0;
         byte_stop();
+        BK_LOGI(TAG, "byte_restart to disable vision\r\n");
         bk_sconf_upate_agent_info("text");
         byte_restart(false);
 
@@ -672,6 +666,7 @@ void ir_mode_switch_main(void)
 exit:
     config_ir_mode_switch_thread_handle = NULL;
     ir_mode_switching = 0;
+    BK_LOGI(TAG, "ir_mode_switch_main end\r\n");
     rtos_delete_thread(NULL);
 }
 

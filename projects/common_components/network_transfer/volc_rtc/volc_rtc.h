@@ -10,12 +10,14 @@ extern "C" {
 #include "VolcEngineRTCLite.h"
 
 #define MAX_APPID_LEN       64
-#define MAX_ROOMID_LEN      64
-#define MAX_USERID_LEN      64
+#define MAX_ROOMID_LEN      128
+#define MAX_USERID_LEN      128
 #define MAX_TOKEN_LEN       256
+#define MAX_TASKID_LEN      128
+#define MAX_BOTUID_LEN      128
 
 #define BYTE_RTC_WAIT_FINI_INTERVAL_MS                  2
-#define BYTE_RTC_WAIT_FINI_TOT_CNT                      50
+#define BYTE_RTC_WAIT_FINI_TOT_CNT                      100
 
 typedef enum
 {
@@ -83,6 +85,8 @@ typedef struct {
     char uid[MAX_USERID_LEN+1];
     char app_id[MAX_APPID_LEN+1];
     char token[MAX_TOKEN_LEN+1];
+    char task_id[MAX_TASKID_LEN+1];
+    char bot_uid[MAX_BOTUID_LEN+1];
 } rtc_room_info_t;
 
 typedef struct

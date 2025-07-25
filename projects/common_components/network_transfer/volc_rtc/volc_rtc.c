@@ -157,7 +157,7 @@ static void __on_user_offline(byte_rtc_engine_t engine, const char *room, const 
 {
 	byte_rtc_msg_t msg;
 
-    LOGE("engine: %p, room: %p, user: %p, reason: %d \n", engine, room, user_name, reason);
+    LOGW("engine: %p, room: %s, user: %s, reason: %d \n", engine, room, user_name, reason);
     byte_rtc_t *rtc = __get_rtc_instance();
 
     rtc->b_user_joined = false;
@@ -436,13 +436,13 @@ bk_err_t bk_byte_rtc_destroy(void)
         return BK_FAIL;
     }
 
-    if ((!rtc->fini_notifyed) && (wait_fini_notify_cnt < BYTE_RTC_WAIT_FINI_TOT_CNT))
+    while ((!rtc->fini_notifyed) && (wait_fini_notify_cnt < BYTE_RTC_WAIT_FINI_TOT_CNT))
     {
-        LOGI("bk_byte_rtc_destroy, fini_notifyed is not set yet, check 2ms later\n");
         rtos_delay_milliseconds(BYTE_RTC_WAIT_FINI_INTERVAL_MS);
         wait_fini_notify_cnt++;
     }
 
+    LOGI("bk_byte_rtc_destroy, fini_notifyed:%d, wait_cnt:%d\n", rtc->fini_notifyed, wait_fini_notify_cnt);
     byte_rtc_destroy(rtc->engine);
 
     rtc->state = BYTE_RTC_STATE_IDLE;
@@ -514,8 +514,10 @@ bk_err_t bk_byte_rtc_stop(void)
     int rval = 0;
     byte_rtc_t *rtc = __get_rtc_instance();
 
+    LOGI("bk_byte_rtc_stop\n");
     if (!rtc)
     {
+        LOGI("bk_byte_rtc_stop, rtc invalid\n");
         return BK_FAIL;
     }
 

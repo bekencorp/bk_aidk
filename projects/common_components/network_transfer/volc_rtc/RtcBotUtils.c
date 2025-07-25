@@ -19,25 +19,14 @@
 
 const char* common_headers[] = {
     "Content-Type", "application/json",
-    "Authorization", "af78e30" DEFAULT_RTC_APP_ID,
+    "Authorization", "af78e30" CONFIG_RTC_APP_ID,
     NULL
 };
 
 int start_voice_bot(rtc_room_info_t* room_info) {
-    static int cjson_init_hook = 0;
-    if (cjson_init_hook == 0) {
-        // cJSON_Hooks hook = {
-        //     .malloc_fn = impl_malloc_fn,
-        //     .free_fn = impl_free_fn,
-        // };
-        // cJSON_InitHooks(&hook);
-        cjson_init_hook = 1;
-    }
-
-    char post_data[512];
+    char post_data[1024];
     cJSON *post_jobj = cJSON_CreateObject();
-    cJSON_AddStringToObject(post_jobj, "end_point_id", DEFAULT_END_POINT_ID);
-    cJSON_AddStringToObject(post_jobj, "voice_type", DEFAULT_VOICE_TYPE);
+
     cJSON_AddStringToObject(post_jobj, "audio_codec", CONFIG_AUDIO_ENCODER_TYPE);
     //cJSON_AddNumberToObject(post_jobj, "asr_type", 1);
 
@@ -46,6 +35,8 @@ int start_voice_bot(rtc_room_info_t* room_info) {
     cJSON_AddNumberToObject(post_jobj, "image_height", CONFIG_VIDEO_ENGINE_RESOLUTION_HEIGHT);
     cJSON_AddStringToObject(post_jobj, "image_detail", "high");
     #endif
+
+    //cJSON_AddStringToObject(post_jobj, "room_identifier", "OPUSLOW");
 
     #if CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULT
     cJSON_AddBoolToObject(post_jobj, "disable_rts_subtitle", false);
@@ -61,7 +52,7 @@ int start_voice_bot(rtc_room_info_t* room_info) {
     cJSON_Delete(post_jobj);
 
     rtc_post_config_t post_config = {
-        .uri = "http://" DEFAULT_SERVER_HOST "/startvoicechat",
+        .uri = "http://" CONFIG_AGENT_SERVER_HOST "/startvoicechat",
         .headers = common_headers,
         .post_data = post_data  // 根据需要传入智能体id和音色id
     };
@@ -98,11 +89,19 @@ int start_voice_bot(rtc_room_info_t* room_info) {
         cJSON* token_item = cJSON_GetObjectItem(data, "token");
         const char* token = cJSON_GetStringValue(token_item);
         strcpy(room_info->token, token);
-        
+
+        cJSON* room_task_id = cJSON_GetObjectItem(data, "task_id");
+        const char* task_id = cJSON_GetStringValue(room_task_id);
+        strcpy(room_info->task_id, task_id);
+
+        cJSON* room_bot_uid = cJSON_GetObjectItem(data, "bot_uid");
+        const char* bot_uid = cJSON_GetStringValue(room_bot_uid);
+        strcpy(room_info->bot_uid, bot_uid);
+
         cJSON_Delete(root);
 
         return 200;
-    } else {
+    } else if (post_result.code != 200 && post_result.response != NULL){
         cJSON* root = cJSON_Parse(post_result.response);
         if (root != NULL) {
             cJSON* message_item = cJSON_GetObjectItem(root, "message");
@@ -110,6 +109,10 @@ int start_voice_bot(rtc_room_info_t* room_info) {
             BK_LOGE(TAG, "Error: %s", message);
             cJSON_Delete(root);
         }
+        return post_result.code;
+    }
+    else {
+        BK_LOGE(TAG, "Error: post_result.response is NULL, post_result.code:%d\r\n", post_result.code);
         return post_result.code;
     }
 }
@@ -120,14 +123,14 @@ int stop_voice_bot(const rtc_room_info_t* room_info) {
     cJSON *post_jobj = cJSON_CreateObject();
     cJSON_AddStringToObject(post_jobj, "app_id", room_info->app_id);
     cJSON_AddStringToObject(post_jobj, "room_id", room_info->room_id);
-    cJSON_AddStringToObject(post_jobj, "uid", room_info->uid);
+    cJSON_AddStringToObject(post_jobj, "task_id", room_info->task_id);
     
     const char* json_str = cJSON_Print(post_jobj);
     strcpy(post_data, json_str);
     cJSON_Delete(post_jobj);
     
     rtc_post_config_t post_config = {
-        .uri = "http://" DEFAULT_SERVER_HOST "/stopvoicechat",
+        .uri = "http://" CONFIG_AGENT_SERVER_HOST "/stopvoicechat",
         .headers = common_headers,
         .post_data = post_data
     };
@@ -170,7 +173,7 @@ int update_voice_bot(const rtc_room_info_t* room_info, const char* command, cons
     cJSON *post_jobj = cJSON_CreateObject();
     cJSON_AddStringToObject(post_jobj, "app_id", room_info->app_id);
     cJSON_AddStringToObject(post_jobj, "room_id", room_info->room_id);
-    cJSON_AddStringToObject(post_jobj, "uid", room_info->uid);
+    cJSON_AddStringToObject(post_jobj, "task_id", room_info->task_id);
     cJSON_AddStringToObject(post_jobj, "command", command);
     if (message) {
         cJSON_AddStringToObject(post_jobj, "message", message);
@@ -182,7 +185,7 @@ int update_voice_bot(const rtc_room_info_t* room_info, const char* command, cons
 
     
     rtc_post_config_t post_config = {
-        .uri = "http://" DEFAULT_SERVER_HOST "/updatevoicechat",
+        .uri = "http://" CONFIG_AGENT_SERVER_HOST "/updatevoicechat",
         .headers = common_headers,
         .post_data = post_data
     };

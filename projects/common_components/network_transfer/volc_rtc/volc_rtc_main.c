@@ -419,6 +419,7 @@ exit:
 
 bk_err_t byte_stop(void)
 {
+    LOGI("%s, %d\n", __func__, __LINE__);
     if (!byte_runing)
     {
         LOGI("byte not start\n");
@@ -431,7 +432,7 @@ bk_err_t byte_stop(void)
 
     rtos_deinit_semaphore(&byte_sem);
     byte_sem = NULL;
-
+    LOGI("%s, %d\n", __func__, __LINE__);
     return BK_OK;
 }
 
@@ -439,6 +440,7 @@ static bk_err_t byte_start(void)
 {
     bk_err_t ret = BK_OK;
 
+    LOGI("%s, %d\n", __func__, __LINE__);
     if (byte_runing)
     {
         LOGI("byte already start, Please close and then reopens\n");
@@ -479,6 +481,7 @@ fail:
         byte_sem = NULL;
     }
 
+    LOGI("%s, %d\n", __func__, __LINE__);
     return BK_FAIL;
 }
 
@@ -583,12 +586,14 @@ cmd_fail:
 /* call this api when wifi autoconnect */
 void byte_restart(bool enable_video)
 {
+    LOGI("%s, %d\n", __func__, __LINE__);
     if (!byte_runing)
     {
         audio_en = true;
         video_en = enable_video;
         byte_start();
     }
+    LOGI("%s, %d\n", __func__, __LINE__);
 }
 
 void byte_auto_run(uint8_t reset)
