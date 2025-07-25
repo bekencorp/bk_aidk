@@ -550,7 +550,7 @@ static void app_event_thread(beken_thread_arg_t data)
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     app_play_prompt_tone(APP_EVT_NETWORK_PROVISIONING);
 #endif
-#if (CONFIG_DUAL_SCREEN_AVI_PLAY)
+#if (CONFIG_DUAL_SCREEN_AVI_PLAY) && (CONFIG_PSRAM)
                     media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT);
 #endif
                     break;
