@@ -151,28 +151,28 @@ static bk_err_t bk_jpeg_display_cb(void *param)
 {
     lcd_partial_area_t *partial_area = (lcd_partial_area_t *)param;
     complex_buffer_t *buffer = (complex_buffer_t *)partial_area->buffer;
-
+    uint8_t line = partial_area->height;
     if (partial_area->lcd_device->type == LCD_TYPE_SPI)
     {
 #if (CONFIG_LCD_SPI_DEVICE_NUM > 1)
         if (bk_avi_play->segment_flag == true)
         {
             bk_avi_play->framebuffer = (uint16_t *)buffer->data;
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < line; i++)
             {
                 os_memcpy(bk_avi_play->segmentbuffer + i * (bk_avi_play->avi->width >> 1), bk_avi_play->framebuffer + i * bk_avi_play->avi->width, bk_avi_play->avi->width);
-                os_memcpy(bk_avi_play->segmentbuffer + (bk_avi_play->avi->width >> 1) * 16 + i * (bk_avi_play->avi->width >> 1), bk_avi_play->framebuffer + i * bk_avi_play->avi->width + (bk_avi_play->avi->width >> 1), bk_avi_play->avi->width);
+                os_memcpy(bk_avi_play->segmentbuffer + (bk_avi_play->avi->width >> 1) * line + i * (bk_avi_play->avi->width >> 1), bk_avi_play->framebuffer + i * bk_avi_play->avi->width + (bk_avi_play->avi->width >> 1), bk_avi_play->avi->width);
             }
             lcd_spi_set_display_area(LCD_SPI_ID0, 0, partial_area->end_x - 1, partial_area->start_y, partial_area->end_y - 1);
-            lcd_spi_partial_display(LCD_SPI_ID0, (uint8_t *)bk_avi_play->segmentbuffer, (bk_avi_play->avi->width >> 1) * 16 * 2);
+            lcd_spi_partial_display(LCD_SPI_ID0, (uint8_t *)bk_avi_play->segmentbuffer, (bk_avi_play->avi->width >> 1) * line * 2);
             lcd_spi_set_display_area(LCD_SPI_ID1, 0, partial_area->end_x - 1, partial_area->start_y, partial_area->end_y - 1);
-            lcd_spi_partial_display(LCD_SPI_ID1, (uint8_t *)(bk_avi_play->segmentbuffer + (bk_avi_play->avi->width >> 1) * 16), (bk_avi_play->avi->width >> 1) * 16 * 2);
+            lcd_spi_partial_display(LCD_SPI_ID1, (uint8_t *)(bk_avi_play->segmentbuffer + (bk_avi_play->avi->width >> 1) * line), (bk_avi_play->avi->width >> 1) * line * 2);
         }
         else
         {
             lcd_spi_set_display_area(LCD_SPI_ID0, 0, partial_area->end_x - 1, partial_area->start_y, partial_area->end_y - 1);
             lcd_spi_set_display_area(LCD_SPI_ID1, 0, partial_area->end_x - 1, partial_area->start_y, partial_area->end_y - 1);
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < line; i++)
             {
                 lcd_spi_partial_display(LCD_SPI_ID0, buffer->data + i * bk_avi_play->avi->width * 2, (bk_avi_play->avi->width >> 1) * 2);
                 lcd_spi_partial_display(LCD_SPI_ID1, buffer->data + i * bk_avi_play->avi->width * 2 + (bk_avi_play->avi->width >> 1) * 2, (bk_avi_play->avi->width >> 1) * 2);
