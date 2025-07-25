@@ -96,7 +96,9 @@ int bk_sconf_save_agent_info(rtc_room_info_t *room_info)
 
     bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
     info_tmp.valid = 1;
-    os_memcpy((void *)(&info_tmp.room_info), (const void *)room_info, sizeof(rtc_room_info_t));
+    os_memcpy((void *)(&info_tmp.room_id), (const void *)room_info->room_id, sizeof(info_tmp.room_id));
+    os_memcpy((void *)(&info_tmp.app_id), (const void *)room_info->app_id, sizeof(info_tmp.app_id));
+    os_memcpy((void *)(&info_tmp.task_id), (const void *)room_info->task_id, sizeof(info_tmp.task_id));
     bk_config_write("d_agent_info", (const void *)&info_tmp, sizeof(bk_sconf_agent_info_t));
 
     return 0;
@@ -210,26 +212,54 @@ extern char *bk_get_bk_server_url(uint8_t index);
 int bk_sconf_wakeup_agent(uint8_t reset)
 {
 #if CONFIG_BK_DEV_STARTUP_AGENT
-    rtc_room_info_t room_info = {0};
-    bk_sconf_agent_info_t info = {0};
-
-    bk_sconf_get_agent_info(&info);
-    if (info.valid == 1)
-        bk_volc_dev_stop_agent(&info.room_info);
-
     int ret = BK_FAIL;
-    ret = bk_volc_dev_start_agent(&room_info);
+    rtc_room_info_t *room_info = NULL;
+    bk_sconf_agent_info_t *info = NULL;
+
+    room_info = psram_malloc(sizeof(rtc_room_info_t));
+    if (room_info == NULL) {
+        BK_LOGE(TAG, "no memory for room_info buffer\n");
+        return -1;
+    }
+
+    info = psram_malloc(sizeof(bk_sconf_agent_info_t));
+    if (info == NULL) {
+        BK_LOGE(TAG, "no memory for info buffer\n");
+        os_free(room_info);
+        return -1;
+    }
+
+    if (bk_sconf_get_agent_info(info) != 0) {
+        BK_LOGE(TAG, "get agent info failed\n");
+        os_free(room_info);
+        os_free(info);
+        return -1;
+    }
+
+    os_memcpy((void *)(room_info->room_id), (const void *)info->room_id, sizeof(info->room_id));
+    os_memcpy((void *)(room_info->app_id), (const void *)info->app_id, sizeof(info->app_id));
+    os_memcpy((void *)(room_info->task_id), (const void *)info->task_id, sizeof(info->task_id));
+
+    if (info->valid == 1)
+        bk_volc_dev_stop_agent(room_info);
+
+    os_memset(room_info, 0, sizeof(rtc_room_info_t));
+    ret = bk_volc_dev_start_agent(room_info);
     if (ret)
     {
         BK_LOGI(TAG, "bk_volc_dev_start_agent ret %d\r\n", ret);
+        os_free(room_info);
+        os_free(info);
         return ret;
     }
 
     if (!volc_room_info)
         volc_room_info = psram_malloc(sizeof(rtc_room_info_t)+1);
     os_memset(volc_room_info, 0, sizeof(rtc_room_info_t)+1);
-    os_memcpy(volc_room_info, &room_info, sizeof(rtc_room_info_t));
+    os_memcpy(volc_room_info, room_info, sizeof(rtc_room_info_t));
     bk_sconf_save_agent_info(volc_room_info);
+    os_free(room_info);
+    os_free(info);
 
     return BK_OK;
 #else

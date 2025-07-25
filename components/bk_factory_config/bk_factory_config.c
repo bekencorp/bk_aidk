@@ -34,7 +34,7 @@ const struct factory_config_t s_platform_config[] = {
     {"sys_initialized", (void *)"1", 1, BK_FALSE, 1},   // first config used to check whether factory config initialized.
     {"volume", (void *)&s_factory_volume, 4, BK_TRUE, 4},
     {"d_network_id", (void *)"\0", 1, BK_TRUE, 198},
-    {"d_agent_info", (void *)"\0", 1, BK_TRUE, 1024},
+    {"d_agent_info", (void *)"\0", 1, BK_TRUE, 588},
 };
 
 static const struct factory_config_t *s_user_reg_config = NULL;

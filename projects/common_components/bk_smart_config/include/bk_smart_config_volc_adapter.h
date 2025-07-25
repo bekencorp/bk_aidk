@@ -7,7 +7,9 @@ typedef struct
 {
     uint8_t valid;
     char channel_name[128];
-    rtc_room_info_t room_info;
+    char app_id[MAX_APPID_LEN+1];
+    char room_id[MAX_ROOMID_LEN+1];
+    char task_id[MAX_TASKID_LEN+1];
 } bk_sconf_agent_info_t;
 
 typedef enum
