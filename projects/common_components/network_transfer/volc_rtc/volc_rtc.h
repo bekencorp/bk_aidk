@@ -17,7 +17,7 @@ extern "C" {
 #define MAX_BOTUID_LEN      128
 
 #define BYTE_RTC_WAIT_FINI_INTERVAL_MS                  2
-#define BYTE_RTC_WAIT_FINI_TOT_CNT                      100
+#define BYTE_RTC_WAIT_FINI_TOT_CNT                      500
 
 typedef enum
 {

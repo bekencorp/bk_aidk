@@ -36,7 +36,7 @@ int start_voice_bot(rtc_room_info_t* room_info) {
     cJSON_AddStringToObject(post_jobj, "image_detail", "high");
     #endif
 
-    //cJSON_AddStringToObject(post_jobj, "room_identifier", "OPUSLOW");
+    cJSON_AddStringToObject(post_jobj, "room_identifier", "OPUSLOW");
 
     #if CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULT
     cJSON_AddBoolToObject(post_jobj, "disable_rts_subtitle", false);
