@@ -840,3 +840,15 @@ A: Currently, beken_genie defaults to supporting command word-based voice wake-u
 Q: Why UI resource display abnormally?
 
 A: In this project, the UI resource used must be in AVI format, with a resolution of 320x160, and must be converted using an AVI conversion tool before they can be used. Please check if the UI resource meet the above requirements first.
+
+Q: Which 4G Cat1 modules are already adapted for USB interface?
+
+A: Fibocom LE270/370, luat Air780E, Quectel EC-800M, MobileTek I511
+
+Q: How does beken genie connect an external 4G module through USB interface?
+
+A: Please refer to https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/developer-guide/peripheral/bk_modem.html#modem-griver-usage-guide
+
+Q: How to confirm that the 4G module has been successfully connected?
+
+A: Please refer to https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/api-reference/peripheral/bk_modem.html. After successful connection, you can verify it by using the ping command.

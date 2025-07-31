@@ -811,3 +811,15 @@ A：目前beken_genie默认支持基于命令词的语音唤醒功能，只有�
 Q：UI资源播放显示异常？
 
 A：本工程中使用的UI资源必须是AVI格式的视频，其分辨率是320x160，且必须经过AVI转换工具转换后才能使用，可先检查一下UI资源是否符合上述要求。
+
+Q：基于USB接口已经适配的4G Cat1模组有哪些？
+
+A：广和通LE270\370、合宙Air780E、移远EC-800M、移柯I511
+
+Q：使用beken genie如何通过USB接口外接4G模组？
+
+A：请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/developer-guide/peripheral/bk_modem.html#modem-griver-usage-guide
+
+Q： 如何确认4G模组已经成功连接？
+
+A：请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/api-reference/peripheral/bk_modem.html。成功连接以后可通过ping包验证。
