@@ -54,13 +54,9 @@ AIDK中包含两种启动Agent方法，分别是通过BK服务器启动Agent和�
 .. code-block:: c
 
     // RTC APP ID
-    #define DEFAULT_RTC_APP_ID    "67********************d1"
+    #define CONFIG_RTC_APP_ID    "67********************d1"
     // 服务端的地址
-    #define DEFAULT_SERVER_HOST   "1**.1**.**.**:8080"
-    // 默认的智能体id
-    #define DEFAULT_END_POINT_ID  "ep-**************-***zs"
-    // 默认声音id
-    #define DEFAULT_VOICE_TYPE    "BV007_streaming"
+    #define CONFIG_AGENT_SERVER_HOST   "1**.1**.**.**:8080"
 
 
 **5. License功能说明**

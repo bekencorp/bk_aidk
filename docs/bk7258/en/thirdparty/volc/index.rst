@@ -54,13 +54,9 @@ Modify the ``/bk_ai/project/common_components/network_transfer/volc_rtc/volc_con
 .. code-block:: c
 
     // RTC APP ID
-    #define DEFAULT_RTC_APP_ID    "67********************d1"
+    #define CONFIG_RTC_APP_ID    "67********************d1"
     // Server address
-    #define DEFAULT_SERVER_HOST   "1**.1**.**.**:8080"
-    // Default agent ID
-    #define DEFAULT_END_POINT_ID  "ep-**************-***zs"
-    // Default voice ID
-    #define DEFAULT_VOICE_TYPE    "BV007_streaming"
+    #define CONFIG_AGENT_SERVER_HOST   "1**.1**.**.**:8080"
 
 
 **5. License Function Description**
