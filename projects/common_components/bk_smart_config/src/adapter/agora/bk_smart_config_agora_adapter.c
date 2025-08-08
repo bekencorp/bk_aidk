@@ -1130,7 +1130,11 @@ void ir_mode_switch_main(void)
 
     ir_mode_switching = 1;
 
-    if (!video_started) {
+#if CONFIG_BT && (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO) && CONFIG_BT_REUSE_MEDIA_MEMORY
+    BK_LOGW(TAG, "you can't enable bluetooth and video at sametime when CONFIG_BT_REUSE_MEDIA_MEMORY=y !!!\n");
+#else
+    if (!video_started)
+    {
         bk_sconf_upate_agent_info("text_and_image");
         while (g_agent_offline)
         {
@@ -1153,7 +1157,10 @@ void ir_mode_switch_main(void)
             media_app_lvgl_switch_ui(LVGL_UI_DISP_IN_TEXT_AND_IMAGE);
         }
 #endif
-    } else {
+    }
+    else
+#endif
+    {
         video_turn_off();
         bk_sconf_upate_agent_info("text");
 
