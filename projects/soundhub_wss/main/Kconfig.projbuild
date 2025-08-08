@@ -10,6 +10,11 @@ menu "Beken_Genie Project Configuration"
         depends on BT
         default n
 
+    config A2DP_SINK_DEMO_SET_SINK_CAP
+        bool "a2dp set cap"
+        depends on A2DP_SINK_DEMO
+        default n
+
     config LDO3V3_ENABLE
         bool "Enabel LDO_3V3"
         default n

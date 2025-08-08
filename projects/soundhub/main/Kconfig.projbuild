@@ -10,6 +10,11 @@ menu "Beken_Genie Project Configuration"
         depends on BT
         default n
 
+    config A2DP_SINK_DEMO_SET_SINK_CAP
+        bool "a2dp set cap"
+        depends on A2DP_SINK_DEMO
+        default n
+
     config LDO3V3_ENABLE
         bool "Enabel LDO_3V3"
         default n
@@ -19,7 +24,7 @@ menu "Beken_Genie Project Configuration"
         int "Set LDO_3V3 Control Gpio"
         range 0 100
         default 52
-				
+
     config HARDWARE_SPEAKER_VER
         int "select HARDWARE_SPEAKER_VER"
         range 0 8

@@ -1239,6 +1239,18 @@ static void bk_bt_app_a2dp_sink_cb(bk_a2dp_cb_event_t event, bk_a2dp_cb_param_t 
     }
     break;
 
+    case BK_A2DP_SET_CAP_COMPLETED_EVT:
+    {
+        struct a2dp_set_cap_completed_param *param = (typeof(param))p_param;
+        LOGI("%s set cap status 0x%x\n", __func__, param->status);
+
+        if (s_bt_api_event_cb_sema)
+        {
+            rtos_set_semaphore( &s_bt_api_event_cb_sema );
+        }
+    }
+    break;
+
     default:
         LOGW("Invalid A2DP event: %d\r\n", event);
         break;
@@ -2051,6 +2063,36 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
         LOGI("%s get sem for a2dp sink init err\n", __func__);
         return -1;
     }
+
+#if CONFIG_A2DP_SINK_DEMO_SET_SINK_CAP
+    bk_a2dp_codec_cap_t cap =
+    {
+        .type = BK_A2DP_CODEC_TYPE_SBC,
+        .param.sbc_codec_cap.channel_mode =
+                BK_A2DP_SBC_CHANNEL_MODE_MONO
+                | BK_A2DP_SBC_CHANNEL_MODE_DUAL
+                | BK_A2DP_SBC_CHANNEL_MODE_STEREO
+                | BK_A2DP_SBC_CHANNEL_MODE_JOINT_STEREO
+                ,
+        .param.sbc_codec_cap.bit_pool_max = 35,
+    };
+
+    ret = bk_bt_a2dp_set_cap(1, &cap);
+
+    if (ret)
+    {
+        LOGI("%s bk_bt_a2dp_set_cap err %d\n", __func__, ret);
+        return -1;
+    }
+
+    ret = rtos_get_semaphore(&s_bt_api_event_cb_sema, 6 * 1000);
+
+    if (ret)
+    {
+        LOGI("%s get sem for bk_bt_a2dp_set_cap err\n", __func__);
+        return -1;
+    }
+#endif
 
     ret = bk_bt_a2dp_sink_register_data_callback(&bt_audio_sink_media_data_ind);
 
