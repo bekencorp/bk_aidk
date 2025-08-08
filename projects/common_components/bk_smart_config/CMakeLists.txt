@@ -31,9 +31,15 @@ list(APPEND srcs
 )
 endif()
 
+if (CONFIG_ALIYUN_MMI_EN)
+list(APPEND srcs
+	src/adapter/aliyun/bk_smart_config_ali_adapter.c
+)
+endif()
+
 endif()
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" 
-    PRIV_REQUIRES bk_boarding_service mbedtls psa_mbedtls json bk_bt bk_factory_config bk_app_event multimedia 
-                  network_transfer agora-iot-sdk video_engine audio_engine VolcEngineRTCLite lwip_intf_v2_1 LingXin_AI_IoT_VoiceChatEngine)
+    PRIV_REQUIRES bk_boarding_service mbedtls psa_mbedtls json bk_bt bk_factory_config bk_app_event multimedia
+                  network_transfer agora-iot-sdk video_engine audio_engine VolcEngineRTCLite lwip_intf_v2_1 LingXin_AI_IoT_VoiceChatEngine aliyun_sdk)

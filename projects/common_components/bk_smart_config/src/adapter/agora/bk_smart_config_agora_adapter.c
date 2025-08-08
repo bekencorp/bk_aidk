@@ -432,6 +432,10 @@ void custom_llm_default_conf_free(agora_custom_llm_t *custom_llm)
 	}
 }
 #endif
+void bk_app_notify_wakeup_event(void)
+{
+    //need to be implemented if necessary
+}
 
 extern void agora_auto_run(uint8_t reset);
 static void bk_sconf_start_agora_rtc(uint8_t reset)

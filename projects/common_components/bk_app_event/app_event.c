@@ -34,13 +34,6 @@
 #if (CONFIG_A2DP_SINK_DEMO || CONFIG_HFP_HF_DEMO)
 #include "app_audio_arbiter.h"
 #endif
-#if (CONFIG_SYS_CPU0 && CONFIG_LINGXIN_AI_EN)
-#include "chat_state_machine.h"
-#endif
-#if (CONFIG_SYS_CPU0 && CONFIG_BK_WSS_TRANS)
-#include "bk_wss.h"
-#endif
-
 #include "audio_engine.h"
 
 #define TAG "app_evt"
@@ -509,12 +502,8 @@ static void app_event_thread(beken_thread_arg_t data)
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
-#if (CONFIG_SYS_CPU0 && CONFIG_LINGXIN_AI_EN)
-                    LOGI("%s line:%d State_Event_Wakeup_Detected\r\n", __func__, __LINE__);
-                    state_machine_run_event(State_Event_Wakeup_Detected);
-#endif
-#if (CONFIG_SYS_CPU0 && CONFIG_BK_WSS_TRANS)
-                    rtc_websocket_rx_data_clean();
+#if (CONFIG_SYS_CPU0)
+                    bk_app_notify_wakeup_event();
 #endif
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino

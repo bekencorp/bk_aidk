@@ -324,7 +324,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 			break;
 		case WEBSOCKET_EVENT_CLOSED:
 			LOGE("WEBSOCKET_EVENT_CLOSED\r\n");
-			if(__get_beken_rtc()) {
+			if (__get_beken_rtc()) {
 				__get_beken_rtc()->bk_rtc_client = NULL;
 			}
         case WEBSOCKET_EVENT_DISCONNECTED:

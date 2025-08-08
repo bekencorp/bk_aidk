@@ -21,7 +21,7 @@ typedef enum
 	HTTP_STATUS_DEVICE_REMOVED = 405,
 	HTTP_STATUS_AGENT_START_FAILED = 406,
 }agent_status_code;
-
+void bk_app_notify_wakeup_event(void);
 uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len);
 void  bk_sconf_prase_agent_info(char *payload, uint8_t reset);
 void bk_sconf_erase_agent_info(void);

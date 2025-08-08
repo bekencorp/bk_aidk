@@ -17,6 +17,10 @@
 #include "bk_smart_config_lingxin_adapter.h"
 #endif
 
+#if CONFIG_ALIYUN_MMI_EN
+#include "bk_smart_config_ali_adapter.h"
+#endif
+
 typedef struct bk_fast_connect_d
 {
 	uint8_t flag;		//to check if ssid/pwd saved in easy flash is valid, default 0x70

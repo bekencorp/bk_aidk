@@ -27,8 +27,14 @@
 #include "bk_factory_config.h"
 #include "wifi_boarding_utils.h"
 #include <stdio.h>
-
+#include "bk_wss.h"
 #define TAG "bk_sconf_wss"
+
+void bk_app_notify_wakeup_event(void)
+{
+    rtc_websocket_rx_data_clean();
+}
+
 extern void beken_auto_run(void);
 void bk_sconf_trans_start(void)
 {

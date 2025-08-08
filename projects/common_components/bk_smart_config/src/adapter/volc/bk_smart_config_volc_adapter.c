@@ -76,6 +76,10 @@ int bk_volc_dev_start_agent(rtc_room_info_t *room_info)
 }
 
 #endif
+void bk_app_notify_wakeup_event(void)
+{
+    //need to be implemented if necessary
+}
 
 extern void byte_auto_run(uint8_t reset);
 static void bk_sconf_start_volc_rtc(uint8_t reset)

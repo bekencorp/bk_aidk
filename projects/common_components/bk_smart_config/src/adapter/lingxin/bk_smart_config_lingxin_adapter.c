@@ -31,7 +31,7 @@
 #include "driver/trng.h"
 #include "auth_config.h"
 #endif
-
+#include "chat_state_machine.h"
 #define TAG "bk_sconf_lingxin"
 
 #if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
@@ -42,6 +42,12 @@
 char *channel_name_record = NULL;
 extern struct lingxin_auth_config auth_config;
 #endif
+
+void bk_app_notify_wakeup_event(void)
+{
+    BK_LOGI(TAG, "%s line:%d State_Event_Wakeup_Detected\r\n", __func__, __LINE__);
+    state_machine_run_event(State_Event_Wakeup_Detected);
+}
 
 extern void beken_auto_run(uint8_t reset);
 void bk_sconf_trans_start(void)
