@@ -33,6 +33,15 @@ AIDK在gitlab上的分支是ai_release/v2.0.1, 如果需要取特定的版本, �
 
     github上bk_avdk_ai仓库和bk_idk_ai仓库都是bk_aidk仓库的子仓库, 使用上述git clone --recurse-submodules命令下载bk_aidk仓库即可
 
+Armino AIDK 工程编译
+------------------------------------
+
+进入AIDK目录，编译beken_genie工程::
+
+    cd ~/armino
+    make bk7258 PROJECT=beken_genie
+
+在编译完成后，在build/beken_genie/bk7258目录下将生成all-app.bin，使用烧录工具烧录到开发板即可。
 
 
 环境配置及烧录代码

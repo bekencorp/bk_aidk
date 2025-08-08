@@ -33,6 +33,15 @@ If we don't have a gitlab account, we can download the Armino AIDK SDK from `git
 
     The bk_avdk_ai repository and bk_idk_ai repository on GitHub are both sub-repositories of the bk_aidk repository. Use the above git clone --recurse-submodules command to download the bk_aidk repository.
 
+Armino AIDK Project Compilation
+------------------------------------
+
+Enter the AIDK directory and compile the beken_genie project::
+
+    cd ~/armino
+    make bk7258 PROJECT=beken_genie
+
+After the compilation is complete, the all-app.bin file will be generated in the build/beken_genie/bk7258 directory. You can use the programming tool to flash it to the development board.
 
 Build Compilation Environment:
 --------------------------------------------------------------------
