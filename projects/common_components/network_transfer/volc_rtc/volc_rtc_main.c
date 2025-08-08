@@ -378,6 +378,7 @@ exit:
     /* free audio  */
     if (audio_en)
     {
+        audio_en = false;
         audio_turn_off();
     }
 #endif
@@ -385,6 +386,7 @@ exit:
     /* free video sources */
     if (video_en)
     {
+        video_en = false;
         video_turn_off();
     }
 
@@ -406,9 +408,6 @@ exit:
         psram_free((char *)volc_room_info);
         volc_room_info = NULL;
     }
-
-    audio_en = false;
-    video_en = false;
 
     g_connected_flag = false;
 
