@@ -379,6 +379,7 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
             uint8_t zero_linkkey[16] = {0};
             uint8_t ff_linkkey[16] = {0};
             uint8_t found_key = 0;
+            uint8_t log_buff[16 * 2 + 10] = {0};
 
             memset(&tmp, 0, sizeof(tmp));
             memcpy(tmp.addr, addr, sizeof(tmp.addr));
@@ -397,20 +398,29 @@ void gap_event_cb(bk_gap_bt_cb_event_t event, bk_bt_gap_cb_param_t *param)
                      addr[1],
                      addr[0]);
 
-            uint8_t log_buff[16 * 2 + 10] = {0};
-            for (int i = 0; i < sizeof(tmp.link_key); ++i)
-            {
-                sprintf((char *)(log_buff + i * 2), "%02X", tmp.link_key[i]);
-            }
-            LOGW("%s %s\n", __func__, log_buff);
+                for (int i = 0; i < sizeof(tmp.link_key); ++i)
+                {
+                    sprintf((char *)(log_buff + i * 2), "%02X", tmp.link_key[i]);
+                }
+
+                LOGW("%s %s\n", __func__, log_buff);
 
                 found_key = 1;
             }
             else if (os_memcmp(btm_env.tmp_link_key, zero_linkkey, sizeof(btm_env.tmp_link_key)) &&
                      os_memcmp(btm_env.tmp_link_key, ff_linkkey, sizeof(btm_env.tmp_link_key)))
             {
-                LOGI("%s use tmp linkkey\n");
+                LOGI("%s use tmp linkkey\n", __func__);
+
                 os_memcpy(tmp.link_key, btm_env.tmp_link_key, sizeof(btm_env.tmp_link_key));
+
+                for (int i = 0; i < sizeof(tmp.link_key); ++i)
+                {
+                    sprintf((char *)(log_buff + i * 2), "%02X", tmp.link_key[i]);
+                }
+
+                LOGW("%s %s\n", __func__, log_buff);
+
                 found_key = 1;
             }
 
