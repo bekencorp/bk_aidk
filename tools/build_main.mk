@@ -21,13 +21,13 @@ export ARMINO_SOC := $(findstring $(MAKECMDGOALS), $(soc_targets))
 export CMD_TARGET := $(MAKECMDGOALS)
 
 ifeq ("$(APP_VERSION)", "")
-	export APP_VERSION := unknownn
+	export APP_VERSION := unknown
 else
 	export APP_VERSION := test
 endif
 
 ifeq ("$(PROJECT)", "")
-	export PROJECT := agora_wanson_ai
+	export PROJECT := beken_genie
 else
 	export PROJECT := $(PROJECT)
 endif
