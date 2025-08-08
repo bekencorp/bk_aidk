@@ -657,7 +657,7 @@ extern uint8_t lvgl_app_init_flag;
 void ir_mode_switch_main(void)
 {
     __maybe_unused uint8_t ir_timeout = 0;
-
+    int agent_retry_cnt = 0;
     BK_LOGI(TAG, "ir_mode_switch_main start\r\n");
     if (!byte_runing) {
         BK_LOGW(TAG, "Please Run AgoraRTC First!");
@@ -670,7 +670,22 @@ void ir_mode_switch_main(void)
         ir_timeout = 0;
         byte_stop();
         BK_LOGI(TAG, "byte_restart to enable vision\r\n");
-        bk_sconf_upate_agent_info("vision");
+        while (agent_retry_cnt < 3)
+        {
+            if (bk_sconf_upate_agent_info("vision") == 0)
+            {
+                break;
+            }
+            //BK_LOGE(TAG, "bk_sconf_upate_agent_info failed, retry:%d\r\n", agent_retry_cnt);
+            agent_retry_cnt++;
+            rtos_delay_milliseconds(200);
+        }
+
+        if (agent_retry_cnt == 3)
+        {
+            BK_LOGE(TAG, "bk_sconf_upate_agent_info failed\r\n");
+            goto exit;
+        }
         //video_turn_on();
         byte_restart(true);
 
@@ -683,7 +698,21 @@ void ir_mode_switch_main(void)
         ir_timeout = 0;
         byte_stop();
         BK_LOGI(TAG, "byte_restart to disable vision\r\n");
-        bk_sconf_upate_agent_info("text");
+        while (agent_retry_cnt < 3)
+        {
+            if (bk_sconf_upate_agent_info("text") == 0)
+            {
+                break;
+            }
+            //BK_LOGE(TAG, "bk_sconf_upate_agent_info failed, retry:%d", agent_retry_cnt);
+            agent_retry_cnt++;
+            rtos_delay_milliseconds(200);
+        }
+        if (agent_retry_cnt == 3)
+        {
+            BK_LOGE(TAG, "bk_sconf_upate_agent_info failed, retry:%d", agent_retry_cnt);
+            goto exit;
+        }
         byte_restart(false);
 
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY)

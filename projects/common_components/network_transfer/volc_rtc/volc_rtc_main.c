@@ -276,6 +276,11 @@ void byte_main(void)
         return;
     }
 
+    if (strlen(volc_room_info->app_id) == 0)
+    {
+        LOGE("app_id empty!\r\n");
+        return;
+    }
     //byte_print_finger();
     mbedtls_platform_set_calloc_free(volc_calloc, volc_free);
 
