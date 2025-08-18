@@ -51,7 +51,6 @@ extern bool rx_spk_data_flag;
 #define AEC_ENABLE              (1)
 
 bool g_connected_flag = false;
-bool g_button_flag = false;
 extern bool smart_config_running;
 
 /* call this api when wifi autoconnect */

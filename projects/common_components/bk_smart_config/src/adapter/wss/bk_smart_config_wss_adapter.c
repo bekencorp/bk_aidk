@@ -41,10 +41,10 @@ void bk_sconf_trans_start(void)
     beken_auto_run();
 }
 
-extern bk_err_t beken_rtc_stop(void);
+extern bk_err_t beken_wss_stop(void);
 void bk_sconf_trans_stop(void)
 {
-    beken_rtc_stop();
+    beken_wss_stop();
 }
 
 int bk_sconf_post_nfc_id(uint8_t *nfc_id)

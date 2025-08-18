@@ -79,7 +79,6 @@ static media_camera_device_t camera_device =
 bool g_connected_flag = false;
 static bool audio_en = false;
 static bool video_en = false;
-bool g_button_flag = false;
 static beken_thread_t  rtc_thread_hdl = NULL;
 static beken_semaphore_t rtc_sem = NULL;
 bool rtc_runing = false;
@@ -104,7 +103,7 @@ extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
 #define rwnxl_set_video_transfer_flag(...)
 #endif
 
-static void cli_beken_rtc_help(void)
+static void cli_beken_wss_help(void)
 {
     LOGI("rtc_test {start|stop appid video_en channel_name}\n");
     LOGI("rtc_debug {dump_mic_data value}\n");
@@ -220,7 +219,7 @@ void app_media_read_frame_callback(frame_buffer_t *frame)
     rtos_delay_milliseconds(500);
 }
 
-int rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const audio_frame_info_t *info_ptr)
+int bk_wss_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const audio_frame_info_t *info_ptr)
 {
     bk_err_t ret = BK_OK;
 
@@ -250,7 +249,41 @@ int rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int size, const 
     return ret;
 }
 
-void rtc_websocket_msg_handle(char *json_text, unsigned int size)
+int32_t bk_wss_state_event(uint32_t event, void *param)
+{
+	switch (event) {
+		case WSS_EVENT_RECORDING_START:
+			LOGE("%s, WSS_EVENT_RECORDING_START\n", __func__);
+			if (wss_record_work(__get_beken_rtc()) == 0) {
+				wss_record_start(__get_beken_rtc());
+			}
+			wss_play_stop(__get_beken_rtc());
+		break;
+		case WSS_EVENT_RECORDING_END:
+			LOGE("%s, WSS_EVENT_RECORDING_END\n", __func__);
+			if (wss_record_work(__get_beken_rtc()) != 0) {
+				wss_record_stop(__get_beken_rtc());
+			}
+			websocket_event_send_msg(WSS_EVT_AUDIO_BUF_COMMIT, 0);
+		break;
+		case WSS_EVENT_LLM_COMPLETE:
+			LOGE("%s, WSS_EVENT_LLM_COMPLETE\n", __func__);
+			break;
+		case WSS_EVENT_PLAYING_START:
+			LOGE("%s, WSS_EVENT_PLAYING_START\n", __func__);
+			wss_play_start(__get_beken_rtc());
+			break;
+		case WSS_EVENT_PLAYING_END:
+			LOGE("%s, WSS_EVENT_PLAYING_END\n", __func__);
+			wss_play_stop(__get_beken_rtc());
+			break;
+		default:
+			break;
+	}
+	return BK_OK;
+}
+
+void bk_websocket_msg_handle(char *json_text, unsigned int size)
 {
     cJSON *root = cJSON_Parse(json_text);
     if (root == NULL) {
@@ -295,6 +328,7 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size)
         websocket_event_send_msg(WSS_EVT_SERVER_BUF_COMMITED, 0);
     } else if (strcmp(type->valuestring, "response.created") == 0) {
         LOGI("response.created\n");
+        bk_wss_state_event(WSS_EVENT_PLAYING_START, NULL);
         text_info_t info = {};
         parse_text_response(&info, root);
     } else if (strcmp(type->valuestring, "response.audio.done") == 0) {
@@ -309,7 +343,7 @@ void rtc_websocket_msg_handle(char *json_text, unsigned int size)
     cJSON_Delete(root);
 }
 
-void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int32_t event_id, void* event_data)
+void bk_websocket_event_handler(void* event_handler_arg, char *event_base, int32_t event_id, void* event_data)
 {
 	bk_websocket_event_data_t *data = (bk_websocket_event_data_t *)event_data;
 	transport client = (transport)event_handler_arg;
@@ -342,7 +376,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 				rtc_websocket_audio_receive_data_general(__get_beken_rtc(), (uint8_t *)data->data_ptr, data->data_len);
 			}
 			else if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
-				rtc_websocket_msg_handle(data->data_ptr, data->data_len);
+				bk_websocket_msg_handle(data->data_ptr, data->data_len);
 			}
 			break;
 		default:
@@ -350,7 +384,7 @@ void rtc_websocket_event_handler(void* event_handler_arg, char *event_base, int3
 	}
 }
 
-void beken_rtc_main(void)
+void beken_wss_main(void)
 {
     bk_err_t ret = BK_OK;
     memory_free_show();
@@ -368,10 +402,10 @@ void beken_rtc_main(void)
 #endif
 	websocket_client_input_t websocket_cfg = {0};
 	websocket_cfg.uri = "wss://ai.aclsemi.com:9015";
-	websocket_cfg.ws_event_handler = rtc_websocket_event_handler;
+	websocket_cfg.ws_event_handler = bk_websocket_event_handler;
 	audio_tras_register_tx_data_func(rtc_websocket_audio_send_data);
 	os_memcpy(&audio_info, &general_audio, sizeof(general_audio));
-	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, rtc_user_audio_rx_data_handle, &audio_info);
+	rtc_session *rtc_session = rtc_websocket_create(&websocket_cfg, bk_wss_user_audio_rx_data_handle, &audio_info);
     if (rtc_session == NULL)
     {
         LOGE("rtc_websocket_create fail\r\n");
@@ -443,7 +477,7 @@ exit:
     rtos_delete_thread(NULL);
 }
 
-bk_err_t beken_rtc_stop(void)
+bk_err_t beken_wss_stop(void)
 {
     if (!rtc_runing)
     {
@@ -461,7 +495,7 @@ bk_err_t beken_rtc_stop(void)
     return BK_OK;
 }
 
-static bk_err_t beken_rtc_start(void)
+static bk_err_t beken_wss_start(void)
 {
     bk_err_t ret = BK_OK;
 
@@ -481,14 +515,14 @@ static bk_err_t beken_rtc_start(void)
     ret = rtos_create_thread(&rtc_thread_hdl,
                              4,
                              "beken_rtc",
-                             (beken_thread_function_t)beken_rtc_main,
+                             (beken_thread_function_t)beken_wss_main,
                              6 * 1024,
                              NULL);
 #else 
     ret = rtos_create_thread(&rtc_thread_hdl,
                              4,
                              "beken_rtc",
-                             (beken_thread_function_t)beken_rtc_main,
+                             (beken_thread_function_t)beken_wss_main,
                              2 * 1024,
                              NULL);
 #endif
@@ -524,11 +558,11 @@ void beken_auto_run(void)
        // bk_genie_wakeup_agent();
         audio_en = true;
         video_en = false;
-        beken_rtc_start();
+        beken_wss_start();
     }
 }
 
-void cli_beken_rtc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+void cli_beken_wss_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     if (argc < 3)
     {
@@ -547,11 +581,11 @@ void cli_beken_rtc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
         {
             video_en = false;
         }
-        beken_rtc_start();
+        beken_wss_start();
     }
     else if (os_strcmp(argv[1], "stop") == 0)
     {
-        beken_rtc_stop();
+        beken_wss_stop();
     }
     else
     {
@@ -561,6 +595,6 @@ void cli_beken_rtc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     return;
 
 cmd_fail:
-    cli_beken_rtc_help();
+    cli_beken_wss_help();
 }
 

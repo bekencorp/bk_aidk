@@ -474,7 +474,11 @@ void data_check(void *param)
 	if (packet != NULL)
 	{
 		rtos_lock_mutex(&session->rtc_mutex);
-		if (session->ring_buffer && (size = data_buffer_read(session->ring_buffer, packet)) && session) {
+		if (session->ring_buffer && (size = data_buffer_read(session->ring_buffer, packet))
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+		&& session->playing_state
+#endif
+		) {
 			cJSON *root = cJSON_Parse((char *)packet);
 			if (root != NULL) {
 				_rtc_websocket_audio_receive_text(root);
@@ -526,6 +530,31 @@ void data_stop_timeout_check(beken_timer_t *data_read_tmr)
 		}
 	rtos_deinit_timer(data_read_tmr);
 	}
+}
+
+void wss_record_start(rtc_session *handle)
+{
+	handle->recording_state = 1;
+}
+
+void wss_record_stop(rtc_session *handle)
+{
+	handle->recording_state = 0;
+}
+
+int wss_record_work(rtc_session *handle)
+{
+	return handle->recording_state;
+}
+
+void wss_play_start(rtc_session *handle)
+{
+	handle->playing_state = 1;
+}
+
+void wss_play_stop(rtc_session *handle)
+{
+	handle->playing_state = 0;
 }
 
 uint8 hnd_crc8(
@@ -973,6 +1002,13 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 		LOGE("wss disconnecting, not send data\r\n");
 		return -1;
 	}
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+	if (!rtc_session->recording_state) {
+		LOGD("wss waiting for recording state, not send data\r\n");
+		return 0;
+	}
+#endif
+
 	rtos_lock_mutex(&rtc_session->rtc_mutex);
 	transport bk_rtc_ws = rtc_session->bk_rtc_client;
 	db_channel_t *rtc_channel_t = rtc_session->rtc_channel_t;

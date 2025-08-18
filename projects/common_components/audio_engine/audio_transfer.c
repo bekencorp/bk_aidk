@@ -65,7 +65,6 @@ static uint16_t mic_tx_buf_frame_num = MIC_FRAME_NUM;
 
 extern bool tx_mic_data_flag;
 extern bool g_connected_flag;
-extern bool g_button_flag;
 
 enum vad_state
 {
@@ -77,11 +76,7 @@ enum vad_state
 static int send_audio_frame(uint8_t *data, unsigned int len)
 {
     // audio_frame_info_t info = { 0 };
-#if CONFIG_BK_WSS_TRANS_NOPSRAM
-    if ((!g_connected_flag) || (!g_button_flag))
-#else
     if(!g_connected_flag)
-#endif
     {
         return 0;
     }
