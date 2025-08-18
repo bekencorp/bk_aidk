@@ -26,6 +26,8 @@ jQuery(function()
         setPageStyle();
     }
     setFeedBackItem();
+    setAIChatItem();
+    setBottomFeedbackItem();
 });
 
 
@@ -311,4 +313,83 @@ function setFeedBackItem()
         }
         $("#doc-feedback").append('<a target="_blank" href="https://docs.bekencorp.com/docfeedback?title=' + title + '&versionNum=' + versionNum + '">' + itemDesc +'</a>');
     }
+}
+
+function setAIChatItem() {
+  const currentUrlOrigin = window.location.origin;
+  const $navContentWrap = $(".wy-nav-content-wrap").first();
+  if ($navContentWrap.length > 0) {
+    const $chatDiv = $(`<div id="ai_chat_entry">
+      <div><img src="${currentUrlOrigin}/ai_chat/res/ai_helper_3.png" /></div>
+        <div style="font-size:15px;">
+            <div>AI</div>
+            <div>助</div>
+            <div>手</div>
+        </div>
+      </div>`)
+      .css({
+        position: "fixed",
+        right: 0,
+        top: "90%",
+        transform: "translateY(-90%)",
+        "z-index": 999,
+        "margin-right": "10px",
+        background: "#fff",
+        width: "44px",
+        height: "120px",
+        "border-radius": "22px",
+        display: "flex",
+        "flex-direction": "column",
+        "justify-content": "center",
+        "align-items": "center",
+        "box-shadow": "1px 1px 3px #888",
+        cursor: "pointer",
+      })
+      .click(function () {
+        window.open(`${currentUrlOrigin}/ai_chat/index.html`, "_blank");
+      });
+    $navContentWrap.append($chatDiv);
+  }
+}
+function setBottomFeedbackItem() {
+  const $aiChatEntry = $("#ai_chat_entry");
+  if ($aiChatEntry.length > 0) {
+    const currentUrlOrigin = window.location.origin;
+    const $feedbackDiv = $(`<div id="feedback_entry">
+      <div><img src="${currentUrlOrigin}/ai_chat/res/feedback.png" /></div>
+        <div style="font-size:15px;">
+            <div>反</div>
+            <div>馈</div>
+            <div>建</div>
+            <div>议</div>
+        </div>
+      </div>`)
+      .css({
+        position: "fixed",
+        right: 0,
+        top: "calc(90% - 140px)",
+        transform: "translateY(-90%)",
+        "z-index": 999,
+        "margin-right": "10px",
+        background: "#fff",
+        width: "44px",
+        height: "120px",
+        "border-radius": "22px",
+        display: "flex",
+        "flex-direction": "column",
+        "justify-content": "center",
+        "align-items": "center",
+        "box-shadow": "1px 1px 3px #888",
+        cursor: "pointer",
+      })
+      .click(function () {
+        const versionNum = encodeURIComponent($("#version-id").val());
+        let title = encodeURIComponent($(document).attr("title"));
+        window.open(
+          `https://docs.bekencorp.com/docfeedback?title=${title}&versionNum=${versionNum}`,
+          "_blank"
+        );
+      });
+    $aiChatEntry.parent().append($feedbackDiv);
+  }
 }
