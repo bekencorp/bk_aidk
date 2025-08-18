@@ -52,6 +52,8 @@ bool g_connected_flag = false;
 bool g_agent_offline = true;
 static char agora_appid[33] = {0};
 static char channel_name[128] = {0};
+static char token[256] = CONFIG_AGORA_TOKEN;
+static uint32_t uid = CONFIG_AGORA_UID;
 static bool audio_en = false;
 static bool video_en = false;
 
@@ -282,8 +284,27 @@ void agora_main(void)
     agora_rtc_option.audio_config.pcm_sample_rate = CONFIG_PCM_SAMPLE_RATE;
     agora_rtc_option.audio_config.pcm_channel_num = CONFIG_PCM_CHANNEL_NUM;
 #endif
-    agora_rtc_option.p_token = CONFIG_AGORA_TOKEN;
-    agora_rtc_option.uid = CONFIG_AGORA_UID;
+    if (strlen(token))
+    {
+        LOGI("agora_main use record token:%s \r\n", token);
+        agora_rtc_option.p_token = token;
+    }
+    else
+    {
+        LOGI("agora_main use default token:%s \r\n", CONFIG_AGORA_TOKEN);
+        agora_rtc_option.p_token = CONFIG_AGORA_TOKEN;
+    }
+
+    if (uid != CONFIG_AGORA_UID)
+    {
+        LOGI("agora_main use record uid:%d \r\n", uid);
+        agora_rtc_option.uid = uid;
+    }
+    else
+    {
+        LOGI("agora_main use default uid:%d \r\n", CONFIG_AGORA_UID);
+        agora_rtc_option.uid = CONFIG_AGORA_UID;
+    }
 
     ret = bk_agora_rtc_start(&agora_rtc_option);
     if (ret != BK_OK)
@@ -583,6 +604,8 @@ cmd_fail:
 /* call this api when wifi autoconnect */
 extern char *app_id_record;
 extern char *channel_name_record;
+extern char *token_record;
+extern uint32_t uid_record;
 void agora_auto_run(uint8_t reset)
 {
 #if !CONFIG_BK_DEV_STARTUP_AGENT
@@ -598,6 +621,18 @@ void agora_auto_run(uint8_t reset)
     }
     sprintf(agora_appid, "%s", app_id_record);
     sprintf(channel_name, "%s", channel_name_record);
+    if (token_record)
+    {
+        sprintf(token, "%s", token_record);
+    }
+    else
+    {
+        token[0] = '\0';
+    }
+
+    if (uid_record)
+        uid = uid_record;
+
     if (!agora_runing)
     {
         audio_en = true;

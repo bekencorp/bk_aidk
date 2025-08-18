@@ -1,0 +1,278 @@
+#@ Enable camera interface
+CONFIG_DVP_CAMERA=y
+#@ Enable dvp Camera Test
+CONFIG_DVP_CAMERA_TEST=n
+#CONFIG_LCD_AUTO_FILL_FULL=n
+#CONFIG_ENCODE_BUF_DYNAMIC=n
+#@ Enable Lcd scale
+CONFIG_MEDIA_SCALE=y
+#@ Enable Lcd scale
+CONFIG_MEDIA_PIPELINE=y
+#@ Select Psram PSRAM_APS128XXO_OB9
+CONFIG_PSRAM_APS128XXO_OB9=y
+#@ Enable PSRAM write through
+CONFIG_PSRAM_WRITE_THROUGH=y
+#@ Set psram_malloc base address
+CONFIG_PSRAM_HEAP_CPU0_BASE_ADDER=0x60B00000
+#@ The psram address is from 0x60000000 to 0x60800000 for psram aps6408l_o
+CONFIG_PSRAM_HEAP_BASE=0x60D00000
+#@ psram aps6408l-o
+CONFIG_PSRAM_HEAP_SIZE=0x280000
+# CONFIG_PSRAM_AS_SYS_MEMORY=n
+#@ CPU0 RAM size for SPE
+CONFIG_CPU0_SPE_RAM_SIZE=0X3D000
+#@ CPU1 app RAM size
+CONFIG_CPU1_APP_RAM_SIZE=0X53000
+#@ CPU2 app RAM size
+CONFIG_CPU2_APP_RAM_SIZE=0X10000
+#@ video data in dtcm
+CONFIG_VIDEO_DTCM=n
+#@ Enable Cache
+CONFIG_CACHE_ENABLE=n
+#@ Audio Transfer DAC PA Control Enable
+CONFIG_AUD_TRAS_DAC_PA_CTRL=y
+#@ Delay opening the PA to ensure DAC stability and avoid pop noise.
+CONFIG_AUD_TRAS_DAC_PA_OPEN_DELAY=10
+#@ Delay closing the audio dac	to ensure PA stability and avoid pop noise.
+CONFIG_AUD_TRAS_DAC_PA_CLOSE_DELAY=30
+#@ Enable Override Flash Partition
+CONFIG_OVERRIDE_FLASH_PARTITION=y
+# CONFIG_BT_REUSE_MEDIA_MEMORY=y
+# CONFIG_BT_REUSE_MEDIA_MEM_SIZE=0x1B000
+#@ Audio ring buff safe interval
+CONFIG_AUD_RING_BUFF_SAFE_INTERVAL=4
+#@ Enable Aud intf support G722 data type
+CONFIG_AUD_INTF_SUPPORT_G722=n
+#@ Enable Aud intf support OPUS data type
+CONFIG_AUD_INTF_SUPPORT_OPUS=y
+#@ Support prompt tone resample
+CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE_RESAMPLE=y
+#@ default audio frame duration in ms
+CONFIG_AUDIO_FRAME_DURATION_MS=20
+#@ ADC sample rate
+CONFIG_AUDIO_ADC_SAMP_RATE=16000
+#@ DAC sample rate
+CONFIG_AUDIO_DAC_SAMP_RATE=16000
+#@ DAC sample rate
+CONFIG_AUDIO_ENCODER_TYPE="OPUS"
+#@ DAC sample rate
+CONFIG_AUDIO_DECODER_TYPE="OPUS"
+#@ Enable I2S
+CONFIG_I2S=n
+#@ Enable I2S Test
+CONFIG_I2S_TEST=n
+#@ Enable Audio driver test
+CONFIG_AUDIO_TEST=n
+#@ Enable Lcd hw decode
+CONFIG_SW_ROTATE_TO_YUYV_AND_DMA2D_TO_YUYV_NOT_RGB888=y
+#@ CPU frequency
+CONFIG_CPU_FREQ_HZ=480000000
+#@ Set transfer app task size
+CONFIG_TRANS_APP_TASK_SIZE=2048
+#@ 4
+CONFIG_DMA_LOGIC_CHAN_CNT=5
+#@ 0
+CONFIG_DMA_LOGIC_CHAN_ID_MIN=4
+#@ Standard dual stream
+CONFIG_STANDARD_DUALSTREAM=y
+#@ config a h264 NALU size unit(byte), default 64k
+CONFIG_H264_FRAME_SIZE=153600
+
+#@ Enable Aud intf support ai_dialog_free
+CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE=y
+#@ Enable supoort multiple speaker sources, for example prompt tone, a2dp music
+CONFIG_AUD_INTF_SUPPORT_MULTIPLE_SPK_SOURCE_TYPE=y
+#@ Enable supoort prompt tone
+CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE=y
+#@ Enable AI ASR run in cpu2
+CONFIG_AI_ASR_MODE_CPU2=y
+#@ need connect speaker to mic2
+CONFIG_AEC_ECHO_COLLECT_MODE_HARDWARE=y
+#@ Select Prompt Tone stored in vfs file system
+CONFIG_PROMPT_TONE_SOURCE_VFS=y
+#@ Select WAV Prompt Tone
+CONFIG_PROMPT_TONE_CODEC_WAV=y
+#@ Enable AEC V2 Version
+CONFIG_AEC_VERSION_V3=y
+#@ Enable AI NS
+CONFIG_AUD_AI_NS_SUPPORT=n
+#@ AI NS use static sram
+CONFIG_AUD_AI_NS_USE_STATIC_SRAM=n
+#@ Enable Audio Product Test
+CONFIG_AUD_SWEEP_TEST=n
+
+#@ Eable image dump sended to agent
+CONFIG_IMAGE_DEBUG_DUMP=y
+
+#
+# USB configuration
+#
+#@ Enable USB
+CONFIG_USB=y
+#@ USB VBAT CONTROL GPIO ID
+CONFIG_USB_VBAT_CONTROL_GPIO_ID=0x1C
+#@ MENTOR_USB
+CONFIG_MENTOR_USB=n
+#@ CHERRY_USB
+CONFIG_CHERRY_USB=y
+#@ Enable USB Host Mode
+CONFIG_USB_HOST=y
+#@ Enable USB Device Mode
+CONFIG_USB_DEVICE=y
+#@ Priority of USB task
+CONFIG_TASK_USB_PRIO=2
+#@ Enable Usb Uvc
+CONFIG_USB_UVC=n
+#@ Enable Usb Uac
+CONFIG_USB_UAC=n
+#@ Udisk Host specific macro switch,unable to coexist with Device
+CONFIG_USB_MSD=n
+#@ Enable Usb Uac Mic
+CONFIG_USB_UAC_MIC=n
+#@ Enable Usb Uac Speaker
+CONFIG_USB_UAC_SPEAKER=n
+#@ Enable fusion device video and audio
+CONFIG_UVC_UAC_DEMO=n
+#@ Enable Usb Uvc_Uac Debug
+CONFIG_UVC_UAC_DEMO_DEBUG=n
+#@ Enable Multi-core operation USB
+CONFIG_USB_MAILBOX=n
+#@ Enable USB mailbox master
+CONFIG_USB_MAILBOX_MASTER=n
+#@ Enable USB mailbox master cpu1 to cpu2
+CONFIG_USB_MAILBOX_MASTER_CPU1_TO_CPU2=n
+#@ Enable USB mailbox slave
+CONFIG_USB_MAILBOX_SLAVE=n
+#@ Udisk Device specific macro switch,unable to coexist with Host
+CONFIG_USBD_MSC=y
+#@ Enable Usb Cdc
+CONFIG_USB_CDC=y
+#@ This macro needs to be opened on cp0 and cp1 when USB in cp1.
+CONFIG_USB_CDC_MODEM=y
+
+#
+# LVGL configuration
+#
+#@ Enable Lvgl
+CONFIG_LVGL=y
+#@ Set lvgl task priority
+CONFIG_LVGL_TASK_PRIORITY=6
+#@ Enable LVGL use customized image decoding method
+CONFIG_LV_IMG_UTILITY_CUSTOMIZE=y
+#@ Enable TP
+CONFIG_TP=n
+#@ Enable GPIO Simulate I2C
+CONFIG_SIM_I2C=y
+#@ the gpio id control camera power
+CONFIG_CAMERA_CTRL_POWER_GPIO_ID=49
+#@ the gpio id control camera reset pin, -1 means not used
+CONFIG_CAMERA_CTRL_RESET_GPIO_CTRL=28
+#@ Simulate I2C SDA GPIO
+CONFIG_SIM_I2C_SDA_GPIO=43
+#@ Simulate I2C SCL GPIO
+CONFIG_SIM_I2C_SCL_GPIO=42
+#@ Enable TP_GT911 API
+CONFIG_TP_GT911=n
+#@ Enable TP_GT1151 API
+CONFIG_TP_GT1151=n
+#@ 1 - 1 byte per pixel
+CONFIG_LV_COLOR_DEPTH=16
+#@ Show CPU usage and FPS count
+CONFIG_LV_USE_PERF_MONITOR=n
+#@ Enable Lv Attribute Fast Mem
+CONFIG_LV_ATTRIBUTE_FAST_MEM=n
+#@ Enable Swap the 2 bytes of RGB565 color
+CONFIG_LV_COLOR_16_SWAP=y
+#@ Enable LCD_SPI_GC9D01
+CONFIG_LCD_SPI_GC9D01=y
+#@ Set lcd spi device number
+CONFIG_LCD_SPI_DEVICE_NUM=2
+#@ Enable AVI Play
+CONFIG_AVI_PLAY=y
+#@ Enable DUAL_SCREEN_AVI_PLAY
+CONFIG_DUAL_SCREEN_AVI_PLAY=y
+#@ Enable Vfs
+CONFIG_VFS=y
+#@ bk vfs max file fd num
+CONFIG_VFS_MAX_FD_NUM=30
+#@ Support FATFS
+CONFIG_FATFS=y
+#@ enable lcd blend by font logo
+CONFIG_LCD_FONT_BLEND=n
+#@ enable lcd dma2d blend flash logo
+CONFIG_LCD_DMA2D_BLEND=n
+#@ The value should be changed if need to change qspi line mode
+CONFIG_QSPI_LINE_MODE=1
+#@ Audio Transfer DAC PA Control Enable
+CONFIG_AUD_TRAS_DAC_PA_CTRL=y
+#@ Audio DAC PA Controller GPIO Set
+CONFIG_AUD_DAC_PA_CTRL_GPIO=50
+#@ BT reuse media memory at beging of cpu1
+CONFIG_BT_REUSE_MEDIA_MEMORY=y
+#@ BT reuse media memory size
+CONFIG_BT_REUSE_MEDIA_MEM_SIZE=0x1B000
+#@ dump debug data
+CONFIG_DEBUG_DUMP=y
+#@ dump debug data type extension
+CONFIG_DEBUG_DUMP_DATA_TYPE_EXTENSION=n
+
+#
+# SDCARD configuration
+#
+#@ Enable SDCARD
+CONFIG_SDCARD=y
+#@ sd card default clock freq
+CONFIG_SDCARD_DEFAULT_CLOCK_FREQ=14
+#@ Support SDCARD 4 Data Wires
+CONFIG_SDCARD_BUSWIDTH_4LINE=y
+#@ Enable SDcard power gpio ctrl
+CONFIG_SDCARD_POWER_GPIO_CTRL=y
+#@ Support FATFS
+CONFIG_FATFS=y
+#@ Support SDCARD FATFS
+CONFIG_FATFS_SDCARD=y
+#@ enable SDCARD debug, it will dump write and read data with SDCARD
+CONFIG_SDCARD_DEBUG_SUPPORT=n
+#@ Enable SDIO
+CONFIG_SDIO=y
+#@ SDIO Version V1P0
+CONFIG_SDIO_V1P0=n
+#@ SDIO Version V2P0
+CONFIG_SDIO_V2P0=y
+#@ Enable sdio host
+CONFIG_SDIO_HOST=y
+#@ Enable SDIO Slave Device, BEKEN Chip Is A SDIO Slave Device
+CONFIG_SDIO_SLAVE=n
+#@ Enable SDIO channel
+CONFIG_SDIO_CHANNEL_EN=n
+#@ Enable SDIO two derect channel
+CONFIG_SDIO_BIDIRECT_CHANNEL_EN=n
+#@ SDIO transfer data whether enable GDMA
+CONFIG_SDIO_GDMA_EN=n
+#@ Host Wake BK7256
+CONFIG_GPIO_NOTIFY_TRANSACTION_EN=n
+#@ SDIO Uses 4 Lines Transfer Data
+CONFIG_SDIO_4LINES_EN=y
+#@ SDIO Test Program Enable
+CONFIG_SDIO_TEST_EN=n
+#@ SDIO Debug Program Enable
+CONFIG_SDIO_DEBUG_EN=n
+#@ SDIO Host default clock freq
+CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ=7
+#@ SDIO CLEAR WRITE INT NEED WAIT
+CONFIG_SDIO_HOST_CLR_WRITE_INT=y
+#@ SDIO PM Support
+CONFIG_SDIO_PM_CB_SUPPORT=n
+#@ SDIO pin map select
+CONFIG_PIN_SDIO_GROUP_1=y
+#@ GPIO_10 as default wakeup source
+CONFIG_DEFAULT_WAKEUP_SOURCE=n
+CONFIG_LDO3V3_ENABLE=y
+CONFIG_LDO3V3_CTRL_GPIO=52
+#@ Enable SDcard auto powerdown when idle
+CONFIG_SDCARD_POWER_GPIO_CTRL_AUTO_POWERDOWN_WHEN_IDLE=n
+#@ Enable user-defined GPIO config for each project
+CONFIG_USR_GPIO_CFG_EN=y
+#@ Enable GPIO default set devs
+CONFIG_GPIO_DEFAULT_SET_SUPPORT=y
+CONFIG_REMOTE_VFS_SERVER=y

@@ -536,6 +536,9 @@ void bk_smart_config_cli(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 uint8_t bk_sconf_get_supported_engine(void)
 {
 #ifdef CONFIG_AGORA_IOT_SDK
+#if CONFIG_SENSENOVA_ENABLE
+    return 5;
+#endif
 #if !CONFIG_BK_DEV_STARTUP_AGENT
     return 0;
 #else

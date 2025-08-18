@@ -1,0 +1,39 @@
+#@ video data in dtcm
+CONFIG_VIDEO_DTCM=n
+#@ Enable Media
+CONFIG_MEDIA_MINOR=y
+#@ Enable media service
+CONFIG_MEDIA=y
+#@ Enable Cache
+CONFIG_CACHE_ENABLE=n
+#@ CPU0 RAM size for SPE
+CONFIG_CPU0_SPE_RAM_SIZE=0X3D000
+#@ CPU1 app RAM size
+CONFIG_CPU1_APP_RAM_SIZE=0X53000
+#@ CPU2 app RAM size
+CONFIG_CPU2_APP_RAM_SIZE=0X10000
+#@ 4
+CONFIG_DMA_LOGIC_CHAN_CNT=7
+#@ 0
+CONFIG_DMA_LOGIC_CHAN_ID_MIN=9
+#@ Enable mailbox socket ipc driver
+CONFIG_MAILBOX_IPC=n
+#@ Enable flash
+CONFIG_FLASH=n
+
+#@ Enable Wanson Automatic Speech Recognition
+CONFIG_WANSON_ASR=y
+#@ Enable bk_wanson_asr component
+CONFIG_BEKEN_WANSON_ASR=y
+#@ Enable beken wanson asr use sram
+CONFIG_BEKEN_WANSON_ASR_USE_SRAM=y
+#@ support wakeword "hi armino"
+CONFIG_WANSON_ASR_WORDS_VERSION_V2=n
+#@ support wakeword "hi armino"
+CONFIG_WANSON_ASR_GROUP_VERSION_WORDS_V1=y
+#@ Enable Aud intf support ai_dialog_free
+CONFIG_AUD_INTF_SUPPORT_AI_DIALOG_FREE=y
+#@ Enable AI ASR run in cpu2
+CONFIG_AI_ASR_MODE_CPU2=y
+#@ GPIO_10 as default wakeup source
+CONFIG_DEFAULT_WAKEUP_SOURCE=n

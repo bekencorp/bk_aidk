@@ -38,6 +38,8 @@
 #define MAX_URL_LEN         256
 char *app_id_record = NULL;
 char *channel_name_record = NULL;
+char *token_record = NULL;
+uint32_t uid_record = 0;
 
 #if  CONFIG_BK_DEV_STARTUP_AGENT
 #include <stdio.h>

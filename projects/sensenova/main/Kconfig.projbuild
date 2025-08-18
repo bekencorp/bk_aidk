@@ -1,0 +1,32 @@
+menu "Beken_Genie Project Configuration"
+    config LDO3V3_ENABLE
+        bool "Enabel LDO_3V3"
+        default n
+
+    config LDO3V3_CTRL_GPIO
+        depends on LDO3V3_ENABLE
+        int "Set LDO_3V3 Control Gpio"
+        range 0 100
+        default 52
+				
+    config HARDWARE_SPEAKER_VER
+        int "select HARDWARE_SPEAKER_VER"
+        range 0 8
+        default 0
+
+	choice G722_CODEC_RUN_CPU
+		prompt "Select G722 Codec run cpu"
+		default G722_CODEC_RUN_ON_CPU1
+
+		config G722_CODEC_RUN_ON_CPU1
+		bool "Select g722 codec run on cpu1"
+		help
+			Use g722 codec in avdk sdk
+
+		config G722_CODEC_RUN_ON_CPU0
+		bool "Select g722 codec run on cpu0"
+		help
+			Use g722 codec in agora_iot_sdk
+	endchoice
+
+endmenu

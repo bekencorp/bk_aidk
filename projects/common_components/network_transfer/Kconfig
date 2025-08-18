@@ -14,4 +14,8 @@ menu "net_transfer"
 	config VOLC_ENABLE_SUBTITLE_BY_DEFAULT
 		bool "Enable subtitle for volc_rtc by default"
 		default n
+
+	config SENSENOVA_ENABLE
+		bool "Enable sensenova with aogra by default"
+		default n
 endmenu
