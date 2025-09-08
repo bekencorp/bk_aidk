@@ -258,19 +258,20 @@ int32_t bk_wss_state_event(uint32_t event, void *param)
 				wss_record_start(__get_beken_rtc());
 			}
 			wss_play_stop(__get_beken_rtc());
-		break;
+			break;
 		case WSS_EVENT_RECORDING_END:
 			LOGE("%s, WSS_EVENT_RECORDING_END\n", __func__);
 			if (wss_record_work(__get_beken_rtc()) != 0) {
 				wss_record_stop(__get_beken_rtc());
 			}
 			websocket_event_send_msg(WSS_EVT_AUDIO_BUF_COMMIT, 0);
-		break;
+			break;
 		case WSS_EVENT_LLM_COMPLETE:
 			LOGE("%s, WSS_EVENT_LLM_COMPLETE\n", __func__);
 			break;
 		case WSS_EVENT_PLAYING_START:
 			LOGE("%s, WSS_EVENT_PLAYING_START\n", __func__);
+			rtc_websocket_rx_data_clean();
 			wss_play_start(__get_beken_rtc());
 			break;
 		case WSS_EVENT_PLAYING_END:

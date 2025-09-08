@@ -563,27 +563,34 @@ void data_stop_timeout_check(beken_timer_t *data_read_tmr)
 
 void wss_record_start(rtc_session *handle)
 {
-	handle->recording_state = 1;
+	if (handle)
+		handle->recording_state = 1;
 }
 
 void wss_record_stop(rtc_session *handle)
 {
-	handle->recording_state = 0;
+	if (handle)
+		handle->recording_state = 0;
 }
 
 int wss_record_work(rtc_session *handle)
 {
-	return handle->recording_state;
+	if (handle)
+		return handle->recording_state;
+	else
+		return BK_FAIL;
 }
 
 void wss_play_start(rtc_session *handle)
 {
-	handle->playing_state = 1;
+	if (handle)
+		handle->playing_state = 1;
 }
 
 void wss_play_stop(rtc_session *handle)
 {
-	handle->playing_state = 0;
+	if (handle)
+		handle->playing_state = 0;
 }
 
 uint8 hnd_crc8(
