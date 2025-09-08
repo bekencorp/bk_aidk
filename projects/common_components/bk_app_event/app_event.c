@@ -493,6 +493,9 @@ static void app_event_thread(beken_thread_arg_t data)
 #if CONFIG_AUD_INTF_SUPPORT_PROMPT_TONE
                     app_play_prompt_tone(APP_EVT_ASR_WAKEUP);
 #endif
+#if (CONFIG_SYS_CPU0)
+                    bk_app_notify_wakeup_event();
+#endif
                     bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_480M);
                     bk_wifi_sta_pm_disable();
 #if (CONFIG_DUAL_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_AVI_PLAY || CONFIG_SINGLE_SCREEN_FONT_DISPLAY)
@@ -502,9 +505,6 @@ static void app_event_thread(beken_thread_arg_t data)
                     if (!is_network_provisioning){
                         led_app_set(LED_OFF_GREEN,0);
                     }
-#if (CONFIG_SYS_CPU0)
-                    bk_app_notify_wakeup_event();
-#endif
                     break;
                 case APP_EVT_ASR_STANDBY:	//byebye armino
                     is_standby = 1;
