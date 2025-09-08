@@ -252,7 +252,7 @@ int send_audio_data_to_net_transfer(uint8_t *data, unsigned int len)
     }
     else
     {
-        AUDE_LOGE("len:%d,free size of mic_data_rb:%d is not enough!\n",
+        AUDE_LOGD("len:%d,free size of mic_data_rb:%d is not enough!\n",
              len,
              ring_buffer_get_free_size(&mic_data_rb));
         return 0;

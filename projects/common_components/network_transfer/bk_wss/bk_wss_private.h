@@ -477,6 +477,10 @@ typedef struct {
 	uint16_t recording_state;
 	wss_evt_info_t wss_evt_info;
 	uint16_t server_pause_flags;
+	// For 4-packet combination sending of PCM audio data
+	uint8_t *send_cache_buffer;
+	size_t send_cache_size;
+	int send_cache_count;
 }rtc_session;
 
 typedef struct {
@@ -538,6 +542,7 @@ void rtc_websocket_audio_receive_data_general(rtc_session *rtc_session, uint8 *d
 int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType msgtype);
 int rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
+void rtc_websocket_parse_request_text(text_info_t *info, cJSON *root);
 void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size);
 int bk_rtc_video_data_send(const uint8_t *data_ptr, size_t data_len, const video_frame_info_t *info_ptr);
 bk_err_t bk_rtc_register_video_rx_handle(rtc_video_rx_data_handle video_rx_handle);

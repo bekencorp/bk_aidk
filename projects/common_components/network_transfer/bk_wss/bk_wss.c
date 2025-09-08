@@ -1026,9 +1026,22 @@ void rtc_websocket_audio_receive_text(rtc_session *rtc_session, uint8 *data, uin
 	}
 }
 
+int rtc_websocket_audio_send_packed_data(rtc_session *rtc_session, uint8_t *data_ptr, size_t data_len)
+{
+	int ret = BK_OK;
+
+	transport bk_rtc_ws = rtc_session->bk_rtc_client;
+	db_channel_t *rtc_channel_t = rtc_session->rtc_channel_t;
+
+	rtc_client_transmission_pack(rtc_channel_t, data_ptr, data_len);
+	ret = websocket_client_send_binary(bk_rtc_ws, (const char *)rtc_channel_t->tbuf, (data_len + HEAD_SIZE_TOTAL), 10*1000);
+	return ret;
+}
+
 int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 {
 	rtc_session *rtc_session = __get_beken_rtc();
+	int ret = BK_OK;
 
 	if (!rtc_session) {
 		LOGE("rtc_session need to be init\r\n");
@@ -1046,11 +1059,23 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 #endif
 
 	rtos_lock_mutex(&rtc_session->rtc_mutex);
-	transport bk_rtc_ws = rtc_session->bk_rtc_client;
-	db_channel_t *rtc_channel_t = rtc_session->rtc_channel_t;
 
-	rtc_client_transmission_pack(rtc_channel_t, data_ptr, data_len);
-	int ret = websocket_client_send_binary(bk_rtc_ws, (const char *)rtc_channel_t->tbuf, (data_len + HEAD_SIZE_TOTAL), 10*1000);
+	if (os_strncmp("pcm", rtc_session->audio_info.encoding_type, 3) == 0) {
+		// Cache data until having 4 packets
+		if (rtc_session->send_cache_count < 4) {
+			os_memcpy(rtc_session->send_cache_buffer + rtc_session->send_cache_count * data_len, data_ptr, data_len);
+			rtc_session->send_cache_count++;
+		}
+
+		// Send combined packet when having 4 packets
+		if (rtc_session->send_cache_count == 4) {
+			ret = rtc_websocket_audio_send_packed_data(rtc_session, rtc_session->send_cache_buffer, rtc_session->send_cache_size);
+			rtc_session->send_cache_count = 0;
+		}
+	}
+	else {
+		ret = rtc_websocket_audio_send_packed_data(rtc_session, data_ptr, data_len);
+	}
 	if (!rtc_session || !rtc_session->rtc_mutex) {
 		LOGE("websocket send binary fail! err:%d\r\n", ret);
 		return ret;
@@ -1166,6 +1191,18 @@ int rtc_websocket_parse_hello(cJSON *root) {
 	LOGE("  code: %d\n", code->valueint);
 	LOGE("  msg: %s\n", msg->valuestring);
 	return code->valueint;
+}
+
+void rtc_websocket_parse_request_text(text_info_t *info, cJSON *root) {
+	cJSON *text = cJSON_GetObjectItem(root, "user_text");
+
+	if (text == NULL) {
+		LOGE("Error: Missing required fields in user_text.\n");
+		return;
+	}
+
+	LOGI("Parsing text: %s\n", text->valuestring);
+	info->text_data = text->valuestring;
 }
 
 void rtc_websocket_parse_text(text_info_t *info, cJSON *root) {
@@ -1320,7 +1357,19 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
 		goto fail;
 	}
 
-	rtc_sess->rtc_channel_t = rtc_client_transmission_malloc(rtc_sess->audio_info.dec_node_size, rtc_sess->audio_info.enc_node_size);
+	// Initialize send cache for 4-packet combination
+	rtc_sess->send_cache_size = rtc_sess->audio_info.enc_node_size * 4;
+	rtc_sess->send_cache_buffer = (uint8_t *)os_malloc(rtc_sess->send_cache_size);
+	if (!rtc_sess->send_cache_buffer) {
+		LOGE("Failed to allocate memory for send cache buffer\n");
+		goto fail;
+	}
+	rtc_sess->send_cache_count = 0;
+
+	if (os_strncmp("pcm", rtc_sess->audio_info.encoding_type, 3) == 0)
+		rtc_sess->rtc_channel_t = rtc_client_transmission_malloc(rtc_sess->audio_info.dec_node_size, rtc_sess->send_cache_size);
+	else
+		rtc_sess->rtc_channel_t = rtc_client_transmission_malloc(rtc_sess->audio_info.dec_node_size, rtc_sess->audio_info.enc_node_size);
 	if (rtc_sess->rtc_channel_t == NULL)
 	{
 		LOGE("rtc_channel_t malloc failed\n");
@@ -1353,6 +1402,10 @@ rtc_session *rtc_websocket_create(websocket_client_input_t *websocket_cfg, rtc_u
     return rtc_sess;
 
 fail:
+	if (rtc_sess->send_cache_buffer) {
+		os_free(rtc_sess->send_cache_buffer);
+		rtc_sess->send_cache_buffer = NULL;
+	}
 	if (rtc_sess->rtc_mutex)
 	{
 		rtos_deinit_mutex(&rtc_sess->rtc_mutex);
@@ -1400,6 +1453,11 @@ bk_err_t rtc_websocket_stop(rtc_session *rtc_session)
 		rtc_client_transmission_dealloc(rtc_session->rtc_channel_t);
 		rtc_session->rtc_channel_t = NULL;
 	}
+	if (rtc_session->send_cache_buffer) {
+		os_free(rtc_session->send_cache_buffer);
+		rtc_session->send_cache_buffer = NULL;
+	}
+
 	rtos_deinit_mutex(&rtc_session->rtc_mutex);
 	rtc_session->rtc_mutex = NULL;
 

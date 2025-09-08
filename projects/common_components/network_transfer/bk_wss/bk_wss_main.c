@@ -315,9 +315,15 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
 			LOGE("join WebSocket server fail\r\n");
 		}
     } else if ((strcmp(type->valuestring, "reply_text") == 0) || (strcmp(type->valuestring, "request_text") == 0)) {
-		LOGE("%s receive text...\r\n", __func__);
 #if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
 		rtc_websocket_audio_receive_text(__get_beken_rtc(), (uint8_t *)json_text, size);
+#else
+		cJSON *text = cJSON_GetObjectItem(root, "text");
+		if (text == NULL) {
+			LOGE("Error: Missing required fields in [%s]\n", type->valuestring);
+			return;
+		}
+		LOGE("receive type = %s, text = [%s]\n", (strcmp(type->valuestring, "reply_text") == 0) ? "reply" : "request", text->valuestring);
 #endif
     }
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
@@ -331,7 +337,7 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
         LOGI("response.created\n");
         bk_wss_state_event(WSS_EVENT_PLAYING_START, NULL);
         text_info_t info = {};
-        parse_text_response(&info, root);
+        rtc_websocket_parse_request_text(&info, root);
     } else if (strcmp(type->valuestring, "response.audio.done") == 0) {
         LOGI("response.audio.done\n");
         text_info_t info = {};
