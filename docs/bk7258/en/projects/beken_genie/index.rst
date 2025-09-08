@@ -845,6 +845,8 @@ Q: Which 4G Cat1 modules are already adapted for USB interface?
 
 A: Fibocom LE270/370, luat Air780E, Quectel EC-800M, MobileTek I511
 
+Note: When using the Quectel EC-800M, some additional modifications are required for the adaptation code. The specific patch can be obtained from this link: https://armino.bekencorp.com/article/34.html
+
 Q: How does beken genie connect an external 4G module through USB interface?
 
 A: Please refer to https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/en/v_ai_2.0.1/developer-guide/peripheral/bk_modem.html#modem-griver-usage-guide

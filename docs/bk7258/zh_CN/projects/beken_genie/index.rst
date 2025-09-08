@@ -816,6 +816,8 @@ Q：基于USB接口已经适配的4G Cat1模组有哪些？
 
 A：广和通LE270\370、合宙Air780E、移远EC-800M、移柯I511
 
+注意：使用移远EC-800M时，适配代码需要有一些额外修改。具体patch可从该链接中获取：https://armino.bekencorp.com/article/34.html
+
 Q：使用beken genie如何通过USB接口外接4G模组？
 
 A：请参考 https://docs.bekencorp.com/arminodoc/bk_idk/bk7258/zh_CN/v_ai_2.0.1/developer-guide/peripheral/bk_modem.html#modem-griver-usage-guide
