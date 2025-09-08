@@ -374,17 +374,20 @@ static void wss_event_thread(beken_thread_arg_t data)
 			{
 				case WSS_EVT_SERVER_HELLO:
 					LOGI("hello from server\n");
-					rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_SESSION_UPDATE);
+					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_SESSION_UPDATE);
 					break;
 				case WSS_EVT_SERVER_SESSION_UPDATED:
 					LOGI("updated from server\n");
 					break;
 				case WSS_EVT_AUDIO_BUF_COMMIT:
 					LOGI("audio buf commit\n");
-					rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT);
+					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT);
 					break;
 				case WSS_EVT_SERVER_BUF_COMMITED:
-					rtc_websocket_send_text(__get_beken_rtc()->bk_rtc_client, (void *)(&dialog_info), BEKEN_RTC_RESPONSE_CREATE);
+					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_RESPONSE_CREATE);
+					break;
+				case WSS_EVT_SEND_FC_FLAG:
+					rtc_websocket_send_text(__get_beken_rtc(), NULL, BEKEN_RTC_SEND_FC_FLAG);
 					break;
 				case WSS_EVT_SUBTITLE_DISPLAY:
 					LOGI("update text from server type:%s %s\n", ((text_info_t *)msg.param)->text_type ? "reply":"request",
@@ -461,6 +464,27 @@ void wss_event_deinit(wss_evt_info_t *wss_evt_info)
 	}
 }
 
+int data_buffer_available(data_buffer_t *rb)
+{
+	int diff = (rb->length_read_index > rb->length_write_index) ?
+		(rb->length_read_index - rb->length_write_index) : (rb->buffer_count - rb->length_write_index + rb->length_read_index);
+	return diff;
+}
+
+void data_check_fc_send_msg(rtc_session *session)
+{
+	int diff = data_buffer_available(session->ring_buffer);
+
+	if ((diff > ((session->ring_buffer->buffer_count) * 1)/2) && !session->server_pause_flags) {
+		websocket_event_send_msg(WSS_EVT_SEND_FC_FLAG, 0);
+		session->server_pause_flags = 1;
+	}
+	else if ((diff <= 5) && session->server_pause_flags) {
+		LOGE("%s fc msg may lost, available:%d\r\n", __func__, diff);
+		websocket_event_send_msg(WSS_EVT_SEND_FC_FLAG, 0);
+	}
+}
+
 void data_check(void *param)
 {
 	rtc_session *session = (rtc_session *) param;
@@ -474,23 +498,28 @@ void data_check(void *param)
 	if (packet != NULL)
 	{
 		rtos_lock_mutex(&session->rtc_mutex);
-		if (session->ring_buffer && (size = data_buffer_read(session->ring_buffer, packet))
+		if (session->ring_buffer) {
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
-		&& session->playing_state
+			data_check_fc_send_msg(session);
 #endif
-		) {
-			cJSON *root = cJSON_Parse((char *)packet);
-			if (root != NULL) {
-				_rtc_websocket_audio_receive_text(root);
-				cJSON_Delete(root);
+			if ((size = data_buffer_read(session->ring_buffer, packet))
+#if CONFIG_BK_WSS_TRANS_NOPSRAM
+				&& session->playing_state
+#endif
+			) {
+				cJSON *root = cJSON_Parse((char *)packet);
+				if (root != NULL) {
+					_rtc_websocket_audio_receive_text(root);
+					cJSON_Delete(root);
+				}
+				else
+				{
+					_rtc_websocket_audio_receive_data(session, packet, size, session->rtc_channel_t->cb);
+				}
+				LOGD("data coming...\n");
+			} else {
+				LOGD("Buffer empty, waiting for data...\n");
 			}
-			else
-			{
-				_rtc_websocket_audio_receive_data(session, packet, size, session->rtc_channel_t->cb);
-			}
-			LOGD("data coming...\n");
-		} else {
-			LOGD("Buffer empty, waiting for data...\n");
 		}
 		rtos_unlock_mutex(&session->rtc_mutex);
 	}
@@ -1023,12 +1052,12 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len)
 	return ret;
 }
 
-int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype) {
-	if (web_socket == NULL) {
+int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType msgtype) {
+	if (rtc_session == NULL) {
 		LOGE("Invalid arguments\r\n");
 		return -1;
 	}
-	LOGI("add extra str: %s\r\n", str ? "yes":"no need");
+	LOGD("add extra str: %s\r\n", str ? "yes":"no need");
 	char *buf = NULL;
 	if (NULL == (buf = (char *)os_zalloc(BEKEN_RTC_TXT_SIZE))) {
 		LOGE("alloc user context fail\r\n");
@@ -1043,14 +1072,14 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
 				((audio_info_t *)str)->encoding_type, ((audio_info_t *)str)->adc_samp_rate, ((audio_info_t *)str)->enc_samp_interval,
 						((audio_info_t *)str)->decoding_type, ((audio_info_t *)str)->dac_samp_rate, ((audio_info_t *)str)->dec_samp_interval);
 			LOGI("Sending: %s\r\n", buf);
-			websocket_client_send_text(web_socket, buf, n, 10*1000);
+			websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
 			break;
 #else
 		case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
                         "{\"type\":\"hello\",\"interact_mode\":3}");
             LOGI("Hello Sending: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
         case BEKEN_RTC_SESSION_UPDATE:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
@@ -1064,42 +1093,48 @@ int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtyp
                         "\"output_audio_format\":\"%s\", "
                         "\"output_audio_rate\":%d, "
                         "\"cloud_vad\":%d, "
-                        "\"source\":\"%s\" "
+                        "\"source\":\"%s\", "
+                        "\"pack_size\":%d "
                         "}"
                         "}",
                         ((dialog_session_t *)str)->devId, ((dialog_session_t *)str)->nfcId,
                         ((dialog_session_t *)str)->input_audio_format, ((dialog_session_t *)str)->input_audio_rate,
                         ((dialog_session_t *)str)->output_audio_format, ((dialog_session_t *)str)->output_audio_rate,
-                        ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source);
+                        ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source, rtc_session->ring_buffer->buffer_count/2);
             LOGI("Session_Update: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_APPEND:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.append\"}");
             LOGI("Audio_Buf_Commit: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_CLEAR:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.clear\"}");
             LOGI("Audio_Buf_Clear: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
         case BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"input_audio_buffer.commit\"}");
             LOGI("Audio_Buf_Commit: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
         case BEKEN_RTC_RESPONSE_CREATE:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
                         "{\"type\":\"response.create\",\"data_type\":\"binary\"}");
             LOGI("Response_Create: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
          case BEKEN_RTC_ERROR:
             n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"error\", \"error\":\"%s\"}", ((error_info_t *)str)->error_desc);
             LOGI("Error: %s\r\n", buf);
-            websocket_client_send_text(web_socket, buf, n, 10*1000);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
+            break;
+         case BEKEN_RTC_SEND_FC_FLAG:
+            n = snprintf(buf, BEKEN_RTC_TXT_SIZE, "{\"type\":\"flow_control\", \"flag\":\"idle\"}");
+            LOGI("Send_Fc: %s\r\n", buf);
+            websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
 #endif
 		default:

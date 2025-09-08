@@ -373,6 +373,7 @@ enum MsgType {
     BEKEN_RTC_RESPONSE_CREATED              = 8,
     BEKEN_RTC_RESPONSE_AUDIO_DONE           = 9,
     BEKEN_RTC_ERROR                         = 10,
+    BEKEN_RTC_SEND_FC_FLAG                  = 11,
 };
 
 /*
@@ -475,6 +476,7 @@ typedef struct {
 	uint16_t playing_state;
 	uint16_t recording_state;
 	wss_evt_info_t wss_evt_info;
+	uint16_t server_pause_flags;
 }rtc_session;
 
 typedef struct {
@@ -506,6 +508,7 @@ typedef enum
     WSS_EVT_AUDIO_BUF_CLEAR,
     WSS_EVT_AUDIO_BUF_COMMIT,
     WSS_EVT_RSP_CREATE,
+    WSS_EVT_SEND_FC_FLAG,
     WSS_EVT_SUBTITLE_DISPLAY,
     WSS_EVT_EXIT,
 } wss_evt_type_t;
@@ -532,7 +535,7 @@ int rtc_websocket_audio_send_data(uint8_t *data_ptr, size_t data_len);
 void rtc_websocket_audio_receive_data(rtc_session *rtc_session, uint8 *data, uint32_t len);
 void rtc_websocket_audio_receive_text(rtc_session *rtc_session, uint8 *data, uint32_t len);
 void rtc_websocket_audio_receive_data_general(rtc_session *rtc_session, uint8 *data, uint32_t len);
-int rtc_websocket_send_text(transport web_socket, void *str, enum MsgType msgtype);
+int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType msgtype);
 int rtc_websocket_parse_hello(cJSON *root);
 void rtc_websocket_parse_text(text_info_t *text, cJSON *root);
 void rtc_fill_audio_info(audio_info_t *info, char *enctype, char *dectype, uint32_t adc_rate, uint32_t dac_rate, uint32_t enc_ms, uint32_t dec_ms, uint32_t enc_size, uint32_t dec_size);

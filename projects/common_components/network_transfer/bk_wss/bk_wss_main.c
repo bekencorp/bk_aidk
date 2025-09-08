@@ -318,7 +318,7 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
 #if CONFIG_SINGLE_SCREEN_FONT_DISPLAY
 		rtc_websocket_audio_receive_text(__get_beken_rtc(), (uint8_t *)json_text, size);
 #endif
-    } 
+    }
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
     else if (strcmp(type->valuestring, "session.updated") == 0) {
         LOGI("session.updated\n");
@@ -335,6 +335,9 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
         LOGI("response.audio.done\n");
         text_info_t info = {};
         parse_audio_done(&info, root);
+    } else if ((strncmp(type->valuestring, "pack_pause", 10) == 0)) {
+        __get_beken_rtc()->server_pause_flags = 0;
+        LOGE("%s pack_pause\r\n", __func__);
     } 
 #endif
     else {
@@ -347,13 +350,16 @@ void bk_websocket_event_handler(void* event_handler_arg, char *event_base, int32
 {
 	bk_websocket_event_data_t *data = (bk_websocket_event_data_t *)event_data;
 	transport client = (transport)event_handler_arg;
+	if (!client)
+		LOGE("%s websocekt client hander NULL!\r\n", __func__);
+
 	switch (event_id) {
 		case WEBSOCKET_EVENT_CONNECTED:
 			LOGE("Connected to WebSocket server\r\n");
 #if !CONFIG_BK_WSS_TRANS_NOPSRAM
-			rtc_websocket_send_text(client, (void *)(&audio_info), BEKEN_RTC_SEND_HELLO);
+			rtc_websocket_send_text(__get_beken_rtc(), (void *)(&audio_info), BEKEN_RTC_SEND_HELLO);
 #else
-            rtc_websocket_send_text(client, (void *)(&dialog_info), BEKEN_RTC_SEND_HELLO);
+            rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_SEND_HELLO);
 #endif
 			break;
 		case WEBSOCKET_EVENT_CLOSED:
