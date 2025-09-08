@@ -179,13 +179,8 @@ static void handle_system_event(key_event_t event)
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
         case AUDIO_BUF_APPEND:
             BK_LOGW(TAG, "audio append start!\n");
-            //websocket_event_send_msg(WSS_EVT_AUDIO_BUF_APPEND, 0);
             app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
             bk_wss_state_event(WSS_EVENT_RECORDING_START, NULL);
-            break;
-        case AUDIO_BUF_COMMIT:
-            BK_LOGW(TAG, "audio commit finish!\n");
-            bk_wss_state_event(WSS_EVENT_RECORDING_END, NULL);
             break;
 #endif
         // 其他事件处理...

@@ -24,10 +24,8 @@ extern "C" {
     { \
         .gpio_id = KEY_GPIO_21, \
         .active_level = LOW_LEVEL_TRIGGER, \
-        .short_event = IR_MODE_SWITCH, \
-        .double_event = POWER_ON, \
-        .long_event = AUDIO_BUF_APPEND, \
-        .long_press_up_event = AUDIO_BUF_COMMIT \
+        .short_event = AUDIO_BUF_APPEND, \
+        .double_event = POWER_ON \
     },\
     { \
         .gpio_id = KEY_GPIO_1, \

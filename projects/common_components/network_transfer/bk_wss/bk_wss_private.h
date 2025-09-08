@@ -476,7 +476,7 @@ typedef struct {
 	uint16_t playing_state;
 	uint16_t recording_state;
 	wss_evt_info_t wss_evt_info;
-	uint16_t server_pause_flags;
+	uint16_t fc_is_acked;
 	// For 4-packet combination sending of PCM audio data
 	uint8_t *send_cache_buffer;
 	size_t send_cache_size;

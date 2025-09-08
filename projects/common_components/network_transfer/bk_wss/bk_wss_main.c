@@ -254,6 +254,7 @@ int32_t bk_wss_state_event(uint32_t event, void *param)
 	switch (event) {
 		case WSS_EVENT_RECORDING_START:
 			LOGE("%s, WSS_EVENT_RECORDING_START\n", __func__);
+			websocket_event_send_msg(WSS_EVT_AUDIO_BUF_COMMIT, 0);
 			if (wss_record_work(__get_beken_rtc()) == 0) {
 				wss_record_start(__get_beken_rtc());
 			}
@@ -264,7 +265,6 @@ int32_t bk_wss_state_event(uint32_t event, void *param)
 			if (wss_record_work(__get_beken_rtc()) != 0) {
 				wss_record_stop(__get_beken_rtc());
 			}
-			websocket_event_send_msg(WSS_EVT_AUDIO_BUF_COMMIT, 0);
 			break;
 		case WSS_EVENT_LLM_COMPLETE:
 			LOGE("%s, WSS_EVENT_LLM_COMPLETE\n", __func__);
@@ -308,7 +308,7 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
 			smart_config_running = false;
 			__get_beken_rtc()->disconnecting_state = 0;
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
-            websocket_event_send_msg(WSS_EVT_SERVER_HELLO, 0);
+            websocket_event_send_msg(WSS_EVT_SESSION_UPDATE, 0);
 #endif
 		}
 		else {
@@ -327,25 +327,29 @@ void bk_websocket_msg_handle(char *json_text, unsigned int size)
 #endif
     }
 #if CONFIG_BK_WSS_TRANS_NOPSRAM
-    else if (strcmp(type->valuestring, "session.updated") == 0) {
+    else if (strncmp(type->valuestring, "session.updated", 15) == 0) {
         LOGI("session.updated\n");
         websocket_event_send_msg(WSS_EVT_SERVER_SESSION_UPDATED, 0);
-    } else if (strcmp(type->valuestring, "input_audio_buffer.committed") == 0) {
+    } else if (strncmp(type->valuestring, "input_audio_buffer.committed", 28) == 0) {
         LOGI("input_audio_buffer.committed\n");
-        websocket_event_send_msg(WSS_EVT_SERVER_BUF_COMMITED, 0);
-    } else if (strcmp(type->valuestring, "response.created") == 0) {
+        websocket_event_send_msg(WSS_EVT_RSP_CREATE, 0);
+        bk_wss_state_event(WSS_EVENT_RECORDING_END, NULL);
+    } else if ((strncmp(type->valuestring, "input_audio_buffer.invalid", 26) == 0)) {
+        BK_LOGW(TAG, "invalid!\n");
+        bk_wss_state_event(WSS_EVENT_RECORDING_END, NULL);
+    } else if (strncmp(type->valuestring, "response.created", 16) == 0) {
         LOGI("response.created\n");
         bk_wss_state_event(WSS_EVENT_PLAYING_START, NULL);
         text_info_t info = {};
         rtc_websocket_parse_request_text(&info, root);
-    } else if (strcmp(type->valuestring, "response.audio.done") == 0) {
+    } else if (strncmp(type->valuestring, "response.audio.done", 19) == 0) {
         LOGI("response.audio.done\n");
         text_info_t info = {};
         parse_audio_done(&info, root);
     } else if ((strncmp(type->valuestring, "pack_pause", 10) == 0)) {
-        __get_beken_rtc()->server_pause_flags = 0;
+        __get_beken_rtc()->fc_is_acked = 0;
         LOGE("%s pack_pause\r\n", __func__);
-    } 
+    }
 #endif
     else {
         LOGE("Warning: Unknown type: %s\n", type->valuestring);

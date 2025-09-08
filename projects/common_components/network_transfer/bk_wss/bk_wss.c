@@ -372,7 +372,7 @@ static void wss_event_thread(beken_thread_arg_t data)
 		{
 			switch (msg.event)
 			{
-				case WSS_EVT_SERVER_HELLO:
+				case WSS_EVT_SESSION_UPDATE:
 					LOGI("hello from server\n");
 					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_SESSION_UPDATE);
 					break;
@@ -383,7 +383,7 @@ static void wss_event_thread(beken_thread_arg_t data)
 					LOGI("audio buf commit\n");
 					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_INPUT_AUDIO_BUFFER_COMMIT);
 					break;
-				case WSS_EVT_SERVER_BUF_COMMITED:
+				case WSS_EVT_RSP_CREATE:
 					rtc_websocket_send_text(__get_beken_rtc(), (void *)(&dialog_info), BEKEN_RTC_RESPONSE_CREATE);
 					break;
 				case WSS_EVT_SEND_FC_FLAG:
@@ -475,11 +475,11 @@ void data_check_fc_send_msg(rtc_session *session)
 {
 	int diff = data_buffer_available(session->ring_buffer);
 
-	if ((diff > ((session->ring_buffer->buffer_count) * 1)/2) && !session->server_pause_flags) {
+	if ((diff > ((session->ring_buffer->buffer_count) * 1)/2) && !session->fc_is_acked) {
 		websocket_event_send_msg(WSS_EVT_SEND_FC_FLAG, 0);
-		session->server_pause_flags = 1;
+		session->fc_is_acked = 1;
 	}
-	else if ((diff <= 5) && session->server_pause_flags) {
+	else if ((diff <= 5) && session->fc_is_acked) {
 		LOGE("%s fc msg may lost, available:%d\r\n", __func__, diff);
 		websocket_event_send_msg(WSS_EVT_SEND_FC_FLAG, 0);
 	}
@@ -1109,7 +1109,7 @@ int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType ms
 #else
 		case BEKEN_RTC_SEND_HELLO:
 			n = snprintf(buf, BEKEN_RTC_TXT_SIZE, 
-                        "{\"type\":\"hello\",\"interact_mode\":3}");
+                        "{\"type\":\"hello\",\"interact_mode\":4}");
             LOGI("Hello Sending: %s\r\n", buf);
             websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
@@ -1122,6 +1122,7 @@ int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType ms
                         "\"nfcId\":\"%s\", "
                         "\"input_audio_format\":\"%s\", "
                         "\"input_audio_rate\":%d, "
+                        "\"input_audio_duration\":%d, "
                         "\"output_audio_format\":\"%s\", "
                         "\"output_audio_rate\":%d, "
                         "\"cloud_vad\":%d, "
@@ -1131,8 +1132,10 @@ int rtc_websocket_send_text(rtc_session *rtc_session, void *str, enum MsgType ms
                         "}",
                         ((dialog_session_t *)str)->devId, ((dialog_session_t *)str)->nfcId,
                         ((dialog_session_t *)str)->input_audio_format, ((dialog_session_t *)str)->input_audio_rate,
+                        rtc_session->audio_info.enc_samp_interval,
                         ((dialog_session_t *)str)->output_audio_format, ((dialog_session_t *)str)->output_audio_rate,
-                        ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source, rtc_session->ring_buffer->buffer_count/2);
+                        ((dialog_session_t *)str)->cloud_vad, ((dialog_session_t *)str)->source,
+                        rtc_session->ring_buffer->buffer_count/2);
             LOGI("Session_Update: %s\r\n", buf);
             websocket_client_send_text(rtc_session->bk_rtc_client, buf, n, 10*1000);
             break;
