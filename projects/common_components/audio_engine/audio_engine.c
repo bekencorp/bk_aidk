@@ -320,14 +320,20 @@ static int tone_play_data_end_notify(void *param)
     }
 	return rval;
 }
-
+#if (CONFIG_AUD_SWEEP_TEST)
+void get_aud_aec_sweep_result(void * p)
+{
+	aud_tras_drv_sweep_notify_t *p_sweep = (aud_tras_drv_sweep_notify_t *)p;
+	AUDE_LOGI("%s, step:%d, b1:%d, b2:%d\n", __func__, p_sweep->test_step, p_sweep->b1, p_sweep->b2);
+}
+#endif
 
 bk_err_t audio_turn_on(void)
 {
     bk_err_t ret =  BK_OK;
     char * encoder_name;
     char * decoder_name;
-    
+
     AUDE_LOGI("%s\n", __func__);
 
     AUDIO_RX_SPK_DATA_DUMP_OPEN();
@@ -370,6 +376,10 @@ bk_err_t audio_turn_on(void)
 
     audio_tras_init();
     aud_intf_drv_setup.aud_intf_tx_mic_data = send_audio_data_to_net_transfer;
+
+#if (CONFIG_AUD_SWEEP_TEST)
+	aud_intf_drv_setup.aud_intf_notify_sweep_result = get_aud_aec_sweep_result;
+#endif
 
     ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
