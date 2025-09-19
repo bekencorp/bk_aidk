@@ -29,30 +29,39 @@
 #include <stdio.h>
 #if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
 #include "driver/trng.h"
-#include "auth_config.h"
 #endif
 #include "chat_state_machine.h"
+
 #define TAG "bk_sconf_lingxin"
 
 #if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
+struct lingxin_auth_config {
+    char *appId;
+    char *appKey;
+    char *sn;
+    char *agentCode;
+};
+
 #define RCV_BUF_SIZE            256
-#define SEND_HEADER_SIZE           1024
-#define POST_DATA_MAX_SIZE  1024*2
-#define MAX_URL_LEN         256
+#define SEND_HEADER_SIZE        1024
+#define POST_DATA_MAX_SIZE      (1024 * 2)
+#define MAX_URL_LEN             256
+
 char *channel_name_record = NULL;
-extern struct lingxin_auth_config auth_config;
+struct lingxin_auth_config auth_config = {0};
 #endif
 
 void bk_app_notify_wakeup_event(void)
 {
-    BK_LOGI(TAG, "%s line:%d State_Event_Wakeup_Detected\r\n", __func__, __LINE__);
-    state_machine_run_event(State_Event_Wakeup_Detected);
+    BK_LOGI(TAG, "%s line:%d start_new_chat\r\n", __func__, __LINE__);
+    start_new_chat(NULL);
 }
 
-extern void beken_auto_run(uint8_t reset);
+extern void lingxin_auto_run(uint8_t reset);
+
 void bk_sconf_trans_start(void)
 {
-     beken_auto_run(0);
+    lingxin_auto_run(0);
 }
 
 void bk_sconf_trans_stop(void)
@@ -84,10 +93,10 @@ int bk_sconf_get_agent_info(bk_sconf_agent_info_t *info)
 {
     bk_sconf_agent_info_t info_tmp = {0};
 
-    if (bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t)) <= 0)
-    {
+    if (bk_config_read("d_agent_info", (void *)&info_tmp, sizeof(bk_sconf_agent_info_t)) <= 0) {
         return -1;
     }
+
     os_memcpy(info, &info_tmp, sizeof(bk_sconf_agent_info_t));
     return 0;
 }
@@ -100,66 +109,61 @@ uint16_t bk_sconf_send_agent_info(char *payload, uint16_t max_len)
     uint16 len = 0;
 
     bk_uid_get_data(uid);
-    for (int i = 0; i < 24; i++)
-    {
+    for (int i = 0; i < 24; i++) {
         sprintf(uid_str + i * 2, "%02x", uid[i]);
     }
+
     len = os_snprintf(payload, max_len, "{\"channel\":\"%s\"}", uid_str);
     BK_LOGI(TAG, "ori channel name:%s, %d\r\n", uid_str, len);
     return len;
 }
 
-void  bk_sconf_prase_agent_info(char *payload, uint8_t reset)
+void bk_sconf_prase_agent_info(char *payload, uint8_t reset)
 {
 #if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
     cJSON *json = NULL;
     int ret __maybe_unused = 0;
 
     json = cJSON_Parse(payload);
-    if (!json)
-    {
+    if (!json) {
         BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
         return;
     }
-    if (channel_name_record)
-    {
+
+    if (channel_name_record) {
         os_free(channel_name_record);
     }
 
     cJSON *channel_name = cJSON_GetObjectItem(json, "channel_name");
-    if (channel_name && ((channel_name->type & 0xFF) == cJSON_String))
-    {
+    if (channel_name && ((channel_name->type & 0xFF) == cJSON_String)) {
         channel_name_record = os_strdup(channel_name->valuestring);
         BK_LOGI(TAG, "real channel name:%s\r\n", channel_name_record);
-    }
-    else
-    {
+    } else {
         BK_LOGE(TAG, "[Error] not find msg\n");
     }
+
     cJSON_Delete(json);
-    if (channel_name_record)
-    {
+
+    if (channel_name_record) {
         bk_sconf_save_agent_info(channel_name_record);
         BK_LOGI(TAG, "begin agora_auto_run\n");
 
-        if (!bk_sconf_is_net_pan_configured())
-        {
+        if (!bk_sconf_is_net_pan_configured()) {
             app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
         }
 
         bk_sconf_sync_flash();
-        beken_auto_run(reset);
+        lingxin_auto_run(reset);
     }
 #else
     BK_LOGI(TAG, "begin agora_auto_run\n");
 
-    if (!bk_sconf_is_net_pan_configured())
-    {
+    if (!bk_sconf_is_net_pan_configured()) {
         app_event_send_msg(APP_EVT_CLOSE_BLUETOOTH, 0);
     }
 
     bk_sconf_sync_flash();
-    beken_auto_run(reset);
+    lingxin_auto_run(reset);
 #endif
 }
 
@@ -168,8 +172,8 @@ int bk_sconf_rsp_parse_update(char *buffer)
 {
     __maybe_unused bk_sconf_agent_info_t info = {0};
     cJSON *json = cJSON_Parse(buffer);
-    if (!json)
-    {
+
+    if (!json) {
         BK_LOGE(TAG, "Error before: [%s]\n", cJSON_GetErrorPtr());
         return BK_FAIL;
     }
@@ -183,8 +187,7 @@ int bk_sconf_rsp_parse_update(char *buffer)
     
     cJSON* sn_item = cJSON_GetObjectItem(data, "sn");
     const char* sn = cJSON_GetStringValue(sn_item);
-    if (auth_config.sn)
-    {
+    if (auth_config.sn) {
         os_free(auth_config.sn);
         auth_config.sn = NULL;
     }
@@ -192,8 +195,7 @@ int bk_sconf_rsp_parse_update(char *buffer)
     
     cJSON* appid_item = cJSON_GetObjectItem(data, "app_id");
     const char* appid = cJSON_GetStringValue(appid_item);
-    if (auth_config.appId)
-    {
+    if (auth_config.appId) {
         os_free(auth_config.appId);
         auth_config.appId = NULL;
     }
@@ -201,8 +203,7 @@ int bk_sconf_rsp_parse_update(char *buffer)
     
     cJSON* appkey_item = cJSON_GetObjectItem(data, "app_key");
     const char* appkey = cJSON_GetStringValue(appkey_item);
-    if (auth_config.appKey)
-    {
+    if (auth_config.appKey) {
         os_free(auth_config.appKey);
         auth_config.appKey = NULL;
     }
@@ -210,20 +211,21 @@ int bk_sconf_rsp_parse_update(char *buffer)
     
     cJSON* agentcode_item = cJSON_GetObjectItem(data, "agent_code");
     const char* agentcode = cJSON_GetStringValue(agentcode_item);
-    if (auth_config.agentCode)
-    {
+    if (auth_config.agentCode) {
         os_free(auth_config.agentCode);
         auth_config.agentCode = NULL;
     }
     auth_config.agentCode = os_strdup(agentcode);
     
     cJSON_Delete(json);
-
+    BK_LOGE(TAG, "%s [appId:%s] [appKey:%s] [sn:%s] [agentCode:%s]\r\n",
+            __func__, auth_config.appId, auth_config.appKey, auth_config.sn, auth_config.agentCode);
     return BK_OK;
 }
 
 extern char *bk_get_bk_server_url(uint8_t index);
-int bk_sconf_wakeup_agent(uint8_t reset)
+
+int bk_http_post_agent(void)
 {
     struct webclient_session *session = NULL;
     char *buffer = NULL, *post_data = NULL;
@@ -234,15 +236,13 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 
     /* create webclient session and set header response size */
     session = webclient_session_create(SEND_HEADER_SIZE);
-    if (session == NULL)
-    {
+    if (session == NULL) {
         ret = -1;
         goto __exit;
     }
 
     url_len = os_snprintf(generate_url, MAX_URL_LEN, "%s/activate_agent/", bk_get_bk_server_url(2));
-    if ((url_len < 0) || (url_len >= MAX_URL_LEN))
-    {
+    if ((url_len < 0) || (url_len >= MAX_URL_LEN)) {
         BK_LOGE(TAG, "URL len overflow\r\n");
         ret = -1;
         return ret;
@@ -250,22 +250,18 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 
     /*Generate data*/
     post_data = os_malloc(POST_DATA_MAX_SIZE);
-    if (post_data == NULL)
-    {
+    if (post_data == NULL) {
         ret = -1;
         BK_LOGE(TAG, "no memory for post_data buffer\n");
         goto __exit;
     }
     os_memset(post_data, 0, POST_DATA_MAX_SIZE);
 
-    if (bk_sconf_get_agent_info(&info) == 0)
-    {
-        if (info.valid != 1)
-        {
+    if (bk_sconf_get_agent_info(&info) == 0) {
+        if (info.valid != 1) {
             return -1;
         }
-        if (channel_name_record)
-        {
+        if (channel_name_record) {
             os_free(channel_name_record);
         }
         channel_name_record = os_strdup(info.channel_name);
@@ -277,19 +273,18 @@ int bk_sconf_wakeup_agent(uint8_t reset)
 
     data_len = os_snprintf(post_data, POST_DATA_MAX_SIZE, "{\"channel\":\"%s\",", channel_name_record);
     //agent_param reserved for further development, beken server solution
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {");
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"voice_in_format\": \"pcm\",\"voice_out_format\": \"mp3\",");
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "\"voice_in_sample_rate\": 16000,\"voice_out_sample_rate\": 16000");
+    data_len += os_snprintf(post_data + data_len, POST_DATA_MAX_SIZE, "\"agent_param\": {");
+    data_len += os_snprintf(post_data + data_len, POST_DATA_MAX_SIZE, "\"voice_in_format\": \"pcm\",\"voice_out_format\": \"mp3\",");
+    data_len += os_snprintf(post_data + data_len, POST_DATA_MAX_SIZE, "\"voice_in_sample_rate\": 16000,\"voice_out_sample_rate\": 16000");
     rand_flag = bk_rand();
-    data_len += os_snprintf(post_data+data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
+    data_len += os_snprintf(post_data + data_len, POST_DATA_MAX_SIZE, "},\"rand_flag\":\"%u\"}", rand_flag);
     BK_LOGI(TAG, "%s, %s\r\n", __func__, post_data);
 
     webclient_header_fields_add(session, "Content-Length: %d\r\n", os_strlen(post_data));
     webclient_header_fields_add(session, "Content-Type: application/json\r\n");
 
-    buffer = (char *) web_malloc(RCV_BUF_SIZE);
-    if (buffer == NULL)
-    {
+    buffer = (char *)web_malloc(RCV_BUF_SIZE);
+    if (buffer == NULL) {
         ret = -1;
         BK_LOGE(TAG, "no memory for receive response buffer.\n");
         goto __exit;
@@ -297,44 +292,131 @@ int bk_sconf_wakeup_agent(uint8_t reset)
     os_memset(buffer, 0, RCV_BUF_SIZE);
 
     /* send POST request by default header */
-    if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200)
-    {
+    if ((resp_status = webclient_post(session, generate_url, post_data, data_len)) != 200) {
         ret = -1;
         BK_LOGE(TAG, "webclient POST request failed, response(%d) error.\n", resp_status);
         goto __exit;
     }
 
     BK_LOGI(TAG, "webclient post response data: \n");
-    do
-    {
+    do {
         bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
-        if (bytes_read > 0)
-        {
+        if (bytes_read > 0) {
             break;
         }
-    }
-    while (1);
-    BK_LOGI(TAG, "bytes_read: %d\n", bytes_read);
+    } while (1);
 
+    BK_LOGI(TAG, "bytes_read: %d\n", bytes_read);
     BK_LOGI(TAG, "buffer %s.\n", buffer);
 
     ret = bk_sconf_rsp_parse_update(buffer);
+
 __exit:
-    if (session)
-    {
+    if (session) {
         webclient_close(session);
     }
 
-    if (buffer)
-    {
+    if (buffer) {
         web_free(buffer);
     }
 
-    if (post_data)
-    {
+    if (post_data) {
         os_free(post_data);
     }
 
     return ret;
+}
+
+static char *get_app_id()
+{
+    if (auth_config.appId) {
+        BK_LOGD(TAG, "%s auth_config.appId:%s\n", __func__, auth_config.appId);
+        return (auth_config.appId);
+    }
+    return NULL;
+}
+
+static char *get_app_key()
+{
+    if (auth_config.appKey) {
+        BK_LOGD(TAG, "%s auth_config.appKey:%s\n", __func__, auth_config.appKey);
+        return (auth_config.appKey);
+    }
+    return NULL;
+}
+
+static char *get_sn()
+{
+    if (auth_config.sn) {
+        BK_LOGD(TAG, "%s auth_config.sn:%s\n", __func__, auth_config.sn);
+        return (auth_config.sn);
+    }
+    return NULL;
+}
+
+static char *get_agent_code()
+{
+    if (auth_config.agentCode) {
+        BK_LOGD(TAG, "%s auth_config.agentCode:%s\n", __func__, auth_config.agentCode);
+        return (auth_config.agentCode);
+    }
+    return NULL;
+}
+
+void event_listener(ChatLifeCycleEvent event, void *payload)
+{
+    switch (event) {
+        case CHAT_LIFE_CYCLE_EVENT_EXIT:
+            BK_LOGI(TAG, "Exit done\n");
+            break;
+        case CHAT_LIFE_CYCLE_EVENT_SCHEDULE_EMIT:
+            BK_LOGI(TAG, "Schedule time\n");
+            break;
+        case CHAT_LIFE_CYCLE_EVENT_TEXT_OUT:
+            BK_LOGI(TAG, "Text out\n");
+            break;
+        case CHAT_LIFE_CYCLE_EVENT_PLAY_END:
+            BK_LOGI(TAG, "Play end\n");
+            break;
+        default:
+            BK_LOGI(TAG, "Unknown event: %d\n", event);
+            break;
+    }
+}
+
+int bk_sconf_wakeup_agent(uint8_t reset)
+{
+    if (bk_http_post_agent() != BK_OK) {
+        BK_LOGI(TAG, "%s. fail\n", __func__);
+        return BK_FAIL;
+    }
+
+    // 在联网成功后，进行对话模式初始化
+    // 1. 通过内置方法获取默认的初始化参数
+    VoiceChatInitProps props = get_voice_chat_init_default_props();
+
+    // 2. 修改参数
+    // 2.1 注册自行实现的动态获取租户 ID、License、设备号 SN、agentCode/appCode 函数
+    props.auth_app_id_get_func = get_app_id;
+    props.auth_app_key_get_func = get_app_key;
+    props.auth_sn_get_func = get_sn;
+    props.auth_agent_code_get_func = get_agent_code;
+    // 如果使用appCode，则为
+    // props.auth_agent_code_get_func = your_app_code_get_function
+
+    // 2.2 注册生命周期事件监听函数
+    props.chat_life_cycle_event_listener = event_listener;
+    props.is_schedule_task_on = 0;
+    // 2.3 根据需要进行可选参数的修改（可选）
+    // props.welcome_audio_path = CONFIG_VOICE_PROMPT_FILE_PATH "sdkRecStart.mp3";
+
+    // 3. 调用初始化
+    int res = voice_chat_init(&props);
+    if (res >= 0) {
+        BK_LOGE(TAG, "voiceChat init finish\r\n");
+    } else {
+        BK_LOGE(TAG, "voiceChat init fail\r\n");
+    }
+    return res;
 }
 #endif

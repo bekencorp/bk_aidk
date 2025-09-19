@@ -54,7 +54,7 @@ bool g_connected_flag = false;
 extern bool smart_config_running;
 
 /* call this api when wifi autoconnect */
-void beken_auto_run(uint8_t reset)
+void lingxin_auto_run(uint8_t reset)
 {
 #if !CONFIG_ENABLE_LINGXIN_COSTOM_AUTH
 	if (bk_sconf_wakeup_agent(reset)) {
@@ -67,5 +67,27 @@ void beken_auto_run(uint8_t reset)
 	app_event_send_msg(APP_EVT_AGENT_JOINED, 0);
 	smart_config_running = false;
 
+}
+
+void cli_lingxin_wss_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+
+    if (os_strcmp(argv[1], "wake_up") == 0)
+    {
+        app_event_send_msg(APP_EVT_ASR_WAKEUP, 0);
+    }
+    else if (os_strcmp(argv[1], "sleep") == 0)
+    {
+        app_event_send_msg(APP_EVT_ASR_STANDBY, 0);
+    }
+    else
+    {
+        goto cmd_fail;
+    }
+
+    return;
+
+cmd_fail:
+    os_printf("%s fail\r\n", __func__);
 }
 
