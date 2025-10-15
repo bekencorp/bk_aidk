@@ -261,13 +261,13 @@ Please refer to below document for detail `Firmware Burning <https://docs.bekenc
 2.3.2 Resource Copy
 +++++++++++++++++++++++++++++++++
 
-Copy video and audio files at ``<source code>/project/common_components/resource`` to SD-Nand。
+Copy video and audio files at ``<source code>/project/common_components/resource`` to SD-Nand.
 More detail about SD-Nand please refer to `Guide for SD-Nand <../../api-reference/nand_disk_note.html>`_
 
 2.3.3 Power Up
 +++++++++++++++++++++++++++++++++
 
-Power up system after burning。
+Power up system after burning.
 
 
 **2.4 Network Provisioning**

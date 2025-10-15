@@ -4,18 +4,18 @@ Volcengine RTC
 :link_to_translation:`zh_CN:[中文]`
 
 **1. Introduction to Volcengine RTC**
----------------------------------
+--------------------------------------------
 Volcengine Real Time Communication (veRTC) provides highly reliable, high-concurrency, low-latency real-time audio and video communication capabilities worldwide, enabling various types of real-time communication and interaction.
 For detailed introduction, please refer to online materials: https://www.volcengine.com/product/veRTC
 
 **2. Distribution of Volcengine RTC Related Code**
----------------------------------
+---------------------------------------------------
  - Volcengine RTC HAL layer and library code directory: ``/bk_ai/bk_avdk/components/bk_thirdparty/VolcEngineRTCLite``
  - BK and Volcengine RTC transmission integration: ``/bk_ai/project/common_components/network_transfer/volc_rtc``
  - Volcengine RTC demo project directory: ``/bk_ai/project/volc_rtc``
 
 **3. Prerequisites for Using Volcengine RTC**
----------------------------------
+---------------------------------------------
 To use Volcengine RTC and large models for AI dialogue, you need to activate related services and configure permissions. For details, please refer to Volcengine's online documentation:
 https://www.volcengine.com/docs/6348/1315561
 
@@ -29,16 +29,16 @@ AIDK includes two methods to start the Agent: starting the Agent through the BK 
     **We strongly recommend that developers set up their own servers to facilitate duration control, device management, and differentiated deployment.**
 
 **4.1 Starting Agent through BK Server**
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 After network configuration is completed, the program will call ``bk_sconf_wakeup_agent()`` to request the BK server to start the Agent and the device-side RTC, and then ask the device to join the room where the Agent is located for AI dialogue.
 
 **4.2 Starting Agent through Developer-Deployed Server**
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 To facilitate device management for developers, AIDK also supports developers to start the Agent through a personally deployed server. For server deployment, please refer to Volcengine's open-source code and guidelines: https://github.com/volcengine/rtc-aigc-embedded-demo
 To start the Agent using this method, the following configurations are required:
 
 4.2.1 Modify beken_genie Volcengine RTC Project Configuration File
-++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Modify the ``/bk_ai/project/volc_rtc/config/bk7258/config`` file, and enable the code related to starting the Agent from the custom deployment server by setting CONFIG_BK_DEV_STARTUP_AGENT=y.
 
@@ -60,7 +60,7 @@ Modify the ``/bk_ai/project/common_components/network_transfer/volc_rtc/volc_con
 
 
 **5. License Function Description**
----------------------------------
+---------------------------------------
 Volcengine RTC supports license-based billing. License billing follows special billing rules; please confirm with Volcengine before use.
 To use license-based billing, ensure that the CONFIG_VOLC_RTC_ENABLE_LICENSE macro in the ``/bk_ai/project/volc_rtc/config/bk7258/config`` file is configured as y.
 The license is bound to the device UID by default. The device UID can be obtained through ``byte_print_finger()``.
@@ -73,10 +73,10 @@ After obtaining the license file, name it VolcEngineRTCLite.lic and copy it to t
     Developers can contact the staff who provided the AIDK development board to obtain a license file for experience.
 
 **6. Personalized Configuration**
----------------------------------
+---------------------------------------
 
 **6.1 Audio Codec Configuration**
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Volcengine supports common audio encoding and decoding formats. The AIDK Volcengine RTC project uses opus by default. If you want to change to G722 encoding and decoding, you can modify the AUDIO_ENCODER/AUDIO_DECODER configurations in the two files ``/bk_ai/project/volc_rtc/config/bk7258/config`` and ``/bk_ai/projects/volc_rtc/config/bk7258_cp1/config``.
 
 .. code::
@@ -92,7 +92,7 @@ Volcengine RTC operations related to audio codec include the following:
  - When starting the Agent, configure the corresponding audio encoding type through the audio_codec parameter, for details, refer to the implementation of the ``start_voice_bot`` function
 
 **6.2 Visual Recognition Function**
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 The Volcengine project supports visual recognition by default. The AIDK Volcengine project does not enable visual recognition by default after network configuration. You can switch between visual recognition and ordinary AI dialogue functions through the S2 button.
 If you want to enable visual recognition by default after network configuration, you can set CONFIG_VOLC_ENABLE_VISION_BY_DEFAULT=y in the ``/bk_ai/project/volc_rtc/config/bk7258/config`` file.
 
@@ -103,13 +103,13 @@ The following points should be noted when enabling visual recognition:
  - The backend large model needs to support visual recognition function
 
 **6.3 Subtitle Function**
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 The Volcengine project disables the subtitle function by default. If you want to enable the subtitle function, you can set CONFIG_VOLC_ENABLE_SUBTITLE_BY_DEFAULT=y in the ``/bk_ai/project/volc_rtc/config/bk7258/config`` file.
 The subtitle receiving function is the __on_message_received function in the ``/bk_ai/project/common_components/network_transfer/volc_rtc/volc_rtc.c`` file.
 For the Volcengine subtitle format, please refer to the Volcengine documentation: https://www.volcengine.com/docs/6348/1337284
 
 **7. Reference Links**
---------------------
+---------------------------------
 
 Volcengine Reference Documentation: https://www.volcengine.com/product/veRTC
 

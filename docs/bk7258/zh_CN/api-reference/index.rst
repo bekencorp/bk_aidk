@@ -14,3 +14,4 @@ api-reference
    Gsensor API使用及算法demo <gsensor_link>
    Nfc API介绍 <nfc_link>
    aud_intf API使用说明 <bk_aud_intf>
+   TensorFlow Lite Micro开发指南 <tensorflow>

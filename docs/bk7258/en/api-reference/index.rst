@@ -13,3 +13,4 @@ api-reference
    GSensor API Usage and Algorithm Demo <gsensor_link>
    Nfc API Usage <nfc_link>
    Aud_Intf API User Guide <bk_aud_intf>
+   TensorFlow Lite Micro Developer Guide <tensorflow>
