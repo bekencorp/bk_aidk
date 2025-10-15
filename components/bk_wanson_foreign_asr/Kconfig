@@ -1,0 +1,20 @@
+menu "Bk_thirdparty::Wanson_Foreign"
+
+	config WANSON_FOREIGN_ASR
+		bool "Enable Wanson_Foreign ASR"
+		default n
+		help
+			Enable Wanson_Foreign Automatic Speech Recognition
+
+	choice BEKEN_WANSON_ASR_USE_MEMORY
+		depends on WANSON_FOREIGN_ASR
+		prompt "Select beken wanson asr use memory"
+		default BEKEN_WANSON_ASR_USE_PSRAM
+
+		config BEKEN_WANSON_ASR_USE_SRAM
+		bool "Enable beken wanson asr use sram"
+
+		config BEKEN_WANSON_ASR_USE_PSRAM
+		bool "Enable beken wanson asr use psram"
+	endchoice
+endmenu

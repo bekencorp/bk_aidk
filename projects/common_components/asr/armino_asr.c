@@ -38,6 +38,45 @@ int aec_output_callback(void *asr_data, void *user_data)
     return bk_wanson_asr_data_write(gl_wanson_asr, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
 }
 
+
+#if (CONFIG_WANSON_FOREIGN_ASR)
+static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char *result, void *params)
+{
+    uint32_t asr_result = 0;
+
+    if (os_strcmp(result, "Hey Alice") == 0)                 //识别出唤醒词 HeyAlice
+    {
+        LOGI("%s \n", "nihao armino, cmd: 0 ");
+        asr_result = 1;
+    }
+    else if (os_strcmp(result, "Bye Bye Alice") == 0)
+    {
+        LOGI("%s \n", "zaijian armino, cmd: 1 ");
+        asr_result = 2;
+    }
+    else
+    {
+        //nothing
+    }
+
+
+    if (asr_result > 0)
+    {
+#if (CONFIG_SYS_CPU1)
+        aud_tras_drv_set_dialog_run_state_by_asr_result(asr_result);
+#endif
+
+#if (CONFIG_SYS_CPU2)
+        asr_to_media_major_msg.event = EVENT_ASR_RESULT_NOTIFY;
+        asr_to_media_major_msg.result = asr_result;
+        msg_send_notify_to_media_minor_mailbox(&asr_to_media_major_msg, MAJOR_MODULE);
+#endif
+    }
+
+    return BK_OK;
+}
+
+#else
 static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char *result, void *params)
 {
     uint32_t asr_result = 0;
@@ -112,6 +151,7 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 
     return BK_OK;
 }
+#endif
 
 bk_err_t armino_asr_open(void)
 {

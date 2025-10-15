@@ -19,6 +19,8 @@ set(EXTRA_COMPONENTS_DIRS
 	$ENV{ARMINO_PATH}/../components/audio_play
     $ENV{ARMINO_PATH}/../components/audio_record
 	$ENV{ARMINO_PATH}/../../components/bk_wanson_asr
+    $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr/wanson_foreign
+    $ENV{ARMINO_PATH}/../../components/bk_wanson_foreign_asr
 	$ENV{ARMINO_PATH}/../../components/bk_factory_config
 	$ENV{ARMINO_PATH}/../../properties/bk_aidk_private
     $ENV{ARMINO_PATH}/components/base64
