@@ -167,6 +167,12 @@ void user_app_main(void)
     audio_engine_init();
     voide_engine_init();
     network_transfer_init();
+
+#if (CONFIG_WANSON_CN_LICENSE && CONFIG_SYS_CPU0)
+    extern bk_err_t user_key_task_init(void);
+    user_key_task_init();
+#endif
+
 #endif
 
 #if (CONFIG_SYS_CPU1)

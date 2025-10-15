@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdio.h>
+#include <string.h>
 #include <common/bk_include.h>
 #include <modules/pm.h>
+#include <driver/otp.h>
 #include <os/os.h>
 #include <os/mem.h>
 #include <os/str.h>
 #include "bk_wanson_asr.h"
 #include "asr.h"
 #include "ring_buffer.h"
-
 
 #define TAG "ws_asr"
 
@@ -29,9 +31,9 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#define USER_ID "773691CC577C08DD"
 
 #define RAW_READ_SIZE    (960)
-
 
 #if(CONFIG_WANSON_ASR_GROUP_VERSION)
 Fst fst_1;
@@ -135,11 +137,31 @@ static void wanson_asr_task_main(beken_thread_arg_t param_data)
     }
     os_memset(mic_data, 0, RAW_READ_SIZE);
 
+#if (CONFIG_WANSON_CN_LICENSE)
+    //从上海华镇电子科技有限公司获取用户ID，需要与获取授权使用的用户ID保持一致
+    uint8_t useridbuf[8] = {0};
+    for (size_t i = 0; i < strlen(USER_ID); i += 2) {
+        uint32_t byte_value;
+        if (sscanf(USER_ID + i, "%2X", &byte_value) != 1) {
+            LOGD("Failed to convert hex character at position %zu\n", i);
+            goto wanson_asr_exit;
+        }
+        useridbuf[i/2] = (uint8_t)byte_value;   
+    }
+
+    if (Wanson_ASR_Init((uint8_t*)useridbuf) < 0)
+    {
+        LOGE("%s, %d, Wanson_ASR_Init Fail\n", __func__, __LINE__);
+        goto wanson_asr_exit;
+    }
+	LOGI("%s, %d, Wanson_ASR_Init Successfully\n", __func__, __LINE__);
+#else
     if (Wanson_ASR_Init() < 0)
     {
         LOGE("%s, %d, Wanson_ASR_Init Fail\n", __func__, __LINE__);
         goto wanson_asr_exit;
     }
+#endif
 #if (CONFIG_WANSON_ASR_GROUP_VERSION)
     /* 指令分组初始化 */
     fst_1.states = fst01_states;
@@ -296,7 +318,7 @@ static bk_err_t wanson_asr_main_task_init(wanson_asr_handle_t wanson_asr)
                              5,
                              "wanson_asr",
                              (beken_thread_function_t)wanson_asr_task_main,
-                             1024,
+                             1024*2,
                              wanson_asr);
     if (ret != kNoErr)
     {
