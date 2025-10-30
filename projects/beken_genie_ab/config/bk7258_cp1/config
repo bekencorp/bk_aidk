@@ -275,3 +275,4 @@ CONFIG_USB_CDC=y
 #@ This macro needs to be opened on cp0 and cp1 when USB in cp1.
 CONFIG_USB_CDC_MODEM=y
 CONFIG_REMOTE_VFS_SERVER=y
+CONFIG_NTP_SYNC_RTC=y
