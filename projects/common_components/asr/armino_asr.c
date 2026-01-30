@@ -155,6 +155,11 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 
 bk_err_t armino_asr_open(void)
 {
+    if (gl_wanson_asr)
+    {
+        BK_LOGE(TAG, "%s, %d, wanson asr handle already created\n", __func__, __LINE__);
+        return BK_FAIL;
+    }
     wanson_asr_cfg_t asr_config = DEFAULT_WANSON_ASR_CONFIG();
     asr_config.asr_result_notify = wanson_asr_result_notify_handle;
     gl_wanson_asr = bk_wanson_asr_create(&asr_config);
