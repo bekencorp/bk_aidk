@@ -7,15 +7,16 @@ set(EXTRA_COMPONENTS_DIRS
     $ENV{ARMINO_PATH}/../components/bk_audio
     $ENV{ARMINO_PATH}/../components/bk_audio/audio_streams
     $ENV{ARMINO_PATH}/../components/codec/
-	$ENV{ARMINO_PATH}/../components/include/avdk
+    $ENV{ARMINO_PATH}/../components/include/avdk
     $ENV{ARMINO_PATH}/../components/bk_thirdparty/asr
+    $ENV{ARMINO_PATH}/../components/bk_thirdparty/unisound
     #$ENV{ARMINO_PATH}/../components/bk_thirdparty
-	$ENV{ARMINO_PATH}/../components/audio_play
+    $ENV{ARMINO_PATH}/../components/audio_play
     $ENV{ARMINO_PATH}/../properties/modules
     $ENV{ARMINO_PATH}/../properties/modules/video_codec
     $ENV{ARMINO_PATH}/../properties/modules/audio_codec
     $ENV{ARMINO_PATH}/../../components
-	$ENV{ARMINO_PATH}/../../components/bk_tflite_micro
+    $ENV{ARMINO_PATH}/../../components/bk_tflite_micro
     )
 
 include($ENV{ARMINO_PATH}/tools/build_tools/cmake/project.cmake)

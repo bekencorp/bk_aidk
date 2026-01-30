@@ -42,4 +42,4 @@ set(EXTRA_COMPONENTS_DIRS
     )
 
 include($ENV{ARMINO_PATH}/tools/build_tools/cmake/project.cmake)
-project(beken_genie)
+project(beken_genie_unisound)

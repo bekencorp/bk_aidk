@@ -9,7 +9,13 @@
 #if (CONFIG_SYS_CPU1)
 #include "aud_tras_drv.h"
 #endif
+
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
 #include "bk_wanson_asr.h"
+#elif CONFIG_ASR_ENGINE_UNISOUND
+#include "bk_unisound_asr.h"
+#endif
+
 #include "armino_asr.h"
 
 #if (CONFIG_SYS_CPU2)
@@ -23,8 +29,12 @@
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
+static wanson_asr_handle_t gl_asr_handle = NULL;
+#elif CONFIG_ASR_ENGINE_UNISOUND
+static unisound_asr_handle_t gl_asr_handle = NULL;
+#endif
 
-static wanson_asr_handle_t gl_wanson_asr = NULL;
 #if (CONFIG_SYS_CPU2)
 static media_mailbox_msg_t asr_to_media_major_msg = {0};
 #endif
@@ -33,13 +43,18 @@ int aec_output_callback(void *asr_data, void *user_data)
 {
     asr_data_t *asr_data_ptr = (asr_data_t *)asr_data;
 
-    LOGD("%s, %p, %d %d \n", __func__, asr_data_ptr->data, asr_data_ptr->size,asr_data_ptr->spk_play_flag);
+    LOGD("%s, %p, %d %d \n", __func__, asr_data_ptr->data, asr_data_ptr->size, asr_data_ptr->spk_play_flag);
+
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
     bk_wanson_asr_set_spk_play_flag(asr_data_ptr->spk_play_flag);
-    return bk_wanson_asr_data_write(gl_wanson_asr, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
+    return bk_wanson_asr_data_write(gl_asr_handle, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
+#elif CONFIG_ASR_ENGINE_UNISOUND
+    return bk_unisound_asr_data_write(gl_asr_handle, (int16_t *)asr_data_ptr->data, asr_data_ptr->size);
+#endif
 }
 
 
-#if (CONFIG_WANSON_FOREIGN_ASR)
+#if (CONFIG_ASR_ENGINE_WANSON_FOREIGN)
 static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char *result, void *params)
 {
     uint32_t asr_result = 0;
@@ -77,10 +92,14 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 }
 
 #else
+#if CONFIG_ASR_ENGINE_WANSON
 static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char *result, void *params)
+#elif CONFIG_ASR_ENGINE_UNISOUND
+static int unisound_asr_result_notify_handle(unisound_asr_handle_t unisound_asr, char *result, void *params)
+#endif
 {
     uint32_t asr_result = 0;
-
+#if CONFIG_ASR_ENGINE_WANSON
 #if (CONFIG_WANSON_ASR_GROUP_VERSION_WORDS_V1)
     if (os_strcmp(result, "嗨阿米诺") == 0)                 //识别出唤醒词 嗨阿米诺
     {
@@ -134,6 +153,13 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
     }
 
 #endif
+#endif
+
+#if CONFIG_ASR_ENGINE_UNISOUND
+	extern uint8_t g_unisound_wakeup_detected;
+	asr_result = g_unisound_wakeup_detected;
+	g_unisound_wakeup_detected = 0;
+#endif
 
 
     if (asr_result > 0)
@@ -155,37 +181,53 @@ static int wanson_asr_result_notify_handle(wanson_asr_handle_t wanson_asr, char 
 
 bk_err_t armino_asr_open(void)
 {
-    if (gl_wanson_asr)
-    {
-        BK_LOGE(TAG, "%s, %d, wanson asr handle already created\n", __func__, __LINE__);
-        return BK_FAIL;
-    }
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
     wanson_asr_cfg_t asr_config = DEFAULT_WANSON_ASR_CONFIG();
     asr_config.asr_result_notify = wanson_asr_result_notify_handle;
-    gl_wanson_asr = bk_wanson_asr_create(&asr_config);
-    if (!gl_wanson_asr)
+    gl_asr_handle = bk_wanson_asr_create(&asr_config);
+    if (!gl_asr_handle)
     {
         BK_LOGE(TAG, "%s, %d, create wanson asr handle fail\n", __func__, __LINE__);
         return BK_FAIL;
     }
     LOGI("audio wanson asr complete\n");
+#elif CONFIG_ASR_ENGINE_UNISOUND
+    unisound_asr_cfg_t asr_config = DEFAULT_UNISOUND_ASR_CONFIG();
+    asr_config.asr_result_notify = unisound_asr_result_notify_handle;
+    gl_asr_handle = bk_unisound_asr_create(&asr_config);
+    if (!gl_asr_handle)
+    {
+        BK_LOGE(TAG, "%s, %d, create unisound asr handle fail\n", __func__, __LINE__);
+        return BK_FAIL;
+    }
+    LOGI("audio unisound asr complete\n");
+#endif
 
 #if (CONFIG_SYS_CPU1)
     aud_tras_drv_register_aec_ouput_callback(aec_output_callback, NULL);
 #endif
 
-    bk_wanson_asr_start(gl_wanson_asr);
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
+    bk_wanson_asr_start(gl_asr_handle);
     LOGI("wanson asr start complete\n");
+#elif CONFIG_ASR_ENGINE_UNISOUND
+    bk_unisound_asr_start(gl_asr_handle);
+    LOGI("unisound asr start complete\n");
+#endif
 
     return BK_OK;
 }
 
 bk_err_t armino_asr_close(void)
 {
-    if (gl_wanson_asr)
+    if (gl_asr_handle)
     {
-        bk_wanson_asr_destroy(gl_wanson_asr);
-        gl_wanson_asr = NULL;
+#if CONFIG_ASR_ENGINE_WANSON || CONFIG_ASR_ENGINE_WANSON_FOREIGN
+        bk_wanson_asr_destroy(gl_asr_handle);
+#elif CONFIG_ASR_ENGINE_UNISOUND
+        bk_unisound_asr_destroy(gl_asr_handle);
+#endif
+        gl_asr_handle = NULL;
     }
 
     return BK_OK;

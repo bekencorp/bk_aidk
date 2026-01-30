@@ -1,3 +1,26 @@
 menu "asr"
 
+	choice ASR_ENGINE_SELECT
+		prompt "Select ASR Engine"
+		default ASR_ENGINE_WANSON
+
+		config ASR_ENGINE_WANSON
+			depends on WANSON_ASR
+			bool "Use Wanson ASR Engine"
+			help
+			Select Wanson ASR as the speech recognition engine
+
+		config ASR_ENGINE_WANSON_FOREIGN
+			depends on WANSON_FOREIGN_ASR
+			bool "Use Wanson ASR foreign Engine"
+			help
+			Select Wanson ASR foreign as the speech recognition engine
+
+		config ASR_ENGINE_UNISOUND
+			depends on BEKEN_UNISOUND_ASR
+			bool "Use Unisound ASR Engine"
+			help
+			Select Unisound ASR as the speech recognition engine
+	endchoice
+
 endmenu

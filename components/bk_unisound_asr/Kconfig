@@ -1,0 +1,25 @@
+menu "Beken Unisound ASR"
+
+	config BEKEN_UNISOUND_ASR
+		depends on UNISOUND
+		bool "Enable bk_unisound_asr component"
+		default n
+
+	config BEKEN_UNISOUND_ASR_TEST
+		depends on BEKEN_UNISOUND_ASR && AUDIO_RECORD
+		bool "Enable bk_unisound_asr component test case"
+		default n
+
+	choice BEKEN_UNISOUND_ASR_USE_MEMORY
+		depends on BEKEN_UNISOUND_ASR
+		prompt "Select beken unisound asr use memory"
+		default BEKEN_UNISOUND_ASR_USE_SRAM
+
+		config BEKEN_UNISOUND_ASR_USE_SRAM
+		bool "Enable beken unisound asr use sram"
+
+		config BEKEN_UNISOUND_ASR_USE_PSRAM
+		bool "Enable beken unisound asr use psram"
+	endchoice
+
+endmenu
