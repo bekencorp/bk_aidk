@@ -285,8 +285,8 @@ int get_cloud_encryption_cb(char *socket_request, char *ais_lite_needle_ret)
 // If you modify the configuration here (e.g., APP_KEY, APP_SECRET, etc.), please synchronize the corresponding configuration in unisound_if.c
 static DeviceInfo g_device_info = {
     .deviceInfo = {
-        [DEVICE_INFO_APP_KEY] = "9c547203c24c41f885b52c20710aa75e1fc090ed",
-        [DEVICE_INFO_APP_SECRET] = "06f1bf5da0d1444a8676793b5f5158bf",
+        [DEVICE_INFO_APP_KEY] = "11111111111111111111111111111111",
+        [DEVICE_INFO_APP_SECRET] = "11111111111111111111111111111111",
         [DEVICE_INFO_UNIQUE_ID] = "eth0",
 
         [DEVICE_INFO_IMEI] = "111",
@@ -339,7 +339,7 @@ static void user_key_task(void)
         }
         bk_wifi_sta_get_linkstate_with_reason(&info);
         if (info.state != WIFI_LINKSTATE_STA_GOT_IP) {
-            BK_LOGI(TAG, "waiting fot sta getting ip.\r\n");
+            BK_LOGI(TAG, "unisound waiting fot sta getting ip.\r\n");
             rtos_delay_milliseconds(5000);
         } else { 
             break;
@@ -349,7 +349,7 @@ static void user_key_task(void)
     rtos_delay_milliseconds(5000);
     extern time_t ntp_sync_to_rtc(void);
     g_time = ntp_sync_to_rtc();
-    BK_LOGI(TAG, "ais-lite version is %s\n", ais_lite_get_version());
+    BK_LOGI(TAG, "unisound ais-lite version is %s\n", ais_lite_get_version());
     // Set ais-lite library internal log level, default level is LOG_LEVEL_WARNING
     //	ais_lite_log_level_set(LOG_LEVEL_VERBOSE);
 
@@ -357,11 +357,11 @@ static void user_key_task(void)
     bk_err_t ret = ais_lite_encrypt_create(&g_device_info, g_lib_type);
     if (ret == BK_OK)
     {
-        BK_LOGI(TAG, "info [%s:%d] success %d\n", __func__, __LINE__, ret);
+        BK_LOGE(TAG, "unisound info [%s:%d] success %d\n", __func__, __LINE__, ret);
     }
     else
     {
-        BK_LOGE(TAG, "info [%s:%d] fail %d\n", __func__, __LINE__, ret);
+        BK_LOGE(TAG, "unisound info [%s:%d] fail %d\n", __func__, __LINE__, ret);
     }
 
     {

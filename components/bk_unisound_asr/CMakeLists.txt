@@ -14,7 +14,7 @@ if (CONFIG_BEKEN_UNISOUND_ASR_TEST)
 	)
 endif()
 
-if (CONFIG_UNISOUND_LICENSE)
+if (CONFIG_UNISOUND_LICENSE AND CONFIG_SYS_CPU0)
 	list(APPEND srcs
 		src/bk_unisound_usrkey_http.c
 		src/bk_unisound_authcode.c

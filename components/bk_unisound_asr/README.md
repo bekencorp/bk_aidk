@@ -44,17 +44,21 @@ armino_component_register(SRCS "${srcs}"
 
 **文件路径**: `projects/beken_genie_unisound/config/bk7258/config`
 
-**配置说明**: 在 `beken_genie_unisound` 工程中，已添加 Unisound License 配置项和 NTP 时间同步配置。
+**配置说明**: 在 `beken_genie_unisound` 工程中，已添加 NTP 时间同步配置。
 
 **如果要在其他工程上使用，需要在 CPU0 配置文件中添加以下配置**：
 ```
-CONFIG_UNISOUND_LICENSE=y
 CONFIG_NTP_SYNC_RTC=y
 ```
 
 **说明**:
-- `CONFIG_UNISOUND_LICENSE=y`: 启用 Unisound License 管理功能
 - `CONFIG_NTP_SYNC_RTC=y`: 启用 NTP 时间同步到 RTC，**必须配置**。由于 Unisound 的联网授权需要获取时间，在 CPU0 上必须启用此配置以确保系统时间正确
+
+**关于 License 配置**:
+- **重要**: 目前 `beken_genie_unisound` 工程使用的是**无需授权的测试库**，因此不需要配置 `CONFIG_UNISOUND_LICENSE`
+- 如果后续需要使用**授权版本**的 Unisound 库，需要在 **CPU0 和 CPU2** 的配置文件中都添加 `CONFIG_UNISOUND_LICENSE=y`：
+  - CPU0 配置文件 (`config/bk7258/config`): 添加 `CONFIG_UNISOUND_LICENSE=y`
+  - CPU2 配置文件 (`config/bk7258_cp2/config`): 添加 `CONFIG_UNISOUND_LICENSE=y`
 
 **注意**: 该配置文件还可能需要调整 CPU 的 RAM 大小配置，具体取决于您的硬件配置需求。
 
@@ -72,6 +76,10 @@ CONFIG_ASR_ENGINE_UNISOUND=y
 CONFIG_UNISOUND=y
 CONFIG_BEKEN_UNISOUND_ASR=y
 ```
+
+**关于 License 配置**:
+- **重要**: 目前 `beken_genie_unisound` 工程使用的是**无需授权的测试库**，因此不需要配置 `CONFIG_UNISOUND_LICENSE`
+- 如果后续需要使用**授权版本**的 Unisound 库，需要在 CPU2 配置文件中添加 `CONFIG_UNISOUND_LICENSE=y`
 
 同时，需要禁用 Wanson ASR 相关配置（如果之前已启用）：
 ```
@@ -145,7 +153,7 @@ unisound_config,0x7f9000,4K,data,TRUE,
 
 **文件路径**: `projects/beken_genie_unisound/main/app_main.c`
 
-**配置说明**: 在 `beken_genie_unisound` 工程中，已包含 Unisound License 初始化代码。
+**配置说明**: 如果启用了 `CONFIG_UNISOUND_LICENSE`，需要在 `app_main.c` 中添加 Unisound License 初始化代码。
 
 ```c
 #if (CONFIG_UNISOUND_LICENSE)
@@ -154,7 +162,9 @@ unisound_config,0x7f9000,4K,data,TRUE,
 #endif
 ```
 
-**注意**: 在 `beken_genie_unisound` 工程中已包含上述代码。如果要在其他工程上使用，请添加上述代码。
+**注意**: 
+- 目前 `beken_genie_unisound` 工程使用的是**无需授权的测试库**，因此不需要添加上述代码
+- 如果后续需要使用**授权版本**的 Unisound 库，需要在 `app_main.c` 中添加上述代码
 
 ## 配置说明
 
@@ -196,8 +206,10 @@ unisound_config,0x7f9000,4K,data,TRUE,
 
 1. **分区大小**: 添加 `unisound_config` 分区后，需要确保 Flash 空间足够，可能需要调整其他分区的大小。在 `beken_genie_unisound` 工程中，这些配置已经完成
 2. **配置一致性**: 确保 `partitions.csv` 和 `bk7258_partitions.csv` 中的分区配置保持一致
-3. **License 配置**: `CONFIG_UNISOUND_LICENSE=y` 用于启用 Unisound License 管理功能，请确保已正确配置相关 License 信息
-4. **NTP 时间同步**: **必须**在 CPU0 配置文件中启用 `CONFIG_NTP_SYNC_RTC=y`，因为 Unisound 的联网授权需要获取准确的系统时间。如果未启用此配置，可能导致授权失败
+3. **License 配置**: 
+   - 目前 `beken_genie_unisound` 工程使用的是**无需授权的测试库**，因此不需要配置 `CONFIG_UNISOUND_LICENSE`
+   - 如果后续需要使用**授权版本**的 Unisound 库，需要在 **CPU0 和 CPU2** 的配置文件中都添加 `CONFIG_UNISOUND_LICENSE=y`，并确保已正确配置相关 License 信息
+4. **NTP 时间同步**: **必须**在 CPU0 配置文件中启用 `CONFIG_NTP_SYNC_RTC=y`，因为 Unisound 的联网授权需要获取准确的系统时间。如果未启用此配置，可能导致授权失败（仅在使用授权版本时需要）
 5. **OTP 配置**: **必须**在 CPU2 配置文件中启用 `CONFIG_OTP=y` 和 `CONFIG_OTP_V1=y`，如果未启用此配置，可能导致初始化失败
 6. **Flash 和 IPC 配置**: **必须**在 CPU2 配置文件中启用 Flash 和 Mailbox IPC 相关配置（`CONFIG_MAILBOX_IPC=y`、`CONFIG_FLASH=y`、`CONFIG_FLASH_MB=n`、`CONFIG_FLASH_TEST=y`、`CONFIG_OVERRIDE_FLASH_PARTITION=y`）
 
@@ -208,8 +220,10 @@ unisound_config,0x7f9000,4K,data,TRUE,
 1. 组件路径是否正确配置在 `CMakeLists.txt` 中
 2. 分区表配置是否正确，分区是否重叠
 3. 内存配置是否满足应用需求
-4. License 配置是否正确
-5. **NTP 时间同步是否已启用**: 检查 `config/bk7258/config` 中是否已配置 `CONFIG_NTP_SYNC_RTC=y`，如果 Unisound 授权失败，很可能是时间同步未启用导致的
+4. **License 配置**: 
+   - 如果使用授权版本的 Unisound 库，检查 CPU0 和 CPU2 配置文件中是否都已配置 `CONFIG_UNISOUND_LICENSE=y`
+   - 检查 License 相关信息是否正确配置
+5. **NTP 时间同步是否已启用**: 检查 `config/bk7258/config` 中是否已配置 `CONFIG_NTP_SYNC_RTC=y`，如果使用授权版本且授权失败，很可能是时间同步未启用导致的
 6. **OTP 配置是否已启用**: 检查 `config/bk7258_cp2/config` 中是否已配置 `CONFIG_OTP=y` 和 `CONFIG_OTP_V1=y`，如果 Unisound 初始化失败，很可能是 OTP 配置未启用导致的
 7. **Flash 和 IPC 配置是否已启用**: 检查 `config/bk7258_cp2/config` 中是否已配置 `CONFIG_MAILBOX_IPC=y`、`CONFIG_FLASH=y`、`CONFIG_FLASH_MB=n`、`CONFIG_FLASH_TEST=y`、`CONFIG_OVERRIDE_FLASH_PARTITION=y`，如果授权码读取失败，很可能是这些配置未启用导致的
 

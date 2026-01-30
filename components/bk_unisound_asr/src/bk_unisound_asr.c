@@ -99,7 +99,7 @@ static void unisound_asr_task_main(beken_thread_arg_t param_data)
         goto unisound_asr_exit;
     }
     os_memset(mic_data, 0x00, RAW_READ_SIZE);
-
+#if CONFIG_UNISOUND_LICENSE
     if (check_unisound_auth_code() == BK_FAIL) {
         os_printf("auth code error, need check more.\n");
         ret = BK_FAIL;
@@ -113,7 +113,7 @@ static void unisound_asr_task_main(beken_thread_arg_t param_data)
     } else{
         os_printf("get auth code success. authcode: %s\n", authcode);
     }
-
+#endif
     ret = unisound_kws_init((void *)authcode, 20 * 1024);
     if (ret != BK_OK)
     {
