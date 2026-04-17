@@ -251,9 +251,15 @@ copy URL
 ### Step 20: Update device config
 
 Edit:
+
 CONFIG_AGENT_SERVER_URL
+
 Replace with your URL.
-Step 21: Rebuild + Flash again
+
+### Step 21: Rebuild + Flash again
+
 Repeat:
+
 make bk7258 PROJECT=beken_genie
+
 Flash again.
